@@ -128,6 +128,19 @@
     }
     .cal-header-actions[hidden] { display: none; }
 
+    .shell-add {
+      border: 0;
+      border-radius: 9px;
+      padding: 8px 12px;
+      background: var(--shell-accent);
+      color: #fff;
+      font: 800 12.5px/1 var(--shell-font);
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .shell-add:hover { opacity: .9; }
+    .shell-add[hidden] { display: none; }
+
     .shell-sheet-link {
       font-size: 12px;
       font-weight: 600;
@@ -268,6 +281,7 @@
       <div class="shell-title" id="shell-title">채용 콘텐츠 대시보드</div>
       <!-- 캘린더 전용 액션 (캘린더 뷰에서만 노출) -->
       <div class="cal-header-actions" id="cal-header-actions" hidden>
+        <button class="shell-add" id="shell-add" type="button" hidden>＋ 일정 추가</button>
         <a class="shell-sheet-link" id="shell-sheet-link"
            href="https://docs.google.com/spreadsheets/d/1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak/edit?gid=658998951#gid=658998951"
            target="_blank">시트 열기 ↗</a>
@@ -305,13 +319,27 @@
     const shellLogin = document.getElementById('btn-login');
     const calHeaderActions = document.getElementById('cal-header-actions');
     const shellRefreshBtn = document.getElementById('shell-refresh');
+    const shellAddBtn = document.getElementById('shell-add');
 
     shellLogin.hidden = true;
     calHeaderActions.hidden = true;
 
+    function currentFrameDocument() {
+      return viewContainer.querySelector('iframe')?.contentDocument;
+    }
+
+    shellLogin.addEventListener('click', () => {
+      const login = currentFrameDocument()?.querySelector('#btn-login');
+      if (login) login.click();
+    });
+
+    shellAddBtn.addEventListener('click', () => {
+      const add = currentFrameDocument()?.querySelector('#btn-add');
+      if (add) add.click();
+    });
+
     shellRefreshBtn.addEventListener('click', () => {
-      const frameDoc = viewContainer.querySelector('iframe')?.contentDocument;
-      const calRefresh = frameDoc?.querySelector('#btn-refresh');
+      const calRefresh = currentFrameDocument()?.querySelector('#btn-refresh');
       if (calRefresh) calRefresh.click();
     });
 
@@ -325,8 +353,12 @@
         link.classList.toggle('active', link.dataset.route === route);
       });
       shellTitle.textContent = routes[route].title;
-      shellLogin.hidden = true;
-      calHeaderActions.hidden = true;
+      const isCalendar = route === 'calendar';
+      shellLogin.hidden = !isCalendar;
+      calHeaderActions.hidden = !isCalendar;
+      shellAddBtn.hidden = true;
+      shellLogin.textContent = '편집 로그인';
+      shellLogin.classList.remove('authenticated');
     }
 
     function injectViewChromeStyles(frame, route) {
@@ -337,19 +369,38 @@
         style.textContent = `
           .topbar .brand { display: none !important; }
           .topbar-in { max-width: none !important; padding-left: 24px !important; padding-right: 24px !important; }
-          .site-header > .brand,
-          .site-header > .sep,
-          .site-header > .sep + span { display: none !important; }
-          .site-header { top: 0 !important; }
+          .site-header { display: none !important; }
         `;
         doc.head.appendChild(style);
         if (route === 'calendar') {
           doc.documentElement.style.background = '#F5F4F1';
           doc.body.style.background = '#F5F4F1';
+          syncCalendarShellActions(doc);
         }
       } catch (error) {
         console.warn('[shell] view chrome style skipped', error);
       }
+    }
+
+    function syncCalendarShellActions(doc) {
+      const sourceLogin = doc.querySelector('#btn-login');
+      const sourceAdd = doc.querySelector('#btn-add');
+      if (!sourceLogin || !sourceAdd) return;
+
+      const sync = () => {
+        shellLogin.textContent = sourceLogin.textContent || '편집 로그인';
+        shellLogin.classList.toggle('authenticated', sourceLogin.classList.contains('authenticated'));
+        shellAddBtn.hidden = sourceAdd.hidden;
+      };
+
+      sync();
+      new MutationObserver(sync).observe(sourceLogin, {
+        attributes: true,
+        childList: true,
+        characterData: true,
+        subtree: true
+      });
+      new MutationObserver(sync).observe(sourceAdd, { attributes: true });
     }
 
     function loadView(route) {
