@@ -232,24 +232,12 @@
 
     #view-container { min-height: calc(100vh - 58px); }
 
-    /* Loaded views already have their own utility bars. Keep controls, remove duplicate branding. */
-    #view-container .topbar {
-      top: 58px;
-    }
-
-    #view-container .topbar .brand {
-      display: none;
-    }
-
-    #view-container .topbar-in {
-      max-width: none;
-      padding-left: 24px;
-      padding-right: 24px;
-    }
-
-    /* 캘린더 뷰의 자체 헤더 전체 숨김 — 셸 헤더로 통합 */
-    #view-container .site-header {
-      display: none !important;
+    .view-frame {
+      display: block;
+      width: 100%;
+      height: calc(100vh - 58px);
+      border: 0;
+      background: var(--shell-page);
     }
 
     .view-loading,
@@ -308,8 +296,8 @@
 
   <script>
     const routes = {
-      dashboard: { path: './dashboard.html', title: '채용 콘텐츠 대시보드', login: false },
-      calendar: { path: './calendar.html', title: '콘텐츠 캘린더', login: true }
+      dashboard: { path: './dashboard.html', title: '채용 콘텐츠 대시보드' },
+      calendar: { path: './calendar.html', title: '콘텐츠 캘린더' }
     };
 
     const viewContainer = document.getElementById('view-container');
@@ -317,11 +305,13 @@
     const shellLogin = document.getElementById('btn-login');
     const calHeaderActions = document.getElementById('cal-header-actions');
     const shellRefreshBtn = document.getElementById('shell-refresh');
-    let activeController = null;
 
-    // 셸 새로고침 → 뷰 안의 btn-refresh 클릭으로 위임
+    shellLogin.hidden = true;
+    calHeaderActions.hidden = true;
+
     shellRefreshBtn.addEventListener('click', () => {
-      const calRefresh = viewContainer.querySelector('#btn-refresh');
+      const frameDoc = viewContainer.querySelector('iframe')?.contentDocument;
+      const calRefresh = frameDoc?.querySelector('#btn-refresh');
       if (calRefresh) calRefresh.click();
     });
 
@@ -335,142 +325,47 @@
         link.classList.toggle('active', link.dataset.route === route);
       });
       shellTitle.textContent = routes[route].title;
-      shellLogin.hidden = !routes[route].login;
-      calHeaderActions.hidden = (route !== 'calendar');
+      shellLogin.hidden = true;
+      calHeaderActions.hidden = true;
     }
 
-    function clearViewAssets() {
-      document.querySelectorAll('[data-view-asset="true"]').forEach(node => node.remove());
-    }
-
-    function loadExternalScript(source, attrs = []) {
-      const absolute = new URL(source, location.href).href;
-      const existing = [...document.scripts].some(script => script.dataset.srcKey === absolute);
-      if (existing) return Promise.resolve();
-
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = absolute;
-        script.dataset.srcKey = absolute;
-        script.async = false;
-        attrs.forEach(attr => {
-          if (attr.name !== 'src') script.setAttribute(attr.name, attr.value);
-        });
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    }
-
-    async function loadHeadAssets(doc) {
-      const nodes = [...doc.head.querySelectorAll('link[rel="stylesheet"], style, script[src]')];
-      for (const node of nodes) {
-        if (node.tagName === 'SCRIPT') {
-          await loadExternalScript(node.getAttribute('src'), [...node.attributes]);
-          continue;
-        }
-
-        if (node.tagName === 'LINK') {
-          const key = new URL(node.getAttribute('href'), location.href).href;
-          const existing = [...document.querySelectorAll('link[data-href-key]')].some(link => link.dataset.hrefKey === key);
-          if (existing) continue;
-          const link = document.createElement('link');
-          [...node.attributes].forEach(attr => link.setAttribute(attr.name, attr.value));
-          link.href = key;
-          link.dataset.hrefKey = key;
-          link.dataset.viewAsset = 'true';
-          document.head.appendChild(link);
-          continue;
-        }
-
-        const style = document.createElement('style');
-        style.textContent = node.textContent;
-        style.dataset.viewAsset = 'true';
-        document.head.appendChild(style);
-      }
-    }
-
-    function removeDuplicateCalendarLogin(route) {
-      if (route !== 'calendar') return;
-      const bodyLogin = viewContainer.querySelector('#btn-login');
-      if (bodyLogin) bodyLogin.remove();
-    }
-
-    // 뷰 전환 세대 카운터 — stale DOMContentLoaded 핸들러 차단용
-    let viewGeneration = 0;
-
-    // 두 프레임 대기 — Chart.js 등 canvas 사이징 의존 렌더 전에 레이아웃 정착 보장
-    function waitFrames(n = 2) {
-      return new Promise(resolve => {
-        let count = 0;
-        const tick = () => { if (++count >= n) resolve(); else requestAnimationFrame(tick); };
-        requestAnimationFrame(tick);
-      });
-    }
-
-    async function runBodyScripts(gen) {
-      const scripts = [...viewContainer.querySelectorAll('script')];
-      const originalAdd = document.addEventListener.bind(document);
-
-      document.addEventListener = function(type, listener, options) {
-        if (type === 'DOMContentLoaded' && document.readyState !== 'loading') {
-          const capturedGen = gen;
-          // 두 프레임 후 실행 — canvas 레이아웃 정착 보장 + stale 핸들러 차단
-          waitFrames(2).then(() => {
-            if (viewGeneration !== capturedGen) return; // 이미 다른 뷰로 전환됨 → 무시
-            listener.call(document, new Event('DOMContentLoaded'));
-          });
-          return;
-        }
-
-        if (activeController && typeof options !== 'boolean') {
-          const nextOptions = { ...(options || {}), signal: activeController.signal };
-          return originalAdd(type, listener, nextOptions);
-        }
-
-        return originalAdd(type, listener, options);
-      };
-
+    function injectViewChromeStyles(frame, route) {
       try {
-        for (const oldScript of scripts) {
-          const script = document.createElement('script');
-          [...oldScript.attributes].forEach(attr => script.setAttribute(attr.name, attr.value));
-          script.textContent = oldScript.textContent;
-          oldScript.replaceWith(script);
+        const doc = frame.contentDocument;
+        if (!doc) return;
+        const style = doc.createElement('style');
+        style.textContent = `
+          .topbar .brand { display: none !important; }
+          .topbar-in { max-width: none !important; padding-left: 24px !important; padding-right: 24px !important; }
+          .site-header > .brand,
+          .site-header > .sep,
+          .site-header > .sep + span { display: none !important; }
+          .site-header { top: 0 !important; }
+        `;
+        doc.head.appendChild(style);
+        if (route === 'calendar') {
+          doc.documentElement.style.background = '#F5F4F1';
+          doc.body.style.background = '#F5F4F1';
         }
-      } finally {
-        document.addEventListener = originalAdd;
+      } catch (error) {
+        console.warn('[shell] view chrome style skipped', error);
       }
     }
 
-    async function loadView(route) {
-      if (activeController) activeController.abort();
-      activeController = new AbortController();
-      const gen = ++viewGeneration; // 이 뷰 로드의 고유 세대 번호
+    function loadView(route) {
       setActive(route);
-      clearViewAssets();
       viewContainer.innerHTML = '<div class="view-loading">불러오는 중</div>';
 
-      try {
-        const response = await fetch(routes[route].path, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const frame = document.createElement('iframe');
+      frame.className = 'view-frame';
+      frame.title = routes[route].title;
+      frame.src = routes[route].path;
+      frame.onload = () => injectViewChromeStyles(frame, route);
+      frame.onerror = () => {
+        viewContainer.innerHTML = '<div class="view-error">화면을 불러오지 못했습니다.</div>';
+      };
 
-        // fetch 완료 후 세대 확인 — 그 사이에 다른 뷰로 전환됐으면 중단
-        if (viewGeneration !== gen) return;
-
-        const html = await response.text();
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        await loadHeadAssets(doc);
-
-        if (viewGeneration !== gen) return;
-
-        viewContainer.innerHTML = doc.body ? doc.body.innerHTML : html;
-        removeDuplicateCalendarLogin(route);
-        await runBodyScripts(gen);
-      } catch (error) {
-        if (viewGeneration !== gen) return;
-        viewContainer.innerHTML = `<div class="view-error">화면을 불러오지 못했습니다. ${error.message}</div>`;
-      }
+      viewContainer.replaceChildren(frame);
     }
 
     function route() {
