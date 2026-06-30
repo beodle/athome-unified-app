@@ -196,6 +196,31 @@
 
     #view-container { min-height: calc(100vh - 58px); }
 
+    /* Loaded views already have their own utility bars. Keep controls, remove duplicate branding. */
+    #view-container .topbar {
+      top: 58px;
+    }
+
+    #view-container .topbar .brand {
+      display: none;
+    }
+
+    #view-container .topbar-in {
+      max-width: none;
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+
+    #view-container .site-header {
+      top: 58px;
+    }
+
+    #view-container .site-header > .brand,
+    #view-container .site-header > .sep,
+    #view-container .site-header > .sep + span {
+      display: none;
+    }
+
     .view-loading,
     .view-error {
       min-height: calc(100vh - 58px);
