@@ -11,16 +11,19 @@
   <style>
     :root {
       --shell-accent: #FF5D00;
-      --shell-accent-soft: rgba(255, 93, 0, .12);
+      --shell-accent-soft: rgba(255, 93, 0, .08);
+      --shell-accent-mid: rgba(255, 93, 0, .16);
       --shell-ink: #1A1714;
-      --shell-muted: #7A736B;
-      --shell-line: #E4DFD8;
+      --shell-text-2: #4A4540;
+      --shell-muted: #6B6660;
+      --shell-faint: #A8A29A;
+      --shell-line: #ECEAE5;
+      --shell-line-2: #DAD6CF;
       --shell-page: #F5F4F1;
       --shell-panel: #FFFFFF;
-      --shell-side: #1A1A1A;
-      --shell-side-2: #24211F;
-      --shell-side-text: #EFEAE3;
-      --shell-side-muted: #A8A29A;
+      --shell-soft: #F0EEE9;
+      --shell-gray: #E9E6E0;
+      --shell-shadow: 0 1px 2px rgba(40, 30, 20, .03), 0 3px 14px rgba(40, 30, 20, .035);
       --shell-font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     }
 
@@ -39,9 +42,7 @@
       min-height: 100vh;
       display: grid;
       grid-template-rows: 58px 1fr;
-      background:
-        linear-gradient(90deg, var(--shell-side) 0 220px, transparent 220px),
-        var(--shell-page);
+      background: var(--shell-page);
     }
 
     .shell-header {
@@ -50,34 +51,35 @@
       z-index: 200;
       display: flex;
       align-items: center;
-      gap: 18px;
-      padding: 0 22px;
-      border-bottom: 1px solid rgba(26, 23, 20, .12);
-      background: rgba(245, 244, 241, .92);
-      backdrop-filter: saturate(160%) blur(12px);
-      -webkit-backdrop-filter: saturate(160%) blur(12px);
+      gap: 14px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--shell-line);
+      background: rgba(245, 244, 241, .86);
+      backdrop-filter: saturate(180%) blur(10px);
+      -webkit-backdrop-filter: saturate(180%) blur(10px);
     }
 
     .shell-brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      min-width: 198px;
+      min-width: 196px;
       color: var(--shell-ink);
       text-decoration: none;
     }
 
     .brand-mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: var(--shell-side);
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      background: #1A1A1A;
       display: grid;
       grid-template-columns: repeat(3, 4px);
       align-items: end;
       justify-content: center;
       gap: 4px;
       padding: 6px;
+      box-shadow: 0 1px 2px rgba(40, 30, 20, .08);
     }
     .brand-mark span { display: block; width: 4px; border-radius: 3px; background: var(--shell-accent); }
     .brand-mark span:nth-child(1) { height: 10px; }
@@ -90,15 +92,15 @@
       gap: 8px;
       white-space: nowrap;
     }
-    .brand-text strong { font-size: 15px; font-weight: 900; letter-spacing: .02em; }
-    .brand-text em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--shell-muted); }
+    .brand-text strong { font-size: 15px; font-weight: 800; letter-spacing: -.02em; }
+    .brand-text em { font-style: normal; font-size: 13px; font-weight: 700; color: var(--shell-muted); }
 
     .shell-title {
       flex: 1;
       min-width: 0;
       font-size: 13px;
-      font-weight: 800;
-      color: var(--shell-muted);
+      font-weight: 700;
+      color: var(--shell-faint);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -107,20 +109,20 @@
     .shell-login {
       border: 1px solid var(--shell-line);
       background: var(--shell-panel);
-      color: var(--shell-ink);
-      border-radius: 8px;
+      color: var(--shell-text-2);
+      border-radius: 9px;
       padding: 8px 12px;
-      font: 800 12px/1 var(--shell-font);
+      font: 700 12.5px/1 var(--shell-font);
       cursor: pointer;
       transition: border-color .15s, color .15s, background .15s;
     }
-    .shell-login:hover { border-color: var(--shell-accent); color: var(--shell-accent); }
+    .shell-login:hover { border-color: var(--shell-faint); color: var(--shell-ink); }
     .shell-login[hidden] { display: none; }
     .shell-login.authenticated { border-color: #059669; background: #059669; color: #fff; }
 
     .shell-main {
       display: grid;
-      grid-template-columns: 220px minmax(0, 1fr);
+      grid-template-columns: 212px minmax(0, 1fr);
       min-height: 0;
     }
 
@@ -129,18 +131,18 @@
       top: 58px;
       align-self: start;
       height: calc(100vh - 58px);
-      padding: 24px 14px;
-      background: linear-gradient(180deg, var(--shell-side), var(--shell-side-2));
-      color: var(--shell-side-text);
-      border-right: 1px solid rgba(255, 255, 255, .08);
+      padding: 22px 14px;
+      background: rgba(245, 244, 241, .96);
+      color: var(--shell-ink);
+      border-right: 1px solid var(--shell-line);
     }
 
     .side-label {
-      margin: 0 10px 10px;
+      margin: 0 10px 9px;
       font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      color: var(--shell-side-muted);
+      font-weight: 800;
+      letter-spacing: .08em;
+      color: var(--shell-faint);
       text-transform: uppercase;
     }
 
@@ -148,19 +150,43 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      min-height: 42px;
-      margin-bottom: 4px;
+      min-height: 40px;
+      margin-bottom: 6px;
       padding: 0 10px;
-      border-radius: 8px;
-      color: var(--shell-side-muted);
+      border: 1px solid transparent;
+      border-radius: 9px;
+      color: var(--shell-muted);
       text-decoration: none;
       font-size: 13px;
-      font-weight: 800;
-      transition: color .15s, background .15s;
+      font-weight: 700;
+      transition: color .15s, background .15s, border-color .15s, box-shadow .15s;
     }
-    .nav-link:hover { color: #fff; background: rgba(255, 255, 255, .06); }
-    .nav-link.active { color: #fff; background: var(--shell-accent); }
-    .nav-icon { width: 18px; text-align: center; font-size: 14px; line-height: 1; }
+    .nav-link:hover {
+      color: var(--shell-ink);
+      background: var(--shell-soft);
+      border-color: var(--shell-line);
+    }
+    .nav-link.active {
+      color: var(--shell-ink);
+      background: var(--shell-panel);
+      border-color: var(--shell-line);
+      box-shadow: var(--shell-shadow);
+    }
+    .nav-link.active .nav-icon {
+      color: var(--shell-accent);
+      background: var(--shell-accent-soft);
+    }
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: var(--shell-faint);
+      font-size: 12px;
+      line-height: 1;
+      background: transparent;
+    }
 
     .view-shell {
       min-width: 0;
