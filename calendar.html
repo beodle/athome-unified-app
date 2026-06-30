@@ -584,7 +584,7 @@
     /* ── OAuth ── */
     let tokenClient  = null;
     let accessToken  = null;
-    let sheetName    = null;
+    let sheetName    = '콘텐츠 캘린더';
 
     /* ── 드래그 상태 ── */
     let draggingRowIndex = null; // 드래그 중인 이벤트의 _rowIndex
@@ -637,10 +637,11 @@
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         const json = await res.json();
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const sheet = json.sheets.find(s => String(s.properties.sheetId) === SHEET_GID);
-        sheetName = sheet ? sheet.properties.title : json.sheets[0].properties.title;
+        sheetName = sheet ? sheet.properties.title : (json.sheets[0]?.properties.title || sheetName);
       } catch (e) {
-        console.warn('시트명 조회 실패, 첫 번째 시트 사용:', e);
+        console.warn('시트명 조회 실패, 기본 시트명 사용:', sheetName, e);
       }
     }
 
@@ -652,7 +653,7 @@
       if (accessToken) {
         // 로그아웃
         accessToken = null;
-        sheetName   = null;
+        sheetName   = '콘텐츠 캘린더';
         const btn = document.getElementById('btn-login');
         btn.textContent = '✎ 편집 로그인';
         btn.classList.remove('authenticated');

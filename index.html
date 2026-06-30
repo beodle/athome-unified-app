@@ -389,8 +389,9 @@
 
       const sync = () => {
         shellLogin.textContent = sourceLogin.textContent || '편집 로그인';
-        shellLogin.classList.toggle('authenticated', sourceLogin.classList.contains('authenticated'));
-        shellAddBtn.hidden = sourceAdd.hidden;
+        const authenticated = sourceLogin.classList.contains('authenticated');
+        shellLogin.classList.toggle('authenticated', authenticated);
+        shellAddBtn.hidden = !authenticated;
       };
 
       sync();
