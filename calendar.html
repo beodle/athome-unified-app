@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>앳홈 콘텐츠 캘린더</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23FF5D00'/><rect x='18' y='28' width='64' height='54' rx='8' fill='white'/><rect x='18' y='28' width='64' height='22' rx='8' fill='white'/><rect x='18' y='38' width='64' height='12' fill='white'/><rect x='30' y='15' width='8' height='20' rx='4' fill='white'/><rect x='62' y='15' width='8' height='20' rx='4' fill='white'/><rect x='26' y='58' width='10' height='10' rx='2' fill='%23FF5D00'/><rect x='45' y='58' width='10' height='10' rx='2' fill='%23FF5D00'/><rect x='64' y='58' width='10' height='10' rx='2' fill='%23FF5D00'/><rect x='26' y='72' width='10' height='10' rx='2' fill='%23FF5D00'/><rect x='45' y='72' width='10' height='10' rx='2' fill='%23FF5D00'/></svg>">
+  <link rel="stylesheet" href="./athome-tokens.css">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    /* ── 레이아웃 ── */
+    .cal-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: var(--space-page-y) var(--space-page-x);
+    }
+
+    /* ── 헤더 ── */
+    .site-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px var(--space-page-x);
+      border-bottom: var(--border-divider);
+      font-size: var(--size-caption);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--color-bg-white);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .site-header .brand { display: flex; align-items: center; }
+    .site-header .brand img { height: 16px; width: auto; display: block; position: relative; top: -2px; }
+    .site-header .sep   { color: var(--color-gray-mid); }
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-refresh {
+      background: none;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+      transition: background 0.15s;
+      color: var(--color-gray-mid);
+    }
+    .btn-refresh:hover { background: var(--color-gray-light); color: var(--color-text-primary); }
+    .btn-refresh:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+    /* ── 편집 로그인 버튼 ── */
+    .btn-login {
+      background: none;
+      border: 1px solid var(--color-gray-mid);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: var(--size-caption);
+      font-family: var(--font-body-ko);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      color: var(--color-text-primary);
+    }
+    .btn-login:hover { border-color: var(--color-text-primary); }
+    .btn-login.authenticated {
+      background: #059669;
+      border-color: #059669;
+      color: #fff;
+    }
+    .btn-login:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+    /* ── 캘린더 헤더 (월 네비게이션) ── */
+    .cal-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .cal-title {
+      font-family: var(--font-display);
+      font-size: var(--size-h2);
+      font-weight: var(--weight-bold);
+      line-height: var(--leading-tight);
+    }
+    .btn-month {
+      background: var(--color-text-primary);
+      color: var(--color-bg-white);
+      border: none;
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s;
+    }
+    .btn-month:hover { opacity: 0.7; }
+    .btn-month:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+    /* ── 요일 라벨 ── */
+    .cal-day-labels {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .cal-day-label {
+      font-size: var(--size-caption);
+      font-weight: var(--weight-bold);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-primary);
+      text-align: center;
+      padding: 4px 0;
+    }
+    .cal-day-label:first-child { color: var(--color-accent); } /* 일요일 */
+
+    /* ── 캘린더 그리드 ── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-cell {
+      background: var(--color-bg-white);
+      border-radius: 8px;
+      min-height: 110px;
+      padding: 8px;
+      position: relative;
+      transition: background 0.12s, outline 0.12s;
+    }
+    .cal-cell.other-month {
+      opacity: 0.3;
+      background: transparent;
+    }
+    .cal-cell.today {
+      outline: 2px solid var(--color-accent);
+      outline-offset: -2px;
+    }
+    /* 드래그 오버 강조 */
+    .cal-cell.drag-over {
+      background: #fff3ee;
+      outline: 2px dashed var(--color-accent);
+      outline-offset: -2px;
+    }
+    .day-num {
+      font-size: var(--size-caption);
+      font-weight: var(--weight-bold);
+      color: #AAAAAA;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .cal-cell.today .day-num {
+      color: var(--color-accent);
+    }
+
+    /* ── 이벤트 카드 ── */
+    .event-card {
+      border-radius: 5px;
+      padding: 4px 7px;
+      margin-top: 4px;
+      font-size: 11px;
+      line-height: 1.4;
+      cursor: default;
+      position: relative;
+      word-break: keep-all;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    /* 드래그 가능한 카드 */
+    .event-card.draggable {
+      cursor: grab;
+    }
+    .event-card.draggable:active {
+      cursor: grabbing;
+    }
+    .event-card.dragging {
+      opacity: 0.4;
+      transform: scale(0.96);
+    }
+    /* 채널 색상은 JS에서 inline style로 적용 */
+    .channel-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* ── 툴팁 ── */
+    .tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 0;
+      background: var(--color-text-primary);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: var(--radius-card);
+      font-size: 11px;
+      line-height: 1.6;
+      width: 210px;
+      z-index: 100;
+      white-space: pre-wrap;
+      pointer-events: none;
+    }
+    .event-card:hover { cursor: pointer; }
+    .event-card:hover .tooltip { display: block; }
+
+    /* ── 발행 예정 요약 ── */
+    .upcoming-section {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: var(--border-divider);
+      display: flex;
+      gap: 12px;
+    }
+    .upcoming-card {
+      background: var(--color-bg-white);
+      border-radius: var(--radius-card);
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .upcoming-card .u-num {
+      font-family: var(--font-display);
+      font-size: var(--size-h2);
+      font-weight: var(--weight-bold);
+      line-height: var(--leading-tight);
+      color: var(--color-accent);
+    }
+    .upcoming-card .u-num.dark { color: var(--color-dark); }
+    .upcoming-card .u-label {
+      font-size: var(--size-caption);
+      color: #AAAAAA;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── 미정 항목 ── */
+    .unscheduled-section {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: var(--border-divider);
+    }
+    .section-label {
+      font-size: var(--size-caption);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-gray-mid);
+      font-weight: var(--weight-bold);
+      margin-bottom: 12px;
+    }
+    .unscheduled-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .unscheduled-list .event-card {
+      display: inline-block;
+      margin-top: 0;
+    }
+
+    /* ── 로딩 / 에러 ── */
+    .status-msg {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-gray-mid);
+      font-size: var(--size-body);
+    }
+
+    /* ── 채널 필터 ── */
+    .filter-group {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+      align-items: center;
+    }
+    .btn-filter {
+      border: 1px solid var(--color-gray-mid);
+      background: none;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: var(--size-caption);
+      font-family: var(--font-body-ko);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      color: var(--color-text-primary);
+    }
+    .btn-filter:hover { border-color: var(--color-text-primary); }
+    .btn-filter:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .btn-filter.active {
+      color: #fff;
+      /* background·border-color는 JS에서 채널 색상으로 주입 */
+    }
+
+    /* ── 이번 주 강조 ── */
+    .cal-cell.this-week {
+      background: #fff8f5;
+      outline: 1px solid #fcd9cc;
+      outline-offset: -1px;
+    }
+    .cal-cell.this-week.today {
+      outline: 2px solid var(--color-accent);
+    }
+
+    /* ── 모션 감소 ── */
+    @media (prefers-reduced-motion: reduce) {
+      .btn-refresh, .btn-month, .btn-filter, .cal-cell, .event-card { transition: none; }
+    }
+
+    /* ── 과거 항목 dim ── */
+    .event-card.past {
+      opacity: 0.4;
+    }
+
+    /* ── URL 있는 카드 ── */
+    .event-card.has-url:hover {
+      filter: brightness(1.1);
+    }
+    .event-card .url-hint {
+      font-size: 9px;
+      opacity: 0.6;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* ── 저장 중 토스트 ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--color-text-primary);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: var(--size-caption);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.error {
+      background: #DC2626;
+    }
+
+    /* ── + 일정 추가 버튼 ── */
+    .btn-add {
+      background: var(--color-text-primary, #1A1A1A);
+      color: #fff;
+      border: 1px solid var(--color-text-primary, #1A1A1A);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: var(--size-caption);
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+    }
+    .btn-add:hover { opacity: 0.88; }
+
+    /* ── 일정 추가 모달 ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000; /* 토스트(999)보다 위 */
+      padding: 16px;
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal-card {
+      background: #fff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: min(420px, 92vw);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    }
+    .modal-card h2 {
+      font-size: var(--size-h3, 18px);
+      margin: 0 0 16px;
+      color: var(--color-text-primary, #1A1A1A);
+    }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label {
+      display: block;
+      font-size: var(--size-caption, 12px);
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--color-text-primary, #1A1A1A);
+    }
+    .modal-field label .req { color: #DC2626; margin-left: 2px; }
+    .modal-field input,
+    .modal-field select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 11px;
+      border: 1px solid var(--color-gray-light, #D8D8D8);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff;
+    }
+    .modal-field input:focus,
+    .modal-field select:focus {
+      outline: none;
+      border-color: var(--color-text-primary, #1A1A1A);
+    }
+    .modal-error {
+      color: #DC2626;
+      font-size: var(--size-caption, 12px);
+      min-height: 16px;
+      margin: 4px 0 12px;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .modal-actions button {
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: var(--size-caption, 13px);
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .modal-actions .btn-cancel {
+      background: #fff;
+      border-color: var(--color-gray-light, #D8D8D8);
+      color: var(--color-text-primary, #1A1A1A);
+    }
+    .modal-actions .btn-save {
+      background: var(--color-text-primary, #1A1A1A);
+      color: #fff;
+    }
+    .modal-actions .btn-save:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body class="bg-cool-gray">
+
+  <!-- 헤더 -->
+  <header class="site-header">
+    <span class="brand"><img src="https://raw.githubusercontent.com/beodle/athome-assets/main/ATHOME_CI_screen.svg" alt="ATHOME"></span>
+    <span class="sep">/</span>
+    <span>콘텐츠 캘린더</span>
+    <a
+      href="https://docs.google.com/spreadsheets/d/1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak/edit?gid=658998951#gid=658998951"
+      target="_blank"
+      style="color:var(--color-gray-mid);text-decoration:none;font-size:var(--size-caption);letter-spacing:0.04em;"
+      onmouseover="this.style.color='var(--color-text-primary)'"
+      onmouseout="this.style.color='var(--color-gray-mid)'"
+    >시트 열기 ↗</a>
+    <div class="header-actions">
+      <button class="btn-add" id="btn-add" hidden>＋ 일정 추가</button>
+      <button class="btn-login" id="btn-login">✎ 편집 로그인</button>
+      <button class="btn-refresh" id="btn-refresh" title="새로고침">↻</button>
+    </div>
+  </header>
+
+  <!-- 저장 토스트 -->
+  <div class="toast" id="toast"></div>
+
+  <!-- 일정 추가 모달 -->
+  <div class="modal-overlay" id="add-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+      <h2 id="add-modal-title">일정 추가</h2>
+      <div class="modal-field">
+        <label for="f-date">날짜<span class="req">*</span></label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="modal-field">
+        <label for="f-title">주요 주제<span class="req">*</span></label>
+        <input type="text" id="f-title" placeholder="예: 신입 개발자 채용 인터뷰" autocomplete="off">
+      </div>
+      <div class="modal-field">
+        <label for="f-channel">채널<span class="req">*</span></label>
+        <select id="f-channel"></select>
+      </div>
+      <div class="modal-field">
+        <label for="f-note">비고</label>
+        <input type="text" id="f-note" placeholder="(선택)" autocomplete="off">
+      </div>
+      <div class="modal-field">
+        <label for="f-url">URL</label>
+        <input type="text" id="f-url" placeholder="(선택) 발행 후 링크" autocomplete="off">
+      </div>
+      <div class="modal-error" id="add-modal-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="btn-add-cancel">취소</button>
+        <button type="button" class="btn-save" id="btn-add-save">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cal-wrap">
+
+    <!-- 캘린더 네비게이션 -->
+    <div class="cal-header">
+      <button class="btn-month" id="btn-prev" aria-label="이전 달">‹</button>
+      <h1 class="cal-title" id="cal-title">로딩 중…</h1>
+      <button class="btn-month" id="btn-next" aria-label="다음 달">›</button>
+      <div class="filter-group" id="filter-group">
+        <button class="btn-filter active" data-filter="all" style="background:#1A1A1A;border-color:#1A1A1A;">전체</button>
+      </div>
+    </div>
+
+    <!-- 요일 라벨 -->
+    <div class="cal-day-labels">
+      <div class="cal-day-label">일</div>
+      <div class="cal-day-label">월</div>
+      <div class="cal-day-label">화</div>
+      <div class="cal-day-label">수</div>
+      <div class="cal-day-label">목</div>
+      <div class="cal-day-label">금</div>
+      <div class="cal-day-label">토</div>
+    </div>
+
+    <!-- 캘린더 그리드 -->
+    <div class="cal-grid" id="cal-grid">
+      <div class="status-msg">데이터 불러오는 중...</div>
+    </div>
+
+    <!-- 발행 예정 요약 -->
+    <div class="upcoming-section" id="upcoming-section"></div>
+
+  </div>
+
+  <script>
+    /* ────────────────────────────────────────────
+       설정값
+    ──────────────────────────────────────────── */
+    const SHEET_CSV_URL =
+      'https://docs.google.com/spreadsheets/d/1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak/export?format=csv&gid=658998951';
+
+    const SPREADSHEET_ID = '1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak';
+    const SHEET_GID      = '658998951';
+
+    // ⚠️ Google Cloud Console에서 발급한 OAuth Client ID를 여기에 입력하세요
+    const GOOGLE_CLIENT_ID = '956471338785-o7697b8kivvo5lvtrr7bamogc0vkaqal.apps.googleusercontent.com';
+
+    /* ────────────────────────────────────────────
+       채널 색상
+    ──────────────────────────────────────────── */
+    const PRESET_COLORS  = { '링크드인': '#4A77B5', '블로그': '#059669', '팟캐스트': '#E08A4F', '보도자료': '#1A1A1A' };
+    const FALLBACK_PALETTE = ['#2563EB','#059669','#7C3AED','#B45309','#DB2777','#0891B2'];
+    let channelColors = {};
+
+    /* ────────────────────────────────────────────
+       상태
+    ──────────────────────────────────────────── */
+    let currentYear, currentMonth;
+    let allEvents    = [];
+    let activeFilter = 'all';
+    let dateColIndex = 0; // CSV에서 '시기' 컬럼 위치 (0-based)
+    let headerFields = []; // 시트 헤더(컬럼) 순서 — append 시 값 위치 정렬에 사용
+
+    // 시트 기본 컬럼 순서 (헤더 감지 실패 시 폴백)
+    const DEFAULT_COLUMNS = ['시기', '주요 주제', '채널', '비고', 'URL'];
+
+    /* ── OAuth ── */
+    let tokenClient  = null;
+    let accessToken  = null;
+    let sheetName    = null;
+
+    /* ── 드래그 상태 ── */
+    let draggingRowIndex = null; // 드래그 중인 이벤트의 _rowIndex
+
+    /* ────────────────────────────────────────────
+       토스트
+    ──────────────────────────────────────────── */
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (isError ? ' error' : '');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.className = 'toast'; }, 2500);
+    }
+
+    /* ────────────────────────────────────────────
+       Google Identity Services (OAuth)
+    ──────────────────────────────────────────── */
+    function initGIS() {
+      if (typeof google === 'undefined' || !google.accounts) {
+        setTimeout(initGIS, 300);
+        return;
+      }
+      if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') return; // 미설정
+
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/spreadsheets',
+        callback: async (response) => {
+          if (response.error) {
+            showToast('로그인 실패: ' + response.error, true);
+            return;
+          }
+          accessToken = response.access_token;
+          const btn = document.getElementById('btn-login');
+          btn.textContent = '✓ 편집 활성';
+          btn.classList.add('authenticated');
+          await fetchSheetName();
+          document.getElementById('btn-add').hidden = false; // 편집 모드에서만 노출
+          showToast('편집 모드 활성화. 카드를 드래그하거나 + 일정 추가를 눌러보세요.');
+          renderAll(); // draggable 카드로 다시 렌더
+        }
+      });
+    }
+
+    async function fetchSheetName() {
+      try {
+        const res = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const json = await res.json();
+        const sheet = json.sheets.find(s => String(s.properties.sheetId) === SHEET_GID);
+        sheetName = sheet ? sheet.properties.title : json.sheets[0].properties.title;
+      } catch (e) {
+        console.warn('시트명 조회 실패, 첫 번째 시트 사용:', e);
+      }
+    }
+
+    document.getElementById('btn-login').addEventListener('click', () => {
+      if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
+        alert('index.html의 GOOGLE_CLIENT_ID를 설정해주세요.\n\n설정 방법은 콘솔을 확인하거나 담당자에게 문의하세요.');
+        return;
+      }
+      if (accessToken) {
+        // 로그아웃
+        accessToken = null;
+        sheetName   = null;
+        const btn = document.getElementById('btn-login');
+        btn.textContent = '✎ 편집 로그인';
+        btn.classList.remove('authenticated');
+        document.getElementById('btn-add').hidden = true; // 편집 모드 해제 → 버튼 숨김
+        closeAddModal(); // 열려 있던 모달도 닫기
+        showToast('편집 모드 해제됨');
+        renderAll();
+        return;
+      }
+      if (tokenClient) tokenClient.requestAccessToken();
+    });
+
+    /* ────────────────────────────────────────────
+       Sheets API 쓰기
+    ──────────────────────────────────────────── */
+    async function updateEventDate(event, newDate) {
+      if (!accessToken) throw new Error('로그인 필요');
+      if (!sheetName)   throw new Error('시트명 불명');
+
+      // 컬럼 문자 계산 (0→A, 1→B, …)
+      const col   = indexToColLetter(dateColIndex);
+      const range = `${sheetName}!${col}${event._rowIndex}`;
+
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ values: [[newDate]] }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP ${res.status}`);
+      }
+    }
+
+    function indexToColLetter(idx) {
+      let col = '';
+      idx += 1; // 1-based
+      while (idx > 0) {
+        const rem = (idx - 1) % 26;
+        col = String.fromCharCode(65 + rem) + col;
+        idx = Math.floor((idx - 1) / 26);
+      }
+      return col;
+    }
+
+    /* ────────────────────────────────────────────
+       Sheets API 행 추가 (append)
+    ──────────────────────────────────────────── */
+    // 폼 입력을 시트 헤더 순서에 맞춰 값 배열로 변환
+    function buildRowValues(form) {
+      const cols = (headerFields && headerFields.length) ? headerFields : DEFAULT_COLUMNS;
+      const byHeader = {
+        '시기':      form.date,
+        '주요 주제': form.title,
+        '채널':      form.channel,
+        '비고':      form.note,
+        'URL':       form.url,
+        'url':       form.url,
+        '링크':      form.url,
+      };
+      return cols.map(h => (byHeader[h] !== undefined ? byHeader[h] : ''));
+    }
+
+    async function appendEvent(form) {
+      if (!accessToken) throw new Error('로그인 필요');
+      if (!sheetName)   throw new Error('시트명 불명');
+
+      const range = encodeURIComponent(`${sheetName}!A:Z`);
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ values: [buildRowValues(form)] }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const e = new Error(err.error?.message || `HTTP ${res.status}`);
+        e.status = res.status;
+        throw e;
+      }
+    }
+
+    /* ────────────────────────────────────────────
+       채널 색상 빌드
+    ──────────────────────────────────────────── */
+    function buildChannelColors(events) {
+      const channels = [...new Set(events.map(e => e.channel).filter(Boolean))];
+      let paletteIdx = 0;
+      channelColors = {};
+      channels.forEach(ch => {
+        channelColors[ch] = PRESET_COLORS[ch] || FALLBACK_PALETTE[paletteIdx++ % FALLBACK_PALETTE.length];
+      });
+    }
+
+    /* ────────────────────────────────────────────
+       필터 버튼 동적 렌더
+    ──────────────────────────────────────────── */
+    function renderFilters() {
+      const group = document.getElementById('filter-group');
+      group.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = 'btn-filter active';
+      allBtn.dataset.filter = 'all';
+      allBtn.textContent = '전체';
+      allBtn.style.background = '#1A1A1A';
+      allBtn.style.borderColor = '#1A1A1A';
+      group.appendChild(allBtn);
+
+      Object.entries(channelColors).forEach(([ch, color]) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-filter';
+        btn.dataset.filter = ch;
+        btn.dataset.color = color;
+        btn.textContent = ch;
+        group.appendChild(btn);
+      });
+
+      // 클릭 리스너는 1회만 바인딩 (renderFilters 가 여러 번 호출돼도 누적 안 되도록)
+      if (!group._filterBound) {
+        group._filterBound = true;
+        group.addEventListener('click', e => {
+          const btn = e.target.closest('.btn-filter');
+          if (!btn) return;
+          activeFilter = btn.dataset.filter;
+          group.querySelectorAll('.btn-filter').forEach(b => {
+            b.classList.remove('active');
+            b.style.background = '';
+            b.style.borderColor = '';
+            b.style.color = '';
+          });
+          btn.classList.add('active');
+          const color = btn.dataset.color || '#1A1A1A';
+          btn.style.background = color;
+          btn.style.borderColor = color;
+          renderAll();
+        });
+      }
+    }
+
+    /* ────────────────────────────────────────────
+       유틸: 이번 주 범위
+    ──────────────────────────────────────────── */
+    function getThisWeekRange() {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const day = now.getDay();
+      const mon = new Date(now); mon.setDate(now.getDate() - day);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      return { mon, sun };
+    }
+
+    /* ────────────────────────────────────────────
+       데이터 로드
+    ──────────────────────────────────────────── */
+    async function loadEvents() {
+      const res = await fetch(SHEET_CSV_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const { data, meta } = Papa.parse(text, { header: true, skipEmptyLines: true });
+
+      // '시기' 컬럼 인덱스 감지 (Sheets API 쓰기에 사용)
+      if (meta && meta.fields) {
+        headerFields = meta.fields.map(f => f.trim()); // append 시 값 정렬용
+        dateColIndex = headerFields.findIndex(f => f === '시기');
+        if (dateColIndex < 0) dateColIndex = 0;
+      }
+
+      return data.map((row, i) => ({
+        _rowIndex: i + 2, // 시트 행 번호 (1=헤더, 2=첫 데이터)
+        date:    (row['시기']       || '').trim(),
+        title:   (row['주요 주제']  || '').trim(),
+        channel: (row['채널']       || '').trim(),
+        note:    (row['비고']       || '').trim(),
+        url:     (row['URL']        || row['url'] || row['링크'] || '').trim(),
+      }));
+    }
+
+    /* ────────────────────────────────────────────
+       카드 생성
+    ──────────────────────────────────────────── */
+    function makeCard(ev) {
+      const isPast = ev.date && new Date(ev.date) < (() => {
+        const t = new Date(); t.setHours(0,0,0,0); return t;
+      })();
+
+      const card = document.createElement('div');
+      card.className = `event-card${isPast ? ' past' : ''}${ev.url ? ' has-url' : ''}`;
+      const color = channelColors[ev.channel] || '#888';
+      card.style.backgroundColor = color;
+      card.style.color = '#fff';
+
+      // URL 클릭 이동 (드래그 중엔 차단)
+      if (ev.url) {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => {
+          if (!draggingRowIndex) window.open(ev.url, '_blank');
+        });
+      }
+
+      // ── 드래그 가능 (편집 모드에서만) ──
+      if (accessToken) {
+        card.draggable = true;
+        card.classList.add('draggable');
+
+        card.addEventListener('dragstart', e => {
+          draggingRowIndex = ev._rowIndex;
+          e.dataTransfer.setData('text/plain', String(ev._rowIndex));
+          e.dataTransfer.effectAllowed = 'move';
+          requestAnimationFrame(() => card.classList.add('dragging'));
+        });
+
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+          draggingRowIndex = null;
+        });
+      }
+
+      const badge = document.createElement('span');
+      badge.className = 'channel-badge';
+      badge.textContent = ev.channel;
+      card.appendChild(badge);
+
+      const titleEl = document.createElement('span');
+      titleEl.textContent = ev.title;
+      card.appendChild(titleEl);
+
+      if (ev.url) {
+        const hint = document.createElement('span');
+        hint.className = 'url-hint';
+        hint.textContent = '↗ 바로가기';
+        card.appendChild(hint);
+      }
+
+      if (ev.note) {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip';
+        tooltip.textContent = ev.note;
+        card.appendChild(tooltip);
+      }
+      return card;
+    }
+
+    /* ────────────────────────────────────────────
+       이웃 달 오버플로우 셀 생성
+    ──────────────────────────────────────────── */
+    function makeOverflowCell(dayNum, dateStr, targetYear, targetMonth) {
+      const cell = document.createElement('div');
+      cell.className = 'cal-cell other-month';
+      cell.dataset.date = dateStr;
+
+      const dayEl = document.createElement('span');
+      dayEl.className = 'day-num';
+      dayEl.textContent = dayNum;
+      cell.appendChild(dayEl);
+
+      // 해당 날짜 이벤트 표시 (흐리게)
+      const filtered = activeFilter === 'all' ? allEvents : allEvents.filter(e => e.channel === activeFilter);
+      filtered.filter(e => e.date === dateStr).forEach(ev => cell.appendChild(makeCard(ev)));
+
+      // 드롭 타겟 (편집 모드)
+      if (accessToken) {
+        cell.addEventListener('dragover', e => {
+          if (draggingRowIndex == null) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          cell.classList.add('drag-over');
+        });
+        cell.addEventListener('dragleave', e => {
+          if (cell.contains(e.relatedTarget)) return;
+          cell.classList.remove('drag-over');
+        });
+        cell.addEventListener('drop', async e => {
+          e.preventDefault();
+          cell.classList.remove('drag-over');
+
+          const rowIndex = parseInt(e.dataTransfer.getData('text/plain'));
+          const ev = allEvents.find(ev => ev._rowIndex === rowIndex);
+          if (!ev || ev.date === dateStr) return;
+
+          const oldDate = ev.date;
+          ev.date = dateStr;
+          currentYear  = targetYear;
+          currentMonth = targetMonth;
+          renderAll();
+
+          try {
+            showToast('저장 중…');
+            await updateEventDate(ev, dateStr);
+            showToast('✓ 저장 완료');
+          } catch (err) {
+            showToast('저장 실패: ' + err.message, true);
+            ev.date = oldDate;
+            renderAll();
+          }
+        });
+      }
+      return cell;
+    }
+
+    /* ────────────────────────────────────────────
+       캘린더 렌더링
+    ──────────────────────────────────────────── */
+    function renderCalendar(year, month, events) {
+      document.getElementById('cal-title').textContent = `${year}년 ${month + 1}월`;
+
+      const filtered = activeFilter === 'all'
+        ? events
+        : events.filter(e => e.channel === activeFilter);
+
+      const grid = document.getElementById('cal-grid');
+      grid.innerHTML = '';
+
+      const firstDay    = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const today       = new Date();
+      const { mon, sun } = getThisWeekRange();
+
+      // 이전 달 날짜 셀 (흐리게)
+      const prevMonthDays = new Date(year, month, 0).getDate();
+      const prevMonth = month === 0 ? 11 : month - 1;
+      const prevYear  = month === 0 ? year - 1 : year;
+      for (let i = 0; i < firstDay; i++) {
+        const d = prevMonthDays - firstDay + 1 + i;
+        const dateStr = `${prevYear}-${String(prevMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        grid.appendChild(makeOverflowCell(d, dateStr, prevYear, prevMonth));
+      }
+
+      // 이번 달 날짜 셀
+      for (let d = 1; d <= daysInMonth; d++) {
+        const cell     = document.createElement('div');
+        const cellDate = new Date(year, month, d);
+        const dateStr  = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+        cell.className = 'cal-cell';
+        cell.dataset.date = dateStr;
+
+        const isToday =
+          today.getFullYear() === year &&
+          today.getMonth()    === month &&
+          today.getDate()     === d;
+        if (isToday) cell.classList.add('today');
+        if (cellDate >= mon && cellDate <= sun) cell.classList.add('this-week');
+
+        const dayNum = document.createElement('span');
+        dayNum.className = 'day-num';
+        dayNum.textContent = d;
+        cell.appendChild(dayNum);
+
+        filtered
+          .filter(e => e.date === dateStr)
+          .forEach(ev => cell.appendChild(makeCard(ev)));
+
+        // ── 드롭 타겟 (편집 모드에서만) ──
+        if (accessToken) {
+          cell.addEventListener('dragover', e => {
+            if (draggingRowIndex == null) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            cell.classList.add('drag-over');
+          });
+
+          cell.addEventListener('dragleave', e => {
+            // 자식 요소로 이동하는 경우 무시
+            if (cell.contains(e.relatedTarget)) return;
+            cell.classList.remove('drag-over');
+          });
+
+          cell.addEventListener('drop', async e => {
+            e.preventDefault();
+            cell.classList.remove('drag-over');
+
+            const rowIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            const ev = allEvents.find(ev => ev._rowIndex === rowIndex);
+            if (!ev) return;
+            if (ev.date === dateStr) return; // 같은 날 드롭 → 무시
+
+            const oldDate = ev.date;
+            ev.date = dateStr;
+            renderAll(); // 즉시 UI 반영 (낙관적 업데이트)
+
+            try {
+              showToast('저장 중…');
+              await updateEventDate(ev, dateStr);
+              showToast('✓ 저장 완료');
+            } catch (err) {
+              showToast('저장 실패: ' + err.message, true);
+              ev.date = oldDate; // 롤백
+              renderAll();
+            }
+          });
+        }
+
+        grid.appendChild(cell);
+      }
+
+      // 다음 달 날짜 셀 (흐리게, 마지막 행 채우기)
+      const totalCells = firstDay + daysInMonth;
+      const remainder  = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+      const nextMonth = month === 11 ? 0  : month + 1;
+      const nextYear  = month === 11 ? year + 1 : year;
+      for (let i = 1; i <= remainder; i++) {
+        const dateStr = `${nextYear}-${String(nextMonth + 1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+        grid.appendChild(makeOverflowCell(i, dateStr, nextYear, nextMonth));
+      }
+    }
+
+    /* ────────────────────────────────────────────
+       미정 항목 렌더링
+    ──────────────────────────────────────────── */
+    function renderUnscheduled(events) {
+      const filtered = activeFilter === 'all'
+        ? events
+        : events.filter(e => e.channel === activeFilter);
+
+      let section = document.getElementById('unscheduled-section');
+      if (!section) {
+        section = document.createElement('div');
+        section.id = 'unscheduled-section';
+        section.className = 'unscheduled-section';
+        document.querySelector('.cal-wrap').appendChild(section);
+      }
+
+      const items = filtered.filter(e => !e.date);
+      if (items.length === 0) {
+        section.innerHTML = '';
+        return;
+      }
+
+      section.innerHTML = `
+        <p class="section-label">날짜 미정</p>
+        <div class="unscheduled-list" id="unscheduled-list"></div>
+      `;
+      const list = section.querySelector('#unscheduled-list');
+      items.forEach(ev => list.appendChild(makeCard(ev)));
+    }
+
+    /* ────────────────────────────────────────────
+       발행 예정 카운트
+    ──────────────────────────────────────────── */
+    function renderUpcoming(events) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const upcoming = events.filter(e => e.date && new Date(e.date) >= today);
+
+      const cards = [`
+        <div class="upcoming-card">
+          <span class="u-num">${upcoming.length}</span>
+          <span class="u-label">전체 발행 예정</span>
+        </div>`];
+
+      Object.entries(channelColors).forEach(([ch, color]) => {
+        const count = upcoming.filter(e => e.channel === ch).length;
+        cards.push(`
+          <div class="upcoming-card">
+            <span class="u-num" style="color:${color}">${count}</span>
+            <span class="u-label">${ch}</span>
+          </div>`);
+      });
+
+      document.getElementById('upcoming-section').innerHTML = cards.join('');
+    }
+
+    /* ────────────────────────────────────────────
+       전체 렌더
+    ──────────────────────────────────────────── */
+    function renderAll() {
+      renderCalendar(currentYear, currentMonth, allEvents);
+      renderUpcoming(allEvents);
+      renderUnscheduled(allEvents);
+    }
+
+    /* ────────────────────────────────────────────
+       월 이동
+    ──────────────────────────────────────────── */
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      currentMonth--;
+      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+      renderAll();
+    });
+    document.getElementById('btn-next').addEventListener('click', () => {
+      currentMonth++;
+      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+      renderAll();
+    });
+
+    /* ────────────────────────────────────────────
+       새로고침
+    ──────────────────────────────────────────── */
+    document.getElementById('btn-refresh').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-refresh');
+      btn.textContent = '…';
+      btn.disabled = true;
+      try {
+        allEvents = await loadEvents();
+        buildChannelColors(allEvents);
+        renderFilters();
+        renderAll();
+      } catch (e) {
+        alert('데이터 로드 실패: ' + e.message);
+      } finally {
+        btn.textContent = '↻';
+        btn.disabled = false;
+      }
+    });
+
+    /* ────────────────────────────────────────────
+       일정 추가 모달
+    ──────────────────────────────────────────── */
+    function getChannelOptions() {
+      // PRESET_COLORS 키 + 현재 시트에 있는 채널의 합집합 (색상 매핑 키와 100% 동일)
+      const fromData = allEvents.map(e => e.channel).filter(Boolean);
+      return [...new Set([...Object.keys(PRESET_COLORS), ...fromData])];
+    }
+
+    function populateChannelSelect() {
+      const sel = document.getElementById('f-channel');
+      sel.innerHTML = '';
+      getChannelOptions().forEach(ch => {
+        const opt = document.createElement('option');
+        opt.value = ch;
+        opt.textContent = ch;
+        sel.appendChild(opt);
+      });
+    }
+
+    function setAddError(msg) {
+      document.getElementById('add-modal-error').textContent = msg || '';
+    }
+
+    function openAddModal() {
+      if (!accessToken) return; // 편집 모드에서만
+      populateChannelSelect();
+      // 입력값 초기화
+      document.getElementById('f-date').value    = '';
+      document.getElementById('f-title').value   = '';
+      document.getElementById('f-note').value    = '';
+      document.getElementById('f-url').value     = '';
+      setAddError('');
+      document.getElementById('btn-add-save').disabled = false;
+      document.getElementById('add-modal').hidden = false;
+      document.getElementById('f-title').focus();
+    }
+
+    function closeAddModal() {
+      const modal = document.getElementById('add-modal');
+      if (modal) modal.hidden = true;
+      // 입력값 초기화 (openAddModal 도 초기화하지만, 어떤 경로로 닫혀도 잔여값 없도록)
+      ['f-date', 'f-title', 'f-note', 'f-url'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      setAddError('');
+    }
+
+    async function handleAddSave() {
+      const form = {
+        date:    document.getElementById('f-date').value.trim(),
+        title:   document.getElementById('f-title').value.trim(),
+        channel: document.getElementById('f-channel').value,
+        note:    document.getElementById('f-note').value.trim(),
+        url:     document.getElementById('f-url').value.trim(),
+      };
+
+      // 유효성 검사 (필수값) — 통과 못하면 API 미호출
+      if (!form.date)    { setAddError('날짜를 입력해 주세요.'); return; }
+      if (!form.title)   { setAddError('주요 주제를 입력해 주세요.'); return; }
+      if (!form.channel) { setAddError('채널을 선택해 주세요.'); return; }
+      setAddError('');
+
+      const saveBtn = document.getElementById('btn-add-save');
+      saveBtn.disabled = true;        // 중복 클릭(이중 행 추가) 방지
+      saveBtn.textContent = '저장 중…';
+
+      // 1) 시트에 행 추가
+      try {
+        await appendEvent(form);
+      } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '저장';
+        if (err.status === 401 || err.status === 403) {
+          setAddError('로그인이 만료되었어요. 다시 로그인해 주세요.');
+        } else {
+          setAddError('저장 실패: ' + err.message);
+        }
+        return; // 모달·입력값 유지
+      }
+
+      // 2) 추가 성공 → 전체 재로드 (낙관적 업데이트 안 함)
+      try {
+        allEvents = await loadEvents();
+        buildChannelColors(allEvents);
+        renderFilters();
+        renderAll();
+        closeAddModal();
+        showToast('✓ 일정이 추가됐어요');
+      } catch (err) {
+        // 행은 이미 시트에 들어감 → 재시도 append 금지
+        closeAddModal();
+        showToast('저장됐지만 화면 갱신에 실패했어요. 새로고침(↻) 해주세요.', true);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '저장';
+      }
+    }
+
+    document.getElementById('btn-add').addEventListener('click', openAddModal);
+    document.getElementById('btn-add-cancel').addEventListener('click', closeAddModal);
+    document.getElementById('btn-add-save').addEventListener('click', handleAddSave);
+    // 오버레이(카드 바깥) 클릭 → 닫기
+    document.getElementById('add-modal').addEventListener('click', e => {
+      if (e.target.id === 'add-modal') closeAddModal();
+    });
+    // ESC → 닫기
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !document.getElementById('add-modal').hidden) closeAddModal();
+    });
+
+    /* ────────────────────────────────────────────
+       초기 로드
+    ──────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', async () => {
+      const now = new Date();
+      currentYear  = now.getFullYear();
+      currentMonth = now.getMonth();
+
+      // GIS 초기화 (스크립트 로드 후)
+      initGIS();
+
+      try {
+        allEvents = await loadEvents();
+        buildChannelColors(allEvents);
+        renderFilters();
+        renderAll();
+      } catch (e) {
+        document.getElementById('cal-grid').innerHTML =
+          `<div class="status-msg" style="grid-column:1/-1">
+            ⚠️ 데이터 로드 실패<br>
+            <small>${e.message}</small><br><br>
+            <small>로컬에서 열 경우 <code>python3 -m http.server 8080</code> 후<br>
+            <a href="http://localhost:8080">localhost:8080</a> 접속하세요</small>
+          </div>`;
+      }
+    });
+  </script>
+</body>
+</html>

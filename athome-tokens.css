@@ -1,0 +1,90 @@
+/**
+ * ATHOME Corporate Design System — CSS Tokens
+ * Source: 260303_회사소개서.pdf 전체 분석 (2026-03-05)
+ *
+ * 사용법:
+ *   <link rel="stylesheet" href="../athome-tokens.css">
+ *   또는
+ *   <link rel="stylesheet" href="../../athome-tokens.css">
+ *
+ * 기존 파일 적용 예시:
+ *   채용브랜딩_Phase1_덱.html  → <head> 최상단에 추가
+ *   채용성과-대시보드/index.html → <head> 최상단에 추가
+ */
+
+/* ─── Pretendard 폰트 (한국어 본문) ───────────────────────────── */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
+/* ─── CSS 토큰 ────────────────────────────────────────────────── */
+:root {
+  /* 컬러 */
+  --color-bg:           #E3E4E0;   /* 커버/섹션 배경 쿨 그레이 */
+  --color-bg-white:     #FFFFFF;   /* 콘텐츠 슬라이드 배경 */
+  --color-text-primary: #0D0D0D;   /* 본문, 제목 */
+  --color-accent:       #FF5D00;   /* 유일한 포인트 컬러 — 차트, KPI, 화살표 */
+  --color-dark:         #1A1A1A;   /* 섹션 디바이더 다크 배경 */
+  --color-gray-mid:     #CCCCCC;   /* 차트 레퍼런스 바, 구분선 */
+  --color-gray-light:   #F2F2F0;   /* 카드 배경, 서브 영역 */
+
+  /* 타이포그래피 — 폰트 패밀리 */
+  --font-display:  'Neue Haas Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  --font-body-ko:  'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  --font-body-en:  'Neue Haas Grotesk', 'Helvetica Neue', Arial, sans-serif;
+
+  /* 타이포그래피 — 사이즈 */
+  --size-hero:    clamp(48px, 7vw, 96px);    /* Chapter title */
+  --size-h1:      clamp(32px, 4vw, 56px);    /* Section title */
+  --size-h2:      clamp(22px, 2.5vw, 36px);  /* Sub-section */
+  --size-body-lg: 18px;                       /* Lead body */
+  --size-body:    15px;                       /* Body */
+  --size-caption: 11px;                       /* 주석, 저작권 */
+
+  /* 타이포그래피 — 굵기 */
+  --weight-bold:    700;
+  --weight-regular: 400;
+  --weight-light:   300;
+
+  /* 타이포그래피 — 줄 높이 */
+  --leading-tight:  1.1;   /* 대형 제목 */
+  --leading-normal: 1.6;   /* 본문 */
+  --leading-loose:  1.9;   /* 가독성 강조 */
+
+  /* 레이아웃 */
+  --space-page-x:  clamp(40px, 5vw, 80px);   /* 좌우 여백 */
+  --space-page-y:  clamp(32px, 4vh, 60px);   /* 상하 여백 */
+  --space-section: clamp(48px, 6vh, 96px);   /* 섹션 간격 */
+  --radius-card:   12px;                      /* 카드 모서리 */
+  --border-divider: 1px solid #0D0D0D;        /* 구분선 */
+}
+
+/* ─── 기본 Reset ──────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── Body 기본 스타일 ────────────────────────────────────────── */
+body {
+  font-family: var(--font-body-ko);
+  font-size: var(--size-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── 유틸리티 클래스 ─────────────────────────────────────────── */
+.text-accent   { color: var(--color-accent); }
+.text-caption  { font-size: var(--size-caption); color: var(--color-gray-mid); }
+.bg-gray       { background-color: var(--color-gray-light); }
+.bg-dark       { background-color: var(--color-dark); color: var(--color-bg-white); }
+.bg-cool-gray  { background-color: var(--color-bg); }
+
+.border-top    { border-top: var(--border-divider); }
+.border-bottom { border-bottom: var(--border-divider); }
+
+.page-x { padding-left: var(--space-page-x); padding-right: var(--space-page-x); }
+.page-y { padding-top: var(--space-page-y);  padding-bottom: var(--space-page-y); }

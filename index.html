@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>ATHOME 채용 인프라</title>
+  <link rel="stylesheet" href="./athome-tokens.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231A1A1A'/><rect x='16' y='58' width='16' height='28' rx='4' fill='%23FF5D00'/><rect x='42' y='38' width='16' height='48' rx='4' fill='%23FF5D00'/><rect x='68' y='18' width='16' height='68' rx='4' fill='%23FF5D00'/></svg>">
+  <style>
+    :root {
+      --shell-accent: #FF5D00;
+      --shell-accent-soft: rgba(255, 93, 0, .12);
+      --shell-ink: #1A1714;
+      --shell-muted: #7A736B;
+      --shell-line: #E4DFD8;
+      --shell-page: #F5F4F1;
+      --shell-panel: #FFFFFF;
+      --shell-side: #1A1A1A;
+      --shell-side-2: #24211F;
+      --shell-side-text: #EFEAE3;
+      --shell-side-muted: #A8A29A;
+      --shell-font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background: var(--shell-page);
+      color: var(--shell-ink);
+      font-family: var(--shell-font);
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: 0;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 58px 1fr;
+      background:
+        linear-gradient(90deg, var(--shell-side) 0 220px, transparent 220px),
+        var(--shell-page);
+    }
+
+    .shell-header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 22px;
+      border-bottom: 1px solid rgba(26, 23, 20, .12);
+      background: rgba(245, 244, 241, .92);
+      backdrop-filter: saturate(160%) blur(12px);
+      -webkit-backdrop-filter: saturate(160%) blur(12px);
+    }
+
+    .shell-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 198px;
+      color: var(--shell-ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--shell-side);
+      display: grid;
+      grid-template-columns: repeat(3, 4px);
+      align-items: end;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px;
+    }
+    .brand-mark span { display: block; width: 4px; border-radius: 3px; background: var(--shell-accent); }
+    .brand-mark span:nth-child(1) { height: 10px; }
+    .brand-mark span:nth-child(2) { height: 15px; }
+    .brand-mark span:nth-child(3) { height: 20px; }
+
+    .brand-text {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .brand-text strong { font-size: 15px; font-weight: 900; letter-spacing: .02em; }
+    .brand-text em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--shell-muted); }
+
+    .shell-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--shell-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .shell-login {
+      border: 1px solid var(--shell-line);
+      background: var(--shell-panel);
+      color: var(--shell-ink);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font: 800 12px/1 var(--shell-font);
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .shell-login:hover { border-color: var(--shell-accent); color: var(--shell-accent); }
+    .shell-login[hidden] { display: none; }
+    .shell-login.authenticated { border-color: #059669; background: #059669; color: #fff; }
+
+    .shell-main {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      min-height: 0;
+    }
+
+    .shell-sidebar {
+      position: sticky;
+      top: 58px;
+      align-self: start;
+      height: calc(100vh - 58px);
+      padding: 24px 14px;
+      background: linear-gradient(180deg, var(--shell-side), var(--shell-side-2));
+      color: var(--shell-side-text);
+      border-right: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .side-label {
+      margin: 0 10px 10px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      color: var(--shell-side-muted);
+      text-transform: uppercase;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      margin-bottom: 4px;
+      padding: 0 10px;
+      border-radius: 8px;
+      color: var(--shell-side-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+      transition: color .15s, background .15s;
+    }
+    .nav-link:hover { color: #fff; background: rgba(255, 255, 255, .06); }
+    .nav-link.active { color: #fff; background: var(--shell-accent); }
+    .nav-icon { width: 18px; text-align: center; font-size: 14px; line-height: 1; }
+
+    .view-shell {
+      min-width: 0;
+      overflow: clip;
+      background: var(--shell-page);
+    }
+
+    #view-container { min-height: calc(100vh - 58px); }
+
+    .view-loading,
+    .view-error {
+      min-height: calc(100vh - 58px);
+      display: grid;
+      place-items: center;
+      padding: 40px;
+      color: var(--shell-muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .view-error {
+      color: #B42318;
+      background: #FFF7F5;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="shell-header">
+      <a class="shell-brand" href="#/dashboard" aria-label="ATHOME 채용 인프라 홈">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-text"><strong>ATHOME</strong><em>채용 인프라</em></span>
+      </a>
+      <div class="shell-title" id="shell-title">채용 콘텐츠 대시보드</div>
+      <button class="shell-login btn-login" id="btn-login" type="button" hidden>편집 로그인</button>
+    </header>
+
+    <main class="shell-main">
+      <aside class="shell-sidebar" aria-label="앳홈 채용 인프라 메뉴">
+        <p class="side-label">Workspace</p>
+        <a class="nav-link" data-route="dashboard" href="#/dashboard">
+          <span class="nav-icon" aria-hidden="true">▦</span>
+          <span>대시보드</span>
+        </a>
+        <a class="nav-link" data-route="calendar" href="#/calendar">
+          <span class="nav-icon" aria-hidden="true">◷</span>
+          <span>콘텐츠 캘린더</span>
+        </a>
+      </aside>
+      <section class="view-shell" aria-live="polite">
+        <div id="view-container"><div class="view-loading">불러오는 중</div></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const routes = {
+      dashboard: { path: './dashboard.html', title: '채용 콘텐츠 대시보드', login: false },
+      calendar: { path: './calendar.html', title: '콘텐츠 캘린더', login: true }
+    };
+
+    const viewContainer = document.getElementById('view-container');
+    const shellTitle = document.getElementById('shell-title');
+    const shellLogin = document.getElementById('btn-login');
+    let activeController = null;
+
+    function currentRoute() {
+      const route = location.hash.replace(/^#\/?/, '') || 'dashboard';
+      return routes[route] ? route : 'dashboard';
+    }
+
+    function setActive(route) {
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.toggle('active', link.dataset.route === route);
+      });
+      shellTitle.textContent = routes[route].title;
+      shellLogin.hidden = !routes[route].login;
+    }
+
+    function clearViewAssets() {
+      document.querySelectorAll('[data-view-asset="true"]').forEach(node => node.remove());
+    }
+
+    function loadExternalScript(source, attrs = []) {
+      const absolute = new URL(source, location.href).href;
+      const existing = [...document.scripts].some(script => script.dataset.srcKey === absolute);
+      if (existing) return Promise.resolve();
+
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = absolute;
+        script.dataset.srcKey = absolute;
+        script.async = false;
+        attrs.forEach(attr => {
+          if (attr.name !== 'src') script.setAttribute(attr.name, attr.value);
+        });
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function loadHeadAssets(doc) {
+      const nodes = [...doc.head.querySelectorAll('link[rel="stylesheet"], style, script[src]')];
+      for (const node of nodes) {
+        if (node.tagName === 'SCRIPT') {
+          await loadExternalScript(node.getAttribute('src'), [...node.attributes]);
+          continue;
+        }
+
+        if (node.tagName === 'LINK') {
+          const key = new URL(node.getAttribute('href'), location.href).href;
+          const existing = [...document.querySelectorAll('link[data-href-key]')].some(link => link.dataset.hrefKey === key);
+          if (existing) continue;
+          const link = document.createElement('link');
+          [...node.attributes].forEach(attr => link.setAttribute(attr.name, attr.value));
+          link.href = key;
+          link.dataset.hrefKey = key;
+          link.dataset.viewAsset = 'true';
+          document.head.appendChild(link);
+          continue;
+        }
+
+        const style = document.createElement('style');
+        style.textContent = node.textContent;
+        style.dataset.viewAsset = 'true';
+        document.head.appendChild(style);
+      }
+    }
+
+    function removeDuplicateCalendarLogin(route) {
+      if (route !== 'calendar') return;
+      const bodyLogin = viewContainer.querySelector('#btn-login');
+      if (bodyLogin) bodyLogin.remove();
+    }
+
+    async function runBodyScripts() {
+      const scripts = [...viewContainer.querySelectorAll('script')];
+      const originalAdd = document.addEventListener.bind(document);
+
+      document.addEventListener = function(type, listener, options) {
+        if (type === 'DOMContentLoaded' && document.readyState !== 'loading') {
+          Promise.resolve().then(() => listener.call(document, new Event('DOMContentLoaded')));
+          return;
+        }
+
+        if (activeController && typeof options !== 'boolean') {
+          const nextOptions = { ...(options || {}), signal: activeController.signal };
+          return originalAdd(type, listener, nextOptions);
+        }
+
+        return originalAdd(type, listener, options);
+      };
+
+      try {
+        for (const oldScript of scripts) {
+          const script = document.createElement('script');
+          [...oldScript.attributes].forEach(attr => script.setAttribute(attr.name, attr.value));
+          script.textContent = oldScript.textContent;
+          oldScript.replaceWith(script);
+        }
+      } finally {
+        document.addEventListener = originalAdd;
+      }
+    }
+
+    async function loadView(route) {
+      if (activeController) activeController.abort();
+      activeController = new AbortController();
+      setActive(route);
+      clearViewAssets();
+      viewContainer.innerHTML = '<div class="view-loading">불러오는 중</div>';
+
+      try {
+        const response = await fetch(routes[route].path, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        await loadHeadAssets(doc);
+
+        viewContainer.innerHTML = doc.body ? doc.body.innerHTML : html;
+        removeDuplicateCalendarLogin(route);
+        await runBodyScripts();
+      } catch (error) {
+        viewContainer.innerHTML = `<div class="view-error">화면을 불러오지 못했습니다. ${error.message}</div>`;
+      }
+    }
+
+    function route() {
+      if (!location.hash) {
+        location.replace('#/dashboard');
+        return;
+      }
+      loadView(currentRoute());
+    }
+
+    window.addEventListener('hashchange', route);
+    route();
+  </script>
+</body>
+</html>
