@@ -325,6 +325,7 @@
     const calHeaderActions = document.getElementById('cal-header-actions');
     const shellRefreshBtn = document.getElementById('shell-refresh');
     const shellAddBtn = document.getElementById('shell-add');
+    let calendarSyncTimer = null;
 
     shellLogin.hidden = true;
     calHeaderActions.hidden = true;
@@ -400,16 +401,21 @@
       };
 
       sync();
-      new MutationObserver(sync).observe(sourceLogin, {
-        attributes: true,
-        childList: true,
-        characterData: true,
-        subtree: true
-      });
-      new MutationObserver(sync).observe(sourceAdd, { attributes: true });
+      calendarSyncTimer = window.setInterval(() => {
+        if (currentFrameDocument() !== doc) {
+          window.clearInterval(calendarSyncTimer);
+          calendarSyncTimer = null;
+          return;
+        }
+        sync();
+      }, 500);
     }
 
     function loadView(route) {
+      if (calendarSyncTimer) {
+        window.clearInterval(calendarSyncTimer);
+        calendarSyncTimer = null;
+      }
       setActive(route);
       viewContainer.innerHTML = '<div class="view-loading">불러오는 중</div>';
 
