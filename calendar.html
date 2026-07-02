@@ -158,6 +158,9 @@
       outline: 2px dashed var(--color-accent);
       outline-offset: -2px;
     }
+    /* 편집 모드: 빈 영역 클릭으로 일정 추가 가능 */
+    .cal-cell--clickable { cursor: pointer; }
+    .cal-cell--clickable:hover { background: #faf7f4; }
     .day-num {
       font-size: var(--size-caption);
       font-weight: var(--weight-bold);
@@ -1025,6 +1028,17 @@
           .filter(e => e.date === dateStr)
           .forEach(ev => cell.appendChild(makeCard(ev)));
 
+        // ── 셀 클릭 → 해당 날짜로 일정 추가 (편집 모드에서만) ──
+        if (accessToken) {
+          cell.classList.add('cal-cell--clickable');
+          cell.addEventListener('click', e => {
+            // 카드(일정) 클릭은 기존 동작(URL 열기) 유지 — 빈 영역/날짜 숫자 클릭만 추가로 인식
+            if (e.target === cell || e.target.classList.contains('day-num')) {
+              openAddModal(dateStr);
+            }
+          });
+        }
+
         // ── 드롭 타겟 (편집 모드에서만) ──
         if (accessToken) {
           cell.addEventListener('dragover', e => {
@@ -1202,11 +1216,11 @@
       document.getElementById('add-modal-error').textContent = msg || '';
     }
 
-    function openAddModal() {
+    function openAddModal(prefillDate = '') {
       if (!accessToken) return; // 편집 모드에서만
       populateChannelSelect();
-      // 입력값 초기화
-      document.getElementById('f-date').value    = '';
+      // 입력값 초기화 (날짜는 셀 클릭 시 프리필)
+      document.getElementById('f-date').value    = prefillDate || '';
       document.getElementById('f-title').value   = '';
       document.getElementById('f-note').value    = '';
       document.getElementById('f-url').value     = '';
@@ -1278,7 +1292,7 @@
       }
     }
 
-    document.getElementById('btn-add').addEventListener('click', openAddModal);
+    document.getElementById('btn-add').addEventListener('click', () => openAddModal());
     document.getElementById('btn-add-cancel').addEventListener('click', closeAddModal);
     document.getElementById('btn-add-save').addEventListener('click', handleAddSave);
     // 오버레이(카드 바깥) 클릭 → 닫기
