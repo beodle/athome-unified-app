@@ -317,6 +317,9 @@
   </div>
 
   <script>
+    // 이 페이지가 로드된 시각 — iframe 뷰 캐시 우회용 꼬리표 (새로고침마다 갱신)
+    const APP_LOADED = Date.now();
+
     const routes = {
       dashboard: { path: './dashboard.html?shell=1', title: '채용 콘텐츠 대시보드' },
       calendar: { path: './calendar.html?shell=1', title: '콘텐츠 캘린더' },
@@ -427,7 +430,10 @@
       const frame = document.createElement('iframe');
       frame.className = 'view-frame';
       frame.title = routes[route].title;
-      frame.src = routes[route].path;
+      // 캐시 우회: 페이지 로드 시각을 꼬리표로 붙여 새로고침마다 최신 파일을 받게 함
+      // (GitHub Pages의 10분 강제 캐시 + iframe 고정 URL 조합으로 옛 데이터가 남는 문제 방지)
+      const basePath = routes[route].path;
+      frame.src = basePath + (basePath.includes('?') ? '&' : '?') + '_=' + APP_LOADED;
       frame.onload = () => injectViewChromeStyles(frame, route);
       frame.onerror = () => {
         viewContainer.innerHTML = '<div class="view-error">화면을 불러오지 못했습니다.</div>';
