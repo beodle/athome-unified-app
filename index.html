@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <title>ATHOME 채용 브랜딩 워크스페이스</title>
+  <title>ATHOME 채용 콘텐츠 워크스페이스</title>
   <link rel="stylesheet" href="./athome-tokens.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231A1A1A'/><rect x='16' y='58' width='16' height='28' rx='4' fill='%23FF5D00'/><rect x='42' y='38' width='16' height='48' rx='4' fill='%23FF5D00'/><rect x='68' y='18' width='16' height='68' rx='4' fill='%23FF5D00'/></svg>">
   <style>
@@ -273,12 +273,12 @@
 <body>
   <div class="app-shell">
     <header class="shell-header">
-      <a class="shell-brand" href="#/dashboard" aria-label="ATHOME 채용 브랜딩 워크스페이스">
+      <a class="shell-brand" href="#/dashboard" aria-label="ATHOME 채용 콘텐츠 워크스페이스">
         <img src="https://raw.githubusercontent.com/beodle/athome-assets/main/ATHOME_CI_screen.svg"
              alt="ATHOME" style="height:18px;width:auto;display:block;">
-        <span class="brand-text"><em>채용 브랜딩 워크스페이스</em></span>
+        <span class="brand-text"><em>채용 콘텐츠 워크스페이스</em></span>
       </a>
-      <div class="shell-title" id="shell-title">채용 콘텐츠 대시보드</div>
+      <div class="shell-title" id="shell-title">대시보드</div>
       <!-- 캘린더 전용 액션 (캘린더 뷰에서만 노출) -->
       <div class="cal-header-actions" id="cal-header-actions" hidden>
         <button class="shell-add" id="shell-add" type="button" hidden>＋ 일정 추가</button>
@@ -321,7 +321,7 @@
     const APP_LOADED = Date.now();
 
     const routes = {
-      dashboard: { path: './dashboard.html?shell=1', title: '채용 콘텐츠 대시보드' },
+      dashboard: { path: './dashboard.html?shell=1', title: '대시보드' },
       calendar: { path: './calendar.html?shell=1', title: '콘텐츠 캘린더' },
       utm: { path: './utm.html', title: 'UTM 빌더' },
       cardnews: { path: './cardnews-editor.html', title: '카드뉴스 에디터' }
