@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>앳홈 카드뉴스 에디터</title>
+<style id="tokens-style">
+/* 앳홈 카드뉴스 디자인 토큰 — 1080×1350 (4:5) */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+:root {
+  --accent: #FF5D00; --accent-soft: #FFA15D; --dark: #1A1A1A;
+  --bg-light: #EDEDEB; --bg-card-soft: #D9D9D6; --white: #FFFFFF;
+  --fs-kicker: 28px; --fs-cover-title: 84px; --fs-quote: 52px;
+  --fs-insight-headline: 56px; --fs-insight-body: 42px; --fs-outro-title: 56px;
+  --fs-cta: 38px; --fs-footer: 22px; --pad-x: 120px; --pad-y: 120px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif; background: #555; color: var(--dark); -webkit-font-smoothing: antialiased; }
+.deck { display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 32px 0; }
+.card { width: 1080px; height: 1350px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; padding: var(--pad-y) var(--pad-x); page-break-after: always; box-shadow: 0 8px 32px rgba(0,0,0,0.18); word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
+.card h1, .card h2, .card p { word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
+.card--cover { background: var(--bg-light); color: var(--dark); justify-content: flex-end; padding-bottom: 140px; }
+.card--cover-image { color: var(--white); justify-content: flex-end; background-size: cover; background-position: center 30%; padding-bottom: 140px; }
+.card--cover-image .cover-overlay { position: absolute; inset: 0; pointer-events: none; }
+.card--cover-image[data-overlay="gradient"] .cover-overlay { background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.85) 85%, rgba(0,0,0,0.95) 100%); }
+.card--cover-image[data-overlay="dark"] .cover-overlay { background: rgba(0,0,0,0.55); }
+.card--cover-image[data-overlay="light"] .cover-overlay { background: rgba(255,255,255,0.65); }
+.card--cover-image[data-overlay="light"] { color: var(--dark); }
+.card--cover-image .kicker, .card--cover-image .title, .card--cover-image .footer { position: relative; z-index: 1; }
+.card--cover-image .title { color: var(--white); font-size: 88px; font-weight: 600; line-height: 1.15; letter-spacing: -0.025em; text-shadow: 0 2px 20px rgba(0,0,0,0.35); }
+.card--cover-image .kicker { display: block; align-self: flex-start; color: var(--white); background: transparent; padding: 0; border-radius: 0; font-size: 37px; font-weight: 700; margin-bottom: 18px; opacity: 0.95; letter-spacing: -0.01em; text-shadow: 0 1px 12px rgba(0,0,0,0.4); }
+.card--cover-image .footer { display: none; }
+.card--cover .footer { display: none; }
+.card--cover .kicker { font-size: 37px; font-weight: 700; color: var(--dark); margin-bottom: 18px; letter-spacing: -0.01em; opacity: 0.6; }
+.card--cover .title { font-size: 88px; font-weight: 600; line-height: 1.15; letter-spacing: -0.025em; color: var(--dark); }
+.card--cover .visual-deco { display: none; }
+.hl { color: var(--accent); font-weight: 700; }
+u { text-decoration: none; border-bottom: 3px solid currentColor; padding-bottom: 0.1em; display: inline; }
+.card--quote { background: var(--bg-light); color: var(--dark); justify-content: center; }
+.card--quote .body { font-size: var(--fs-quote); font-weight: 700; line-height: 1.4; letter-spacing: -0.02em; white-space: pre-line; }
+.card--insight { background: var(--bg-light); color: var(--dark); justify-content: flex-start; }
+.card--insight .headline { font-size: var(--fs-insight-headline); font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 48px; }
+.card--insight .body { font-size: var(--fs-insight-body); font-weight: 500; line-height: 1.55; letter-spacing: -0.015em; white-space: pre-line; }
+.card--outro { background: var(--bg-light); color: var(--dark); justify-content: flex-start; }
+.card--outro .body { font-size: var(--fs-insight-body); font-weight: 500; line-height: 1.55; letter-spacing: -0.015em; white-space: pre-line; }
+.footer { position: absolute; left: var(--pad-x); bottom: 100px; color: var(--dark); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; opacity: 0.6; max-width: 720px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page-num { position: absolute; right: var(--pad-x); bottom: 100px; font-size: 20px; font-weight: 600; color: var(--dark); opacity: 0.5; }
+.card--cover .page-num { display: none; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+  /* ---- 기본 레이아웃 ---- */
+  body { background: #F5F4F1; color: #1a1a1a; font-family: 'Pretendard Variable', Pretendard, sans-serif; }
+  .app { display: grid; grid-template-columns: 420px 1fr; height: 100vh; }
+  .panel--editor { background: #F5F4F1; border-right: 1px solid #ECEAE5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .panel--preview { background: #E9E6E0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .preview-scroll { flex: 1; overflow-y: auto; padding: 16px 24px 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+
+  /* ---- 에디터 헤더 ---- */
+  .ed-header { padding: 16px 18px 14px; border-bottom: 1px solid #ECEAE5; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .ed-header h2 { font-size: 15px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.01em; white-space: nowrap; flex-shrink: 0; }
+  #status { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: #E9E6E0; color: #6B6660; border: 1px solid #DAD6CF; max-width: 220px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 12px; }
+
+  /* ---- 필드 (카드 편집) ---- */
+  .field { margin-bottom: 8px; }
+  .field label { display: block; font-size: 12px; color: #A8A29A; margin-bottom: 3px; }
+  .field input, .field textarea, .field select { width: 100%; background: #FFFFFF; color: #1a1a1a; border: 1.5px solid #DAD6CF; border-radius: 8px; padding: 7px 10px; font-family: inherit; font-size: 13px; line-height: 1.5; transition: border-color 0.12s; }
+  .field textarea { resize: vertical; min-height: 56px; }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: #FF5D00; box-shadow: 0 0 0 3px rgba(255,93,0,.08); }
+
+  /* ---- 액션 그룹 ---- */
+  .ed-groups { padding: 10px 18px; border-bottom: 1px solid #ECEAE5; flex-shrink: 0; }
+  .ed-group { margin-bottom: 8px; }
+  .ed-group + .ed-group { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ECEAE5; }
+  .ed-group:last-child { margin-bottom: 0; }
+  .ed-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #A8A29A; margin-bottom: 5px; display: block; font-weight: 600; }
+  .ed-row { display: flex; gap: 5px; flex-wrap: wrap; }
+  .ed-btn { background: #FFFFFF; color: #4A4540; border: 1.5px solid #DAD6CF; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: border-color 0.12s, color 0.12s; white-space: nowrap; }
+  .ed-btn:hover { border-color: #A8A29A; color: #1a1a1a; background: #F0EEE9; }
+  .ed-btn.primary { background: #FF5D00; color: white; border-color: transparent; }
+  .ed-btn.primary:hover { background: #e85200; }
+  .ed-btn.secondary { background: #1A1A1A; color: #F5F4F1; border-color: transparent; }
+  .ed-btn.secondary:hover { background: #0d0d0d; color: white; }
+  .ed-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+  .ed-btn-file { position: relative; }
+  .ed-btn-file input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+
+  /* ---- 카드 섹션 ---- */
+  .ed-cards { flex: 1; overflow-y: auto; padding: 0 18px 16px; }
+  .ed-cards-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 8px; position: sticky; top: 0; background: #F5F4F1; z-index: 5; border-bottom: 1px solid #ECEAE5; margin-bottom: 10px; }
+  .cards-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #A8A29A; font-weight: 600; }
+  .cards-count { color: #A8A29A; font-size: 12px; margin-left: 5px; }
+  .add-wrapper { position: relative; }
+  .add-trigger { background: #FFFFFF; border: 1.5px solid #DAD6CF; color: #6B6660; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.12s; }
+  .add-trigger:hover { border-color: #FF5D00; color: #FF5D00; }
+  .add-menu { position: absolute; right: 0; top: calc(100% + 5px); background: #FFFFFF; border: 1px solid #ECEAE5; border-radius: 10px; overflow: hidden; min-width: 110px; z-index: 100; display: none; box-shadow: 0 8px 24px rgba(40,30,20,0.10); }
+  .add-menu.open { display: block; }
+  .add-menu button { display: block; width: 100%; text-align: left; background: transparent; border: 0; color: #4A4540; padding: 9px 14px; font-size: 13px; font-family: inherit; cursor: pointer; transition: background 0.1s; }
+  .add-menu button:hover { background: #F0EEE9; color: #1a1a1a; }
+
+  /* 카드 아이템 */
+  .card-item { background: #FFFFFF; padding: 13px; border-radius: 9px; margin-bottom: 7px; border: 1px solid #ECEAE5; box-shadow: 0 1px 3px rgba(40,30,20,0.04); }
+  .card-item__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+  .card-item__head span { font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 5px; background: #F0EEE9; color: #A8A29A; letter-spacing: 0; }
+  .card-item[data-type="cover"] .card-item__head span { background: rgba(255,93,0,0.1); color: #c44500; }
+  .card-item[data-type="insight"] .card-item__head span { background: rgba(46,158,70,0.1); color: #247a38; }
+  .card-item[data-type="outro"] .card-item__head span { background: rgba(184,152,10,0.1); color: #8a7005; }
+  .card-item__actions { display: flex; gap: 3px; }
+  .icon-btn { background: transparent; color: #A8A29A; border: 0; width: 24px; height: 24px; border-radius: 5px; cursor: pointer; font-size: 12px; transition: all 0.1s; }
+  .icon-btn:hover { background: #F0EEE9; color: #333; }
+  .icon-btn--danger:hover { background: transparent; color: #e53e3e; }
+
+  /* 빈 상태 */
+  .ed-empty { padding: 20px 0; text-align: center; }
+  .ed-empty-box { border: 1px dashed #DAD6CF; border-radius: 9px; width: 120px; height: 150px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; }
+  .ed-empty-box span { font-size: 28px; opacity: 0.3; }
+  .ed-empty p { font-size: 12px; color: #A8A29A; line-height: 1.7; }
+
+  /* ---- 단축키 힌트 ---- */
+  .ed-hints { padding: 10px 18px; border-top: 1px solid #ECEAE5; flex-shrink: 0; }
+  .ed-hints p { font-size: 12px; color: #A8A29A; line-height: 1; }
+  .ed-hints kbd { background: #F0EEE9; padding: 1px 5px; border-radius: 4px; font-family: inherit; color: #A8A29A; font-size: 11px; border: 1px solid #DAD6CF; }
+
+  /* ---- 미리보기 ---- */
+  .preview-card-wrap { overflow: hidden; flex-shrink: 0; }
+  .preview-card-wrap[data-zoom="0.35"] { width: 378px; height: 473px; }
+  .preview-card-wrap[data-zoom="0.4"]  { width: 432px; height: 540px; }
+  .preview-card-wrap[data-zoom="0.5"]  { width: 540px; height: 675px; }
+  .preview-card-wrap .card { transform-origin: top left; }
+  .preview-card-wrap[data-zoom="0.35"] .card { transform: scale(0.35); }
+  .preview-card-wrap[data-zoom="0.4"]  .card { transform: scale(0.4);  }
+  .preview-card-wrap[data-zoom="0.5"]  .card { transform: scale(0.5);  }
+  .preview-scroll.h-mode { flex-direction: row; overflow-x: auto; overflow-y: hidden; align-items: flex-start; }
+  .preview-scroll.h-mode .deck { flex-direction: row; flex-wrap: nowrap; align-items: flex-start; }
+
+  .zoom-bar { flex-shrink: 0; background: #E9E6E0; border-bottom: 1px solid #DAD6CF; padding: 8px 24px; display: flex; gap: 6px; align-items: center; }
+  .zoom-bar button { background: #DAD6CF; color: #4A4540; border: 0; padding: 5px 11px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; transition: all 0.1s; }
+  .zoom-bar button.active { background: #FF5D00; color: white; }
+  .zoom-bar button:hover:not(.active) { background: #D0CBC3; color: #1a1a1a; }
+  .empty { text-align: center; padding: 40px; color: #A8A29A; }
+
+  /* ---- 토스트 ---- */
+  .toast { position: fixed; bottom: 88px; left: 210px; transform: translateX(-50%); background: #1A1A1A; color: #F5F4F1; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; pointer-events: none; opacity: 0; transition: opacity 0.18s; z-index: 3000; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- LEFT: EDITOR -->
+  <aside class="panel--editor">
+
+    <div class="ed-header">
+      <h2>카드뉴스 에디터</h2>
+      <span id="status">준비됨</span>
+    </div>
+
+    <!-- 액션 그룹 -->
+    <div class="ed-groups">
+      <div class="ed-group">
+        <span class="ed-group-label">작업</span>
+        <div class="ed-row">
+          <label class="ed-btn ed-btn-file">불러오기<input type="file" id="loadJson" accept=".json"></label>
+        </div>
+      </div>
+      <div class="ed-group">
+        <span class="ed-group-label">내보내기</span>
+        <div class="ed-row">
+          <button class="ed-btn" id="saveJson">JSON</button>
+          <button class="ed-btn" id="exportHtml">HTML</button>
+          <button class="ed-btn primary" id="exportPdf">PDF</button>
+          <button class="ed-btn secondary" id="exportPngAll">PNG</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 카드 리스트 -->
+    <div class="ed-cards">
+      <div class="ed-cards-head">
+        <div><span class="cards-label">카드</span><span class="cards-count" id="cardsCount">0장</span></div>
+        <div class="add-wrapper">
+          <button class="add-trigger" id="addTrigger">+ 추가</button>
+          <div class="add-menu" id="addMenu">
+            <button data-add="cover">커버</button>
+            <button data-add="insight">인사이트</button>
+            <button data-add="outro">아웃트로</button>
+          </div>
+        </div>
+      </div>
+      <div id="cardList"></div>
+    </div>
+
+    <!-- 단축키 힌트 -->
+    <div class="ed-hints">
+      <p><kbd>⌘E</kbd> <span style="color:#FF5D00">강조</span> &nbsp; <kbd>⌘B</kbd> <strong style="color:#6B6660">볼드</strong> &nbsp; <kbd>⌘U</kbd> <u style="color:#6B6660">밑줄</u> &nbsp; <kbd>⌘Z</kbd> 취소 &nbsp; <kbd>⌘⇧Z</kbd> 다시</p>
+    </div>
+
+  </aside>
+
+  <!-- RIGHT: PREVIEW -->
+  <main class="panel--preview">
+    <div class="zoom-bar">
+      <button data-zoom="0.35" class="active">35%</button>
+      <button data-zoom="0.4">40%</button>
+      <button data-zoom="0.5">50%</button>
+      <button id="layoutToggle" title="세로/가로 전환" style="margin-left: 8px;">↔ 가로</button>
+    </div>
+    <div class="preview-scroll">
+      <div id="preview" class="deck"></div>
+    </div>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+let state = {
+  meta: { title: '', category: 'Now', brand_footer: 'ATHOME', source_url: '', cta_url: '' },
+  cards: []
+};
+let zoom = 0.35;
+
+// ---------- Undo / Redo ----------
+const MAX_UNDO = 10;
+let undoStack = [];
+let redoStack = [];
+let _fieldSnapshot = null;
+let _fieldTimer = null;
+
+function pushUndo() {
+  undoStack.push(JSON.stringify(state));
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack = [];
+}
+
+function flushFieldUndo() {
+  clearTimeout(_fieldTimer);
+  if (_fieldSnapshot !== null) {
+    undoStack.push(_fieldSnapshot);
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+    redoStack = [];
+    _fieldSnapshot = null;
+  }
+}
+
+function debouncedPushUndo() {
+  if (_fieldSnapshot === null) _fieldSnapshot = JSON.stringify(state);
+  clearTimeout(_fieldTimer);
+  _fieldTimer = setTimeout(() => {
+    if (_fieldSnapshot !== null) {
+      undoStack.push(_fieldSnapshot);
+      if (undoStack.length > MAX_UNDO) undoStack.shift();
+      redoStack = [];
+      _fieldSnapshot = null;
+    }
+  }, 600);
+}
+
+function undo() {
+  flushFieldUndo();
+  if (!undoStack.length) { setStatus('더 이상 취소할 수 없습니다'); return; }
+  redoStack.push(JSON.stringify(state));
+  state = JSON.parse(undoStack.pop());
+  renderAll();
+  setStatus(`실행 취소 (${undoStack.length}단계 남음)`);
+}
+
+function redo() {
+  flushFieldUndo();
+  if (!redoStack.length) { setStatus('다시 실행할 항목이 없습니다'); return; }
+  undoStack.push(JSON.stringify(state));
+  state = JSON.parse(redoStack.pop());
+  renderAll();
+  setStatus('다시 실행');
+}
+
+function showToast(msg, duration = 2800) {
+  const t = $('#toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+const $ = (s) => document.querySelector(s);
+
+// ---------- Helpers ----------
+function escapeHtml(s = '') {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function applyInline(s = '') {
+  return String(s)
+    .replace(/==([^=]+)==/g, '<span class="hl">$1</span>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+)__/g, '<u>$1</u>');
+}
+function richText(s = '') { return applyInline(escapeHtml(s)).replace(/\n/g, '<br>'); }
+
+// ---------- Render preview ----------
+function renderCover(c, m) {
+  const kicker = escapeHtml(c.kicker || m.category || 'Now');
+  const lines = (c.title_lines || [m.title || '']).map(escapeHtml).join('<br>');
+  if (c.image_url) {
+    const overlay = c.image_overlay || 'gradient';
+    return `<section class="card card--cover-image" data-overlay="${overlay}" style="background-image:url('${c.image_url.replace(/"/g, '&quot;')}');">
+      <div class="cover-overlay"></div>
+      <div class="kicker">${kicker}</div>
+      <h1 class="title">${lines}</h1>
+    </section>`;
+  }
+  const showDeco = c.visual_hint !== 'none';
+  return `<section class="card card--cover" style="${c.accent_color ? `--accent:${c.accent_color};` : ''}">
+    ${showDeco ? `<div class="visual-deco">${escapeHtml(m.brand_footer || 'ATHOME')}</div>` : ''}
+    <div class="kicker">${kicker}</div>
+    <h1 class="title">${lines}</h1>
+  </section>`;
+}
+function renderQuote(c, m, i, n) {
+  return `<section class="card card--quote">
+    <p class="body">${richText(c.body || '')}</p>
+    <div class="footer">${escapeHtml(m.title || '')}</div>
+    <div class="page-num">${i}/${n}</div>
+  </section>`;
+}
+function renderInsight(c, m, i, n) {
+  return `<section class="card card--insight">
+    ${c.headline ? `<h2 class="headline">${applyInline(escapeHtml(c.headline))}</h2>` : ''}
+    <p class="body">${richText(c.body || '')}</p>
+    <div class="footer">${escapeHtml(m.title || '')}</div>
+    <div class="page-num">${i}/${n}</div>
+  </section>`;
+}
+function renderOutro(c, m, i, n) {
+  const bodyText = c.body || c.title || '';
+  return `<section class="card card--outro">
+    ${bodyText ? `<p class="body">${richText(bodyText)}</p>` : ''}
+    <div class="footer">${escapeHtml(m.title || '')}</div>
+    <div class="page-num">${i}/${n}</div>
+  </section>`;
+}
+const RENDERERS = { cover: renderCover, quote: renderQuote, insight: renderInsight, outro: renderOutro };
+
+function renderPreview() {
+  syncMetaTitleFromCover();
+  const total = state.cards.length;
+  const html = state.cards.map((c, i) => {
+    const r = RENDERERS[c.type];
+    if (!r) return '';
+    return `<div class="preview-card-wrap" data-zoom="${zoom}" data-idx="${i}">${r(c, state.meta, i + 1, total)}</div>`;
+  }).join('');
+  $('#preview').innerHTML = html || '<div class="empty" style="color: #A8A29A;">+ 추가로 카드를 시작하세요</div>';
+}
+
+// ---------- Render editor ----------
+function field(label, value, oninput, opts = {}) {
+  const id = 'f_' + Math.random().toString(36).slice(2, 8);
+  const tag = opts.textarea ? `<textarea id="${id}" rows="${opts.rows || 3}">${escapeHtml(value || '')}</textarea>` :
+              `<input id="${id}" value="${escapeHtml(value || '')}">`;
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', (e) => { debouncedPushUndo(); oninput(e.target.value); });
+  }, 0);
+  return `<div class="field"><label>${label}</label>${tag}</div>`;
+}
+
+function syncMetaTitleFromCover() {
+  const cover = state.cards.find(c => c.type === 'cover');
+  if (cover && Array.isArray(cover.title_lines) && cover.title_lines.length) {
+    state.meta.title = cover.title_lines.join(' ').trim();
+  }
+}
+
+function renderEditor() {
+  flushFieldUndo();
+  syncMetaTitleFromCover();
+
+  const countEl = $('#cardsCount');
+  if (countEl) countEl.textContent = `${state.cards.length}장`;
+
+  const list = $('#cardList');
+  list.innerHTML = '';
+  state.cards.forEach((c, idx) => {
+    const item = document.createElement('div');
+    item.className = 'card-item';
+    item.dataset.type = c.type;
+
+    let fields = '';
+    if (c.type === 'cover') {
+      fields += field('kicker', c.kicker, v => { c.kicker = v; renderPreview(); });
+      fields += field('title_lines (한 줄에 하나씩)', (c.title_lines || []).join('\n'),
+        v => { c.title_lines = v.split('\n').filter(Boolean); renderPreview(); }, { textarea: true, rows: 3 });
+      fields += field('image_url (og:image — 비우면 컬러 그라데이션)', c.image_url, v => { c.image_url = v; renderPreview(); });
+      fields += field('image_overlay (gradient | dark | light | none)', c.image_overlay || 'gradient', v => { c.image_overlay = v; renderPreview(); });
+      fields += field('accent_color (이미지 없을 때 사용)', c.accent_color || '#FF5D00', v => { c.accent_color = v; renderPreview(); });
+    } else if (c.type === 'quote') {
+      fields += field('body', c.body, v => { c.body = v; renderPreview(); }, { textarea: true, rows: 6 });
+    } else if (c.type === 'insight') {
+      fields += field('headline (선택)', c.headline, v => { c.headline = v; renderPreview(); });
+      fields += field('body', c.body, v => { c.body = v; renderPreview(); }, { textarea: true, rows: 6 });
+    } else if (c.type === 'outro') {
+      fields += field('body (마무리 본문 — __밑줄__, **볼드**, ==강조== 사용 가능)', c.body || c.title || '', v => { c.body = v; delete c.title; renderPreview(); }, { textarea: true, rows: 5 });
+    }
+
+    item.innerHTML = `
+      <div class="card-item__head">
+        <span>#${idx + 1} ${c.type}</span>
+        <div class="card-item__actions">
+          <button class="icon-btn" data-action="up" title="위로">↑</button>
+          <button class="icon-btn" data-action="down" title="아래로">↓</button>
+          <button class="icon-btn icon-btn--danger" data-action="delete" title="삭제">×</button>
+        </div>
+      </div>
+      ${fields}
+    `;
+    item.querySelectorAll('.icon-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        const action = b.dataset.action;
+        pushUndo();
+        if (action === 'delete') { state.cards.splice(idx, 1); showToast('카드 삭제됨 · ⌘Z로 취소'); }
+        else if (action === 'up' && idx > 0) [state.cards[idx-1], state.cards[idx]] = [state.cards[idx], state.cards[idx-1]];
+        else if (action === 'down' && idx < state.cards.length - 1) [state.cards[idx+1], state.cards[idx]] = [state.cards[idx], state.cards[idx+1]];
+        renderAll();
+      });
+    });
+    list.appendChild(item);
+  });
+
+  if (!state.cards.length) {
+    list.innerHTML = `<div class="ed-empty">
+      <div class="ed-empty-box"><span>🃏</span></div>
+      <p>+ 추가를 눌러<br>카드를 시작하세요</p>
+    </div>`;
+  }
+}
+
+function renderAll() { renderEditor(); renderPreview(); }
+
+// ---------- + 추가 드롭다운 ----------
+$('#addTrigger')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  $('#addMenu').classList.toggle('open');
+});
+document.addEventListener('click', () => $('#addMenu')?.classList.remove('open'));
+
+// ---------- Add card ----------
+document.querySelectorAll('[data-add]').forEach(b => {
+  b.addEventListener('click', () => {
+    $('#addMenu')?.classList.remove('open');
+    const type = b.dataset.add;
+    const blank = { cover: { type: 'cover', kicker: 'Now', title_lines: ['새 커버'] },
+                    quote: { type: 'quote', body: '' },
+                    insight: { type: 'insight', body: '' },
+                    outro: { type: 'outro', body: '' } }[type];
+    pushUndo();
+    state.cards.push(blank);
+    renderAll();
+  });
+});
+
+// ---------- Zoom ----------
+document.querySelectorAll('.zoom-bar [data-zoom]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.zoom-bar [data-zoom]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    zoom = parseFloat(b.dataset.zoom);
+    renderPreview();
+  });
+});
+
+// ---------- Load / Save JSON ----------
+$('#loadJson').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      pushUndo();
+      state = { meta: data.meta || {}, cards: data.cards || [] };
+      renderAll();
+      setStatus('불러옴: ' + file.name);
+    } catch (err) { alert('JSON 파싱 실패: ' + err.message); }
+  };
+  reader.readAsText(file);
+});
+
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$('#saveJson').addEventListener('click', () => {
+  const json = JSON.stringify(state, null, 2);
+  const slug = (state.meta.title || 'cardnews').replace(/[^a-z0-9가-힣]+/gi, '-').slice(0, 40);
+  downloadBlob(json, `${slug}.json`, 'application/json');
+  setStatus('JSON 저장됨');
+});
+
+// ---------- Export final HTML ----------
+function getTokens() {
+  return document.getElementById('tokens-style').textContent;
+}
+
+$('#exportHtml').addEventListener('click', async () => {
+  setStatus('HTML 생성 중...');
+  const tokens = getTokens();
+  const total = state.cards.length;
+  const cards = state.cards.map((c, i) => RENDERERS[c.type](c, state.meta, i + 1, total)).join('\n');
+  const html = `<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(state.meta.title || '카드뉴스')}</title>
+<style>${tokens}</style></head>
+<body><div class="deck">${cards}</div></body></html>`;
+  const slug = (state.meta.title || 'cardnews').replace(/[^a-z0-9가-힣]+/gi, '-').slice(0, 40);
+  downloadBlob(html, `${slug}.html`, 'text/html');
+  setStatus('HTML 저장됨');
+});
+
+// ---------- Export PNG / PDF helpers ----------
+async function imageToDataUrl(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('fetch ' + res.status);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn('[imageToDataUrl] 실패, 원본 URL 사용:', e.message);
+    return url;
+  }
+}
+
+async function renderCardOffscreen(card, idx, total) {
+  const cardForCapture = { ...card };
+  if (card.image_url) {
+    cardForCapture.image_url = await imageToDataUrl(card.image_url);
+  }
+
+  const wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-9999px';
+  wrap.style.top = '0';
+  wrap.innerHTML = RENDERERS[card.type](cardForCapture, state.meta, idx, total);
+  document.body.appendChild(wrap);
+  const cardEl = wrap.querySelector('.card');
+  cardEl.style.boxShadow = 'none';
+
+  const isCoverImage = cardEl.classList.contains('card--cover-image');
+  const bgColor = isCoverImage ? 'transparent' : '#EDEDEB';
+
+  const imgs = wrap.querySelectorAll('img');
+  await Promise.all([...imgs].map(img => img.complete ? null : new Promise(r => { img.onload = img.onerror = r; })));
+  await new Promise(r => setTimeout(r, 200));
+
+  const canvas = await html2canvas(cardEl, {
+    width: 1080, height: 1350, scale: 1,
+    useCORS: true, allowTaint: false,
+    backgroundColor: bgColor, logging: false,
+  });
+  document.body.removeChild(wrap);
+  return canvas;
+}
+
+$('#exportPngAll').addEventListener('click', async () => {
+  if (!state.cards.length) return alert('카드가 없습니다');
+  const slug = (state.meta.title || 'cardnews').replace(/[^a-z0-9가-힣]+/gi, '-').slice(0, 40);
+  for (let i = 0; i < state.cards.length; i++) {
+    setStatus(`PNG ${i + 1}/${state.cards.length} 추출 중...`);
+    const canvas = await renderCardOffscreen(state.cards[i], i + 1, state.cards.length);
+    const dataUrl = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl; a.download = `${slug}-${String(i + 1).padStart(2, '0')}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    await new Promise(r => setTimeout(r, 300));
+  }
+  setStatus(`PNG ${state.cards.length}장 다운로드 완료`);
+});
+
+function setStatus(s) {
+  const el = $('#status');
+  el.textContent = s;
+  el.title = s;
+}
+
+// ---------- PDF 일괄 추출 ----------
+$('#exportPdf').addEventListener('click', async () => {
+  if (!state.cards.length) return alert('카드가 없습니다');
+  setStatus('PDF 생성 중...');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'px', format: [1080, 1350], orientation: 'portrait', hotfixes: ['px_scaling'] });
+  for (let i = 0; i < state.cards.length; i++) {
+    setStatus(`PDF ${i + 1}/${state.cards.length}장...`);
+    const canvas = await renderCardOffscreen(state.cards[i], i + 1, state.cards.length);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    if (i > 0) pdf.addPage([1080, 1350], 'portrait');
+    pdf.addImage(dataUrl, 'JPEG', 0, 0, 1080, 1350);
+  }
+  const slug = (state.meta.title || 'cardnews').replace(/[^a-z0-9가-힣]+/gi, '-').slice(0, 40);
+  pdf.save(`${slug}.pdf`);
+  setStatus(`PDF ${state.cards.length}페이지 저장 완료`);
+});
+
+// ---------- 레이아웃 토글 ----------
+$('#layoutToggle').addEventListener('click', () => {
+  const scroll = document.querySelector('.preview-scroll');
+  const isH = scroll.classList.toggle('h-mode');
+  $('#layoutToggle').textContent = isH ? '↕ 세로' : '↔ 가로';
+});
+
+// ---------- Init ----------
+function autoLoad() {
+  if (window.__cardNewsData) {
+    const data = window.__cardNewsData;
+    state = { meta: data.meta || {}, cards: data.cards || [] };
+    setStatus('JSON 자동 로드됨: ' + (state.meta.title || ''));
+    return true;
+  }
+  const hash = location.hash;
+  if (hash.startsWith('#data=')) {
+    try {
+      const b64 = hash.slice(6);
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const json = new TextDecoder('utf-8').decode(bytes);
+      const data = JSON.parse(json);
+      state = { meta: data.meta || {}, cards: data.cards || [] };
+      setStatus('JSON 자동 로드됨: ' + (state.meta.title || ''));
+      return true;
+    } catch (err) { console.warn('Hash 디코딩 실패:', err); }
+  }
+  return false;
+}
+autoLoad();
+renderAll();
+
+// ---------- 인라인 마크업 단축키 ----------
+function toggleWrap(el, marker) {
+  const start = el.selectionStart, end = el.selectionEnd;
+  if (start === end) return;
+  const before = el.value.slice(0, start);
+  const sel = el.value.slice(start, end);
+  const after = el.value.slice(end);
+  let next, caretEnd;
+  const m = marker;
+  if (sel.startsWith(m) && sel.endsWith(m) && sel.length >= m.length * 2) {
+    const inner = sel.slice(m.length, -m.length);
+    next = before + inner + after;
+    caretEnd = start + inner.length;
+  } else {
+    const wrapped = `${m}${sel}${m}`;
+    next = before + wrapped + after;
+    caretEnd = start + wrapped.length;
+  }
+  el.value = next;
+  el.setSelectionRange(start, caretEnd);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!(e.metaKey || e.ctrlKey)) return;
+  const key = e.key.toLowerCase();
+  if (key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  if (key === 'z' && e.shiftKey)  { e.preventDefault(); redo(); return; }
+  if (key === 'y')                 { e.preventDefault(); redo(); return; }
+  const el = document.activeElement;
+  if (!el || (el.tagName !== 'TEXTAREA' && el.tagName !== 'INPUT')) return;
+  const map = { e: '==', b: '**', u: '__' };
+  if (!(key in map)) return;
+  e.preventDefault();
+  toggleWrap(el, map[key]);
+});
+</script>
+</body>
+</html>

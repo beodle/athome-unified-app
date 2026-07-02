@@ -305,6 +305,10 @@
           <span class="nav-icon" aria-hidden="true">⛓</span>
           <span>UTM 빌더</span>
         </a>
+        <a class="nav-link" data-route="cardnews" href="#/cardnews">
+          <span class="nav-icon" aria-hidden="true">▨</span>
+          <span>카드뉴스 에디터</span>
+        </a>
       </aside>
       <section class="view-shell" aria-live="polite">
         <div id="view-container"><div class="view-loading">불러오는 중</div></div>
@@ -316,7 +320,8 @@
     const routes = {
       dashboard: { path: './dashboard.html?shell=1', title: '채용 콘텐츠 대시보드' },
       calendar: { path: './calendar.html?shell=1', title: '콘텐츠 캘린더' },
-      utm: { path: './utm.html', title: 'UTM 빌더' }
+      utm: { path: './utm.html', title: 'UTM 빌더' },
+      cardnews: { path: './cardnews-editor.html', title: '카드뉴스 에디터' }
     };
 
     const viewContainer = document.getElementById('view-container');
