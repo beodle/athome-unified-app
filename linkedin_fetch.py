@@ -1,5 +1,5 @@
 """
-LinkedIn 조직 성과 수집 → index.html __BAKED_DATA__ 머지 (대시보드용)
+LinkedIn 조직 성과 수집 → dashboard.html __BAKED_DATA__ 머지 (대시보드용)
 
 ⚠️ 비밀값은 전부 환경변수에서만 읽음 (이 파일/repo에 하드코딩 금지 — public repo):
     LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REFRESH_TOKEN, LINKEDIN_ORG_URN
@@ -130,7 +130,7 @@ def main():
         })
     li_posts.sort(key=lambda x: x["impressions"], reverse=True)
 
-    html = pathlib.Path(__file__).with_name("index.html")
+    html = pathlib.Path(__file__).with_name("dashboard.html")
     src = html.read_text()
     m = re.search(r'(const __BAKED_DATA__ = )(\{.*?\});', src, re.DOTALL)
     baked = json.loads(m.group(2))
@@ -156,11 +156,11 @@ def main():
         print(f"   최신주 {latest}: followers={followers} newFollowers={baked[latest]['newFollowers']}")
 
     if dry:
-        print("🔸 --dry: index.html 미수정")
+        print("🔸 --dry: dashboard.html 미수정")
         return
     src = src[:m.start(2)] + json.dumps(baked, ensure_ascii=False) + src[m.end(2):]
     html.write_text(src)
-    print("✅ index.html __BAKED_DATA__ 머지 완료")
+    print("✅ dashboard.html __BAKED_DATA__ 머지 완료")
 
 
 if __name__ == "__main__":
