@@ -86,6 +86,21 @@ def blog_channels(s, e):
         else:                       out['other']   += sess
     return out
 
+def sources(prop, s, e, limit=15):
+    """채용 페이지 유입 출처(source/medium) — 주차별, 방문자순"""
+    r = c.run_report(RunReportRequest(
+        property=prop, date_ranges=[DateRange(start_date=s, end_date=e)],
+        dimensions=[Dimension(name='sessionSource'), Dimension(name='sessionMedium')],
+        metrics=[Metric(name='activeUsers'), Metric(name='sessions')],
+        order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name='activeUsers'), desc=True)],
+        limit=limit))
+    return [{
+        'source':   row.dimension_values[0].value,
+        'medium':   row.dimension_values[1].value,
+        'users':    int(row.metric_values[0].value),
+        'sessions': int(row.metric_values[1].value),
+    } for row in r.rows]
+
 def blog_posts(s, e, limit=20):
     r = c.run_report(RunReportRequest(
         property=BLOG_PROP, date_ranges=[DateRange(start_date=s, end_date=e)],
@@ -111,6 +126,7 @@ for wk in WEEKS:
     d['detail_pv']  = pv(RECRUIT_PROP, s, e, '/job_posting', MT.BEGINS_WITH)
     d['apply_pv']   = pv(RECRUIT_PROP, s, e, '/apply',       MT.ENDS_WITH)
     d['confirm_pv'] = pv(RECRUIT_PROP, s, e, '/confirm',     MT.ENDS_WITH)
+    d['sources']    = sources(RECRUIT_PROP, s, e)  # 주차별 유입 출처
     # 블로그
     bt = totals(BLOG_PROP, s, e)
     d['blog_pageviews'] = bt['pageviews']
