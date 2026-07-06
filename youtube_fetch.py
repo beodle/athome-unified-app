@@ -66,7 +66,7 @@ def main():
             })
     vids.sort(key=lambda x: x["views"], reverse=True)
 
-    html = pathlib.Path(__file__).with_name("index.html")
+    html = pathlib.Path(__file__).with_name("dashboard.html")
     src = html.read_text()
     m = re.search(r'(const __BAKED_DATA__ = )(\{.*?\});', src, re.DOTALL)
     baked = json.loads(m.group(2))
@@ -77,11 +77,11 @@ def main():
     for v in vids[:5]:
         print(f"   조회 {v['views']:>5} | {v['title'][:34]}")
     if dry:
-        print("🔸 --dry: index.html 미수정")
+        print("🔸 --dry: dashboard.html 미수정")
         return
     src = src[:m.start(2)] + json.dumps(baked, ensure_ascii=False) + src[m.end(2):]
     html.write_text(src)
-    print("✅ index.html __BAKED_DATA__ 머지 완료")
+    print("✅ dashboard.html __BAKED_DATA__ 머지 완료")
 
 
 if __name__ == "__main__":
