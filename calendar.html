@@ -1126,22 +1126,21 @@
     /* ────────────────────────────────────────────
        발행 예정 카운트
     ──────────────────────────────────────────── */
-    function renderUpcoming(events) {
+    function renderUpcoming(events, year, month) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const upcoming = events.filter(e => e.date && new Date(e.date) >= today);
 
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      const publishedThisMonth = events.filter(e => {
+      const publishedInMonth = events.filter(e => {
         if (!e.date) return false;
         const d = new Date(e.date);
-        return d >= monthStart && d < today;
+        return d.getFullYear() === year && d.getMonth() === month;
       });
 
       const cards = [`
         <div class="upcoming-card">
-          <span class="u-num dark">${publishedThisMonth.length}</span>
-          <span class="u-label">이번달 발행</span>
+          <span class="u-num dark">${publishedInMonth.length}</span>
+          <span class="u-label">${month + 1}월 발행</span>
         </div>`, `
         <div class="upcoming-card">
           <span class="u-num">${upcoming.length}</span>
@@ -1165,7 +1164,7 @@
     ──────────────────────────────────────────── */
     function renderAll() {
       renderCalendar(currentYear, currentMonth, allEvents);
-      renderUpcoming(allEvents);
+      renderUpcoming(allEvents, currentYear, currentMonth);
       renderUnscheduled(allEvents);
     }
 
