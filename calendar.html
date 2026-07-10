@@ -195,6 +195,30 @@
       opacity: 0.4;
       transform: scale(0.96);
     }
+    /* 편집 모드 카드 우측 상단 수정 아이콘 */
+    .card-edit-btn {
+      position: absolute;
+      top: 2px;
+      right: 3px;
+      width: 15px;
+      height: 15px;
+      line-height: 15px;
+      text-align: center;
+      font-size: 9px;
+      border: none;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.28);
+      color: #fff;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.12s, background 0.12s;
+    }
+    .event-card:hover .card-edit-btn {
+      opacity: 1;
+    }
+    .card-edit-btn:hover {
+      background: rgba(255,255,255,0.5);
+    }
     /* 채널 색상은 JS에서 inline style로 적용 */
     .channel-badge {
       font-size: 9px;
@@ -464,6 +488,16 @@
       background: var(--color-text-primary, #1A1A1A);
       color: #fff;
     }
+    .modal-actions .btn-delete {
+      background: #fff;
+      border-color: #F2C1C1;
+      color: #DC2626;
+      margin-right: auto;
+    }
+    .modal-actions .btn-delete:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
     .modal-actions .btn-save:disabled {
       opacity: 0.5;
       cursor: not-allowed;
@@ -520,6 +554,7 @@
       </div>
       <div class="modal-error" id="add-modal-error"></div>
       <div class="modal-actions">
+        <button type="button" class="btn-delete" id="btn-add-delete" hidden>삭제</button>
         <button type="button" class="btn-cancel" id="btn-add-cancel">취소</button>
         <button type="button" class="btn-save" id="btn-add-save">저장</button>
       </div>
@@ -598,6 +633,9 @@
 
     /* ── 드래그 상태 ── */
     let draggingRowIndex = null; // 드래그 중인 이벤트의 _rowIndex
+
+    /* ── 모달 편집 상태 ── */
+    let editingRowIndex = null; // null=추가 모드, 값 있으면 해당 행 수정 모드
 
     /* ────────────────────────────────────────────
        토스트
@@ -758,6 +796,69 @@
     }
 
     /* ────────────────────────────────────────────
+       Sheets API 행 수정 / 삭제
+    ──────────────────────────────────────────── */
+    async function updateEventRow(rowIndex, form) {
+      if (!accessToken) throw new Error('로그인 필요');
+      if (!sheetName)   throw new Error('시트명 불명');
+
+      const cols    = (headerFields && headerFields.length) ? headerFields : DEFAULT_COLUMNS;
+      const lastCol = indexToColLetter(cols.length - 1);
+      const range   = `${sheetName}!A${rowIndex}:${lastCol}${rowIndex}`;
+
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ values: [buildRowValues(form)] }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const e = new Error(err.error?.message || `HTTP ${res.status}`);
+        e.status = res.status;
+        throw e;
+      }
+    }
+
+    async function deleteEventRow(rowIndex) {
+      if (!accessToken) throw new Error('로그인 필요');
+
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            requests: [{
+              deleteDimension: {
+                range: {
+                  sheetId: Number(SHEET_GID),
+                  dimension: 'ROWS',
+                  startIndex: rowIndex - 1,
+                  endIndex: rowIndex,
+                },
+              },
+            }],
+          }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const e = new Error(err.error?.message || `HTTP ${res.status}`);
+        e.status = res.status;
+        throw e;
+      }
+    }
+
+    /* ────────────────────────────────────────────
        채널 색상 빌드
     ──────────────────────────────────────────── */
     function buildChannelColors(events) {
@@ -891,6 +992,19 @@
           card.classList.remove('dragging');
           draggingRowIndex = null;
         });
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'card-edit-btn';
+        editBtn.title = '수정';
+        editBtn.draggable = false;
+        editBtn.textContent = '✎';
+        editBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          openEditModal(ev);
+        });
+        editBtn.addEventListener('dragstart', e => e.stopPropagation());
+        card.appendChild(editBtn);
       }
 
       const badge = document.createElement('span');
@@ -1228,6 +1342,7 @@
 
     function openAddModal(prefillDate = '') {
       if (!accessToken) return; // 편집 모드에서만
+      editingRowIndex = null;
       populateChannelSelect();
       // 입력값 초기화 (날짜는 셀 클릭 시 프리필)
       document.getElementById('f-date').value    = prefillDate || '';
@@ -1235,7 +1350,30 @@
       document.getElementById('f-note').value    = '';
       document.getElementById('f-url').value     = '';
       setAddError('');
+      document.getElementById('add-modal-title').textContent = '일정 추가';
+      document.getElementById('btn-add-delete').hidden = true;
       document.getElementById('btn-add-save').disabled = false;
+      document.getElementById('btn-add-save').textContent = '저장';
+      document.getElementById('add-modal').hidden = false;
+      document.getElementById('f-title').focus();
+    }
+
+    function openEditModal(ev) {
+      if (!accessToken) return; // 편집 모드에서만
+      editingRowIndex = ev._rowIndex;
+      populateChannelSelect();
+      document.getElementById('f-date').value    = ev.date    || '';
+      document.getElementById('f-title').value   = ev.title   || '';
+      document.getElementById('f-channel').value = ev.channel || '';
+      document.getElementById('f-note').value    = ev.note    || '';
+      document.getElementById('f-url').value     = ev.url     || '';
+      setAddError('');
+      document.getElementById('add-modal-title').textContent = '일정 편집';
+      document.getElementById('btn-add-delete').hidden = false;
+      document.getElementById('btn-add-delete').disabled = false;
+      document.getElementById('btn-add-delete').textContent = '삭제';
+      document.getElementById('btn-add-save').disabled = false;
+      document.getElementById('btn-add-save').textContent = '저장';
       document.getElementById('add-modal').hidden = false;
       document.getElementById('f-title').focus();
     }
@@ -1243,6 +1381,9 @@
     function closeAddModal() {
       const modal = document.getElementById('add-modal');
       if (modal) modal.hidden = true;
+      editingRowIndex = null;
+      document.getElementById('btn-add-delete').hidden = true;
+      document.getElementById('add-modal-title').textContent = '일정 추가';
       // 입력값 초기화 (openAddModal 도 초기화하지만, 어떤 경로로 닫혀도 잔여값 없도록)
       ['f-date', 'f-title', 'f-note', 'f-url'].forEach(id => {
         const el = document.getElementById(id);
@@ -1252,6 +1393,9 @@
     }
 
     async function handleAddSave() {
+      const isEdit = !!editingRowIndex;
+      const rowIndex = editingRowIndex;
+
       const form = {
         date:    document.getElementById('f-date').value.trim(),
         title:   document.getElementById('f-title').value.trim(),
@@ -1267,44 +1411,88 @@
       setAddError('');
 
       const saveBtn = document.getElementById('btn-add-save');
-      saveBtn.disabled = true;        // 중복 클릭(이중 행 추가) 방지
-      saveBtn.textContent = '저장 중…';
+      saveBtn.disabled = true;        // 중복 클릭(이중 행 추가/수정) 방지
+      saveBtn.textContent = isEdit ? '수정 중…' : '저장 중…';
 
-      // 1) 시트에 행 추가
+      // 1) 시트에 행 추가/수정
       try {
-        await appendEvent(form);
+        if (isEdit) {
+          await updateEventRow(rowIndex, form);
+        } else {
+          await appendEvent(form);
+        }
       } catch (err) {
         saveBtn.disabled = false;
         saveBtn.textContent = '저장';
         if (err.status === 401 || err.status === 403) {
           setAddError('로그인이 만료되었어요. 다시 로그인해 주세요.');
         } else {
-          setAddError('저장 실패: ' + err.message);
+          setAddError((isEdit ? '수정 실패: ' : '저장 실패: ') + err.message);
         }
         return; // 모달·입력값 유지
       }
 
-      // 2) 추가 성공 → 전체 재로드 (낙관적 업데이트 안 함)
+      // 2) 성공 → 전체 재로드 (낙관적 업데이트 안 함)
       try {
         allEvents = await loadEvents();
         buildChannelColors(allEvents);
         renderFilters();
         renderAll();
         closeAddModal();
-        showToast('✓ 일정이 추가됐어요');
+        showToast(isEdit ? '✓ 일정이 수정됐어요' : '✓ 일정이 추가됐어요');
       } catch (err) {
-        // 행은 이미 시트에 들어감 → 재시도 append 금지
+        // 행은 이미 시트에 반영됨 → 재시도 금지
         closeAddModal();
-        showToast('저장됐지만 화면 갱신에 실패했어요. 새로고침(↻) 해주세요.', true);
+        showToast('반영됐지만 화면 갱신에 실패했어요. 새로고침(↻) 해주세요.', true);
       } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = '저장';
       }
     }
 
+    async function handleDelete() {
+      if (!editingRowIndex) return;
+      const rowIndex = editingRowIndex;
+      const titleVal = document.getElementById('f-title').value.trim() || '이 일정';
+      if (!confirm(`"${titleVal}" 일정을 삭제할까요?`)) return;
+
+      const delBtn = document.getElementById('btn-add-delete');
+      delBtn.disabled = true;
+      delBtn.textContent = '삭제 중…';
+
+      try {
+        await deleteEventRow(rowIndex);
+      } catch (err) {
+        delBtn.disabled = false;
+        delBtn.textContent = '삭제';
+        if (err.status === 401 || err.status === 403) {
+          setAddError('로그인이 만료되었어요. 다시 로그인해 주세요.');
+        } else {
+          setAddError('삭제 실패: ' + err.message);
+        }
+        return;
+      }
+
+      try {
+        allEvents = await loadEvents();
+        buildChannelColors(allEvents);
+        renderFilters();
+        renderAll();
+        closeAddModal();
+        showToast('✓ 일정이 삭제됐어요');
+      } catch (err) {
+        closeAddModal();
+        showToast('삭제됐지만 화면 갱신에 실패했어요. 새로고침(↻) 해주세요.', true);
+      } finally {
+        delBtn.disabled = false;
+        delBtn.textContent = '삭제';
+      }
+    }
+
     document.getElementById('btn-add').addEventListener('click', () => openAddModal());
     document.getElementById('btn-add-cancel').addEventListener('click', closeAddModal);
     document.getElementById('btn-add-save').addEventListener('click', handleAddSave);
+    document.getElementById('btn-add-delete').addEventListener('click', handleDelete);
     // 오버레이(카드 바깥) 클릭 → 닫기
     document.getElementById('add-modal').addEventListener('click', e => {
       if (e.target.id === 'add-modal') closeAddModal();
