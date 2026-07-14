@@ -220,15 +220,10 @@ tbody tr:hover td{background:var(--bg-soft);}
     </div>
     <span id="lastUpd" class="last-upd" title=""></span>
     <div class="actions">
-      <div class="more">
-        <button class="btn" onclick="toggleLinks(event)">🔗 바로가기 <span class="range-caret">▾</span></button>
-        <div class="range-menu more-menu" id="linksMenu" onclick="event.stopPropagation()">
-          <button onclick="closeLinks();window.open('https://blog.athomecorp.com/','_blank')">📝 블로그</button>
-          <button onclick="closeLinks();window.open('https://www.linkedin.com/company/90478773/','_blank')">💼 링크드인</button>
-          <button onclick="closeLinks();window.open('https://www.youtube.com/channel/UCfRWcGQK-952YXBIaHFcsNA','_blank')">▶️ 유튜브 채널</button>
-          <button onclick="closeLinks();window.open('https://career.athomecorp.com/','_blank')">🏢 채용사이트</button>
-        </div>
-      </div>
+      <button class="btn btn--icon" onclick="window.open('https://blog.athomecorp.com/','_blank')" title="블로그">📝</button>
+      <button class="btn btn--icon" onclick="window.open('https://www.linkedin.com/company/90478773/','_blank')" title="링크드인">💼</button>
+      <button class="btn btn--icon" onclick="window.open('https://www.youtube.com/channel/UCfRWcGQK-952YXBIaHFcsNA','_blank')" title="유튜브 채널">▶️</button>
+      <button class="btn btn--icon" onclick="window.open('https://career.athomecorp.com/','_blank')" title="채용사이트">🏢</button>
       <div class="more">
         <button class="btn btn--icon" onclick="toggleMore(event)" title="더보기">⋯</button>
         <div class="range-menu more-menu" id="moreMenu" onclick="event.stopPropagation()">
@@ -378,13 +373,11 @@ function restoreUi(){try{const s=JSON.parse(localStorage.getItem(UI_KEY)||'{}');
 function setRange(m){range.mode=m;range.offset=0;if(m!=='custom'){range.start=range.end=null;}closeRange();saveUi();render();}
 function applyCustom(){const s=$('#cStart').value,e=$('#cEnd').value;if(!s||!e)return alert('시작일과 종료일을 모두 선택하세요');if(s>e)return alert('시작일이 종료일보다 늦습니다');range.mode='custom';range.start=s;range.end=e;range.offset=0;closeRange();saveUi();render();}
 function shiftRange(dir){if(range.mode==='all'||range.mode==='custom')return;const R=computeRange();range.offset-=dir*R.weeks.length;saveUi();render();}
-function toggleRange(ev){ev.stopPropagation();closeMore();closeLinks();$('#rangeMenu').classList.toggle('open');}
+function toggleRange(ev){ev.stopPropagation();closeMore();$('#rangeMenu').classList.toggle('open');}
 function closeRange(){$('#rangeMenu').classList.remove('open');}
-function toggleMore(ev){ev.stopPropagation();closeRange();closeLinks();$('#moreMenu').classList.toggle('open');}
+function toggleMore(ev){ev.stopPropagation();closeRange();$('#moreMenu').classList.toggle('open');}
 function closeMore(){const m=$('#moreMenu');if(m)m.classList.remove('open');}
-function toggleLinks(ev){ev.stopPropagation();closeRange();closeMore();$('#linksMenu').classList.toggle('open');}
-function closeLinks(){const m=$('#linksMenu');if(m)m.classList.remove('open');}
-document.addEventListener('click',()=>{closeRange();closeMore();closeLinks();});
+document.addEventListener('click',()=>{closeRange();closeMore();});
 function toggleAcc(id){document.getElementById(id).classList.toggle('open');}
 
 /* ════════ 4. RENDER ════════ */
