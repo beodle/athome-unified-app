@@ -92,6 +92,7 @@
       gap: 3px;
     }
     .shell-quicklinks button {
+      position: relative;
       width: 28px;
       height: 28px;
       display: grid;
@@ -107,6 +108,29 @@
     .shell-quicklinks button:hover {
       background: var(--shell-panel);
       border-color: var(--shell-line);
+    }
+    .shell-quicklinks button::after {
+      content: attr(data-tip);
+      position: absolute;
+      top: calc(100% + 7px);
+      right: 0;
+      background: var(--shell-ink);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      padding: 5px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-3px);
+      transition: opacity .12s, transform .12s;
+      z-index: 10;
+    }
+    .shell-quicklinks button:hover::after {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .brand-text {
@@ -312,10 +336,10 @@
       </div>
       <button class="shell-login btn-login" id="btn-login" type="button" hidden>편집 로그인</button>
       <div class="shell-quicklinks">
-        <button type="button" onclick="window.open('https://blog.athomecorp.com/','_blank')" title="블로그">📝</button>
-        <button type="button" onclick="window.open('https://www.linkedin.com/company/90478773/','_blank')" title="링크드인">💼</button>
-        <button type="button" onclick="window.open('https://www.youtube.com/channel/UCfRWcGQK-952YXBIaHFcsNA','_blank')" title="유튜브 채널">▶️</button>
-        <button type="button" onclick="window.open('https://career.athomecorp.com/','_blank')" title="채용사이트">🏢</button>
+        <button type="button" onclick="window.open('https://blog.athomecorp.com/','_blank')" data-tip="블로그" aria-label="블로그">📝</button>
+        <button type="button" onclick="window.open('https://www.linkedin.com/company/90478773/','_blank')" data-tip="링크드인" aria-label="링크드인">💼</button>
+        <button type="button" onclick="window.open('https://www.youtube.com/channel/UCfRWcGQK-952YXBIaHFcsNA','_blank')" data-tip="유튜브 채널" aria-label="유튜브 채널">▶️</button>
+        <button type="button" onclick="window.open('https://career.athomecorp.com/','_blank')" data-tip="채용사이트" aria-label="채용사이트">🏢</button>
       </div>
     </header>
 
