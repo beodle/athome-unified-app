@@ -157,6 +157,26 @@ print(f'→ {len(new_data)}주 머지 완료')
 PYEOF
 
 # ── 2.5 LinkedIn 수집 (env 있을 때만: 노출·게시물·팔로워) ──
+# 로컬 실행 시 기존 linkedin-성과분석 프로젝트의 토큰 파일에서 자동 폴백 (CI는 Secrets로 이미 주입됨 → 아래는 무시됨)
+LINKEDIN_LOCAL_DIR="/Users/jangmyeongseong/Desktop/claude code/work/athome/채용-콘텐츠/linkedin-성과분석"
+if [ -z "${LINKEDIN_REFRESH_TOKEN:-}" ] && [ -f "$LINKEDIN_LOCAL_DIR/linkedin_token.json" ]; then
+  export LINKEDIN_REFRESH_TOKEN=$(python3 -c "import json;print(json.load(open('$LINKEDIN_LOCAL_DIR/linkedin_token.json'))['refresh_token'])")
+fi
+if [ -z "${LINKEDIN_CLIENT_ID:-}" ] && [ -f "$LINKEDIN_LOCAL_DIR/linkedin_config.json" ]; then
+  export LINKEDIN_CLIENT_ID=$(python3 -c "import json;print(json.load(open('$LINKEDIN_LOCAL_DIR/linkedin_config.json'))['client_id'])")
+fi
+if [ -z "${LINKEDIN_ORG_URN:-}" ] && [ -f "$LINKEDIN_LOCAL_DIR/linkedin_config.json" ]; then
+  export LINKEDIN_ORG_URN=$(python3 -c "import json;print(json.load(open('$LINKEDIN_LOCAL_DIR/linkedin_config.json'))['org_urn'])")
+fi
+if [ -z "${LINKEDIN_CLIENT_SECRET:-}" ] && [ -f "$LINKEDIN_LOCAL_DIR/linkedin_oauth.py" ]; then
+  export LINKEDIN_CLIENT_SECRET=$(python3 -c "
+import re
+src = open('$LINKEDIN_LOCAL_DIR/linkedin_oauth.py').read()
+m = re.search(r'CLIENT_SECRET = \"([^\"]+)\"', src)
+print(m.group(1) if m else '')
+")
+fi
+
 if [ -n "${LINKEDIN_REFRESH_TOKEN:-}" ]; then
   echo "→ LinkedIn 수집..."
   python3 linkedin_fetch.py || echo "⚠️ LinkedIn 수집 실패 — 건너뜀"
