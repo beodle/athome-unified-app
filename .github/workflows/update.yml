@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write          # update.sh의 git push 허용
+  issues: write            # 실패 시 알림 이슈 생성
 
 concurrency:
   group: ga4-refresh
@@ -45,3 +46,30 @@ jobs:
           LINKEDIN_ORG_URN: urn:li:organization:90478773
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: bash update.sh
+
+      # ── 실패 알림 1: GitHub 이슈 자동 생성 (이슈 생성 시 이메일 알림 발송) ──
+      - name: Notify failure via GitHub issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="⚠️ 주간 데이터 갱신 실패 — $(TZ=Asia/Seoul date +%Y-%m-%d)"
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title 주간 데이터 갱신 실패" --json number --jq 'length')
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY=$(printf '자동 데이터 갱신(GA4·LinkedIn·YouTube)이 실패했습니다.\n\n**실행 로그**: %s\n\n대부분 GitHub 일시 장애입니다. Actions 탭에서 **Re-run** 하거나, 로컬에서 `./update.sh`를 실행하세요.\n해결되면 이 이슈를 닫아주세요.' "$RUN_URL")
+          if [ "$EXISTING" = "0" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY"
+          else
+            echo "이미 열린 실패 이슈가 있어 중복 생성 생략"
+          fi
+
+      # ── 실패 알림 2: Slack (SLACK_WEBHOOK_URL 시크릿 등록 시에만 발송) ──
+      - name: Notify failure via Slack (optional)
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          [ -z "$SLACK_WEBHOOK_URL" ] && { echo "SLACK_WEBHOOK_URL 미설정, 건너뜀"; exit 0; }
+          curl -s -X POST -H 'Content-type: application/json' --data \
+            "{\"text\":\"⚠️ 앳홈 대시보드 주간 데이터 갱신 실패 — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|로그 보기>\"}" \
+            "$SLACK_WEBHOOK_URL"

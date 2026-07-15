@@ -634,7 +634,22 @@ function normChannel(ch){const s=(ch||'').trim().toLowerCase();if(s.includes('�
 async function syncCalendar(){try{const res=await fetch(CALENDAR_CSV_URL,{cache:'no-store'});if(!res.ok)throw 0;const{data}=Papa.parse(await res.text(),{header:true,skipEmptyLines:true});const ev=data.map(r=>({date:(r['시기']||'').trim(),title:(r['주요 주제']||'').trim(),channel:normChannel(r['채널']),url:(r['URL']||r['url']||r['링크']||'').trim()})).filter(e=>e.date&&e.title);if(ev.length){DB['__calendar__']=ev;render();}}catch(e){console.warn('[calendar] sync skip');}}
 
 /* ════════ 9. STALE ════════ */
-function checkStale(){if(!__LAST_UPDATED__||__LAST_UPDATED__==='—')return;const p=__LAST_UPDATED__.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);if(!p)return;const diff=Math.floor((Date.now()-new Date(+p[1],+p[2]-1,+p[3]))/864e5);if(diff>=7){const el=$('#stale');el.textContent=`데이터가 ${diff}일 전 업데이트되었습니다. update.sh 실행을 권장합니다.`;el.style.display='block';}}
+// LinkedIn refresh 토큰 만료일 — linkedin_oauth.py로 재발급하면 이 날짜도 함께 갱신할 것
+const __LI_TOKEN_EXPIRES__="2026-08-21";
+function checkStale(){
+  const msgs=[];
+  if(__LAST_UPDATED__&&__LAST_UPDATED__!=='—'){
+    const p=__LAST_UPDATED__.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if(p){const diff=Math.floor((Date.now()-new Date(+p[1],+p[2]-1,+p[3]))/864e5);
+      if(diff>=7)msgs.push(`데이터가 ${diff}일 전 업데이트되었습니다. update.sh 실행을 권장합니다.`);}
+  }
+  if(__LI_TOKEN_EXPIRES__){
+    const dLeft=Math.ceil((new Date(__LI_TOKEN_EXPIRES__)-Date.now())/864e5);
+    if(dLeft<0)msgs.push('🔑 LinkedIn 토큰이 만료됐습니다 — LinkedIn 수집이 중단된 상태입니다. linkedin_oauth.py로 재발급하세요.');
+    else if(dLeft<=14)msgs.push(`🔑 LinkedIn 토큰 만료 D-${dLeft} (${__LI_TOKEN_EXPIRES__}) — linkedin_oauth.py 재발급 후 GitHub Secret 갱신 필요`);
+  }
+  if(msgs.length){const el=$('#stale');el.textContent=msgs.join('  ·  ');el.style.display='block';}
+}
 
 /* ════════ 10. INIT ════════ */
 loadData();
