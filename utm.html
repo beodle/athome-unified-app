@@ -201,6 +201,39 @@ body {
 .guide-item .gi-val { font-size: 11.5px; font-weight: 700; color: var(--text-2); font-family: 'SF Mono', monospace; }
 .guide-item .gi-ex { font-size: 10px; color: var(--text-4); margin-top: 2px; font-family: var(--font); }
 
+/* ── 채널 프리셋 ── */
+.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.preset-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: var(--bg-card); border: 1.5px solid var(--border-2); border-radius: 10px;
+  padding: 10px 12px; font-family: var(--font); cursor: pointer; text-align: left;
+  transition: all .12s;
+}
+.preset-btn:hover, .preset-btn.on { border-color: var(--accent); background: var(--accent-light); }
+.preset-btn .p-name { font-size: 12.5px; font-weight: 700; color: var(--text-1); }
+.preset-btn .p-val { font-size: 10.5px; color: var(--text-4); font-family: 'SF Mono', monospace; }
+@media (max-width: 600px) { .preset-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ── 생성 히스토리 ── */
+.history-list { display: flex; flex-direction: column; gap: 6px; }
+.history-empty { font-size: 12px; color: var(--text-4); font-style: italic; }
+.history-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px;
+}
+.history-item .h-main { flex: 1; min-width: 0; cursor: pointer; }
+.history-item .h-url { font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-item .h-meta { font-size: 10px; color: var(--text-4); }
+.history-item .h-btn {
+  flex-shrink: 0; border: 1px solid var(--border-2); background: var(--bg-card);
+  border-radius: 6px; width: 24px; height: 24px; font-size: 12px; color: var(--text-3);
+  cursor: pointer; display: grid; place-items: center; transition: all .12s;
+}
+.history-item .h-btn:hover { border-color: var(--accent); color: var(--accent); }
+.history-clear { margin-top: 8px; border: none; background: none; font-family: var(--font); font-size: 11px; color: var(--text-4); cursor: pointer; text-decoration: underline; }
+.history-clear:hover { color: var(--text-2); }
+
 /* ── 액션 버튼 ── */
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .btn-primary {
@@ -260,6 +293,19 @@ body {
       </div>
       <h1 class="page-title">UTM 링크 빌더</h1>
       <p class="page-desc">채용 공고·콘텐츠 URL에 UTM 파라미터를 붙여 유입 경로를 정확하게 추적하세요.</p>
+    </div>
+
+    <!-- 채널 프리셋 -->
+    <div class="card">
+      <div class="card-title">채널 프리셋 — 원클릭 입력</div>
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="applyPreset(this,'linkedin','social')"><span class="p-name">링크드인 게시물</span><span class="p-val">linkedin / social</span></button>
+        <button class="preset-btn" onclick="applyPreset(this,'newsletter','email')"><span class="p-name">뉴스레터</span><span class="p-val">newsletter / email</span></button>
+        <button class="preset-btn" onclick="applyPreset(this,'youtube','video')"><span class="p-name">유튜브 영상</span><span class="p-val">youtube / video</span></button>
+        <button class="preset-btn" onclick="applyPreset(this,'blog','referral')"><span class="p-name">블로그 CTA</span><span class="p-val">blog / referral</span></button>
+        <button class="preset-btn" onclick="applyPreset(this,'kakao','social')"><span class="p-name">카카오 오픈톡</span><span class="p-val">kakao / social</span></button>
+        <button class="preset-btn" onclick="applyPreset(this,'google','cpc')"><span class="p-name">구글 검색광고</span><span class="p-val">google / cpc</span></button>
+      </div>
     </div>
 
     <!-- 필수 파라미터 -->
@@ -368,6 +414,7 @@ body {
         <span class="param-badge empty"><span class="dot"></span>content</span>
         <span class="param-badge empty"><span class="dot"></span>term</span>
       </div>
+      <div id="dup-note" style="margin-top:10px;font-size:11px;font-weight:700;color:#B45309;" hidden></div>
     </div>
 
     <!-- 앳홈 채널 네이밍 가이드 -->
@@ -407,6 +454,13 @@ body {
       </div>
     </div>
 
+    <!-- 최근 생성한 링크 -->
+    <div class="guide-card">
+      <div class="guide-card-title">최근 생성한 링크</div>
+      <div class="history-list" id="history-list"></div>
+      <button class="history-clear" id="history-clear" onclick="clearHistory()" hidden>전체 삭제</button>
+    </div>
+
   </div>
 </div>
 
@@ -439,6 +493,7 @@ body {
       generatedUrl = '';
       copyBtn.disabled = true;
       copyMain.disabled = true;
+      document.getElementById('dup-note').hidden = true;
       updateBadges(source, medium, campaign, content, term);
       return;
     }
@@ -462,11 +517,17 @@ body {
     copyBtn.classList.remove('copied');
     document.getElementById('copy-label').textContent = '복사';
 
+    // 중복 생성 경고 — 히스토리에 동일 링크가 있으면 알림
+    const dupNote = document.getElementById('dup-note');
+    const dup = loadHistory().find(h => h.u === generatedUrl);
+    dupNote.hidden = !dup;
+    if (dup) dupNote.textContent = `⚠ 이미 만든 링크예요 (${relTime(dup.t)})`;
+
     updateBadges(source, medium, campaign, content, term);
   }
 
   function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function updateBadges(source, medium, campaign, content, term) {
@@ -496,6 +557,7 @@ body {
   function copyUrl() {
     if (!generatedUrl) return;
     navigator.clipboard.writeText(generatedUrl).then(() => {
+      addToHistory(generatedUrl);
       const copyBtn = document.getElementById('copy-btn');
       const copyMain = document.getElementById('btn-copy-main');
       copyBtn.classList.add('copied');
@@ -518,9 +580,98 @@ body {
       document.getElementById(id).value = '';
     });
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('on'));
     generate();
   }
 
+  /* ── 채널 프리셋 ── */
+  function applyPreset(btn, source, medium) {
+    document.getElementById('f-source').value = source;
+    document.getElementById('f-medium').value = medium;
+    syncChips('f-source', 'chips-source');
+    syncChips('f-medium', 'chips-medium');
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('on', b === btn));
+    generate();
+    document.getElementById('f-campaign').focus();
+  }
+
+  /* ── 생성 히스토리 (localStorage) ── */
+  const HISTORY_KEY = 'athome-utm-history';
+  function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; } }
+  function saveHistory(list) { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch {} }
+  function relTime(t) {
+    const s = Math.floor((Date.now() - t) / 1000);
+    if (s < 60) return '방금';
+    if (s < 3600) return Math.floor(s / 60) + '분 전';
+    if (s < 86400) return Math.floor(s / 3600) + '시간 전';
+    return Math.floor(s / 86400) + '일 전';
+  }
+  function addToHistory(url) {
+    const list = loadHistory().filter(h => h.u !== url);
+    list.unshift({ u: url, t: Date.now() });
+    saveHistory(list.slice(0, 30));
+    renderHistory();
+  }
+  function removeHistory(i) {
+    const list = loadHistory();
+    list.splice(i, 1);
+    saveHistory(list);
+    renderHistory();
+  }
+  function clearHistory() {
+    if (!confirm('생성 기록을 모두 지울까요?')) return;
+    saveHistory([]);
+    renderHistory();
+  }
+  function copyHistoryItem(i) {
+    const h = loadHistory()[i];
+    if (!h) return;
+    navigator.clipboard.writeText(h.u).then(() => {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1800);
+    });
+  }
+  // 히스토리 항목 클릭 → 폼으로 불러오기 (UTM 파라미터는 필드로, 나머지는 원본 URL로 분해)
+  function loadHistoryItem(i) {
+    const h = loadHistory()[i];
+    if (!h) return;
+    try {
+      const url = new URL(h.u);
+      const p = url.searchParams;
+      document.getElementById('f-source').value   = p.get('utm_source')   || '';
+      document.getElementById('f-medium').value   = p.get('utm_medium')   || '';
+      document.getElementById('f-campaign').value = p.get('utm_campaign') || '';
+      document.getElementById('f-content').value  = p.get('utm_content')  || '';
+      document.getElementById('f-term').value     = p.get('utm_term')     || '';
+      ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k => p.delete(k));
+      document.getElementById('f-url').value = url.origin + url.pathname + (p.toString() ? '?' + p.toString() : '') + url.hash;
+      syncChips('f-source', 'chips-source');
+      syncChips('f-medium', 'chips-medium');
+      generate();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch {}
+  }
+  function renderHistory() {
+    const list = loadHistory();
+    const el = document.getElementById('history-list');
+    document.getElementById('history-clear').hidden = !list.length;
+    if (!list.length) {
+      el.innerHTML = '<div class="history-empty">복사한 링크가 여기에 쌓입니다.</div>';
+      return;
+    }
+    el.innerHTML = list.map((h, i) => `
+      <div class="history-item">
+        <div class="h-main" onclick="loadHistoryItem(${i})" title="클릭하면 폼으로 불러옵니다&#10;${escHtml(h.u)}">
+          <div class="h-url">${escHtml(h.u.replace(/^https?:\/\//, ''))}</div>
+          <div class="h-meta">${relTime(h.t)}</div>
+        </div>
+        <button class="h-btn" onclick="copyHistoryItem(${i})" title="복사">⧉</button>
+        <button class="h-btn" onclick="removeHistory(${i})" title="삭제">×</button>
+      </div>`).join('');
+  }
+
+  renderHistory();
   generate();
 </script>
 </body>
