@@ -1,0 +1,59 @@
+name: Daily Publish Alert
+
+# 매일 08:30 KST — 콘텐츠 캘린더에서 오늘 발행 예정 항목을 Slack으로 알림
+# SLACK_WEBHOOK_URL 시크릿이 없으면 조용히 건너뜀 (발행 예정이 없는 날도 발송 안 함)
+on:
+  schedule:
+    - cron: '30 23 * * *'   # 23:30 UTC = 다음날 08:30 KST
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check today's scheduled posts and notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          python3 - <<'PY'
+          import os, csv, io, json, datetime, urllib.request
+
+          hook = os.environ.get('SLACK_WEBHOOK_URL', '')
+          if not hook:
+              print('SLACK_WEBHOOK_URL 미설정 — 건너뜀')
+              raise SystemExit(0)
+
+          KST = datetime.timezone(datetime.timedelta(hours=9))
+          today = datetime.datetime.now(KST).date()
+          today_str = today.isoformat()
+
+          url = ('https://docs.google.com/spreadsheets/d/'
+                 '1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak/export?format=csv&gid=658998951')
+          text = urllib.request.urlopen(url, timeout=30).read().decode('utf-8')
+          rows = list(csv.DictReader(io.StringIO(text)))
+          todays = [r for r in rows if (r.get('시기') or '').strip() == today_str]
+
+          if not todays:
+              print(f'{today_str} 발행 예정 없음 — 알림 생략')
+              raise SystemExit(0)
+
+          lines = []
+          for r in todays:
+              ch    = (r.get('채널') or '').strip()
+              title = (r.get('주요 주제') or '').strip()
+              note  = (r.get('비고') or '').strip()
+              lines.append(f'• *[{ch}]* {title}' + (f' — {note}' if note else ''))
+
+          msg = (f':calendar: *오늘({today.month}/{today.day}) 발행 예정 {len(todays)}건*\n'
+                 + '\n'.join(lines)
+                 + '\n<https://beodle.github.io/athome-unified-app/#/calendar|캘린더 열기>')
+
+          req = urllib.request.Request(
+              hook,
+              data=json.dumps({'text': msg}).encode(),
+              headers={'Content-Type': 'application/json'})
+          resp = urllib.request.urlopen(req, timeout=30)
+          print('Slack 발송 완료:', resp.status)
+          PY
