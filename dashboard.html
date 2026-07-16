@@ -34,6 +34,14 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .wrap{max-width:1120px;margin:0 auto;padding:0 24px 64px;}
 .stale{background:#FEF3C7;border-bottom:1px solid #FDE68A;padding:6px 24px;font-size:12px;color:#92400E;text-align:center;display:none;}
 
+/* ── 실시간 상태 배너 (성과 KPI와 구분되는 톤) ── */
+.status-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg-soft);border:1px solid var(--border);border-radius:9px;padding:9px 16px;margin-top:20px;text-decoration:none;color:inherit;transition:border-color .14s,background .14s;}
+.status-bar:hover{border-color:var(--border-2);background:var(--bg-gray);}
+.status-bar .sb-left{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--text-2);}
+.status-bar .sb-dot{width:6px;height:6px;border-radius:50%;background:var(--up);flex-shrink:0;box-shadow:0 0 0 3px rgba(22,163,74,.15);}
+.status-bar .sb-right{display:flex;align-items:baseline;gap:10px;font-size:12.5px;color:var(--text-3);}
+.status-bar .sb-count{font-size:16px;font-weight:800;color:var(--text-1);letter-spacing:-.02em;}
+
 /* ── TOPBAR ── */
 .topbar{position:sticky;top:0;z-index:60;background:rgba(245,244,241,.85);backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border);}
 .topbar-in{max-width:1120px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px;}
@@ -234,15 +242,14 @@ tbody tr:hover td{background:var(--bg-soft);}
 
 <main class="wrap">
 
-  <!-- 오픈 포지션 (career.athomecorp.com 실시간 미러링) -->
-  <a href="https://career.athomecorp.com/recruit" target="_blank" style="text-decoration:none;color:inherit;">
-    <div class="kpi" id="openPosCard" style="margin-top:24px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-      <div>
-        <div class="kpi-label">지금 오픈된 포지션 · career.athomecorp.com ↗</div>
-        <div class="kpi-val" id="openPosVal" style="font-size:26px">—</div>
-      </div>
-      <div id="openPosBreakdown" style="font-size:11.5px;color:var(--text-4);text-align:right;line-height:1.7;"></div>
-    </div>
+  <!-- 오픈 포지션 (career.athomecorp.com 실시간 미러링 — 기간 필터와 무관한 현재 상태) -->
+  <a href="https://career.athomecorp.com/recruit" target="_blank" class="status-bar" id="openPosCard">
+    <span class="sb-left"><span class="sb-dot"></span>실시간 · 지금 오픈된 포지션</span>
+    <span class="sb-right">
+      <span id="openPosBreakdown"></span>
+      <span class="sb-count" id="openPosVal">—</span>
+      <span>career.athomecorp.com ↗</span>
+    </span>
   </a>
 
   <!-- 성과 스코어카드 -->
@@ -676,10 +683,10 @@ async function syncOpenPositions(){
     const byGroup={};
     (results||[]).forEach(r=>{const g=r.jobGroup?.title||'기타';byGroup[g]=(byGroup[g]||0)+1;});
     const top=Object.entries(byGroup).sort((a,b)=>b[1]-a[1]).slice(0,4);
-    bdEl.innerHTML=top.map(([g,n])=>`${esc(g)} ${n}`).join('<br>');
+    bdEl.textContent=top.map(([g,n])=>`${g} ${n}`).join(' · ');
   }catch(e){
     valEl.textContent='—';
-    bdEl.textContent='실시간 조회 실패 · career.athomecorp.com에서 확인';
+    bdEl.textContent='실시간 조회 실패';
     console.warn('[openPositions] sync skip', e);
   }
 }
