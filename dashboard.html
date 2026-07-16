@@ -234,6 +234,17 @@ tbody tr:hover td{background:var(--bg-soft);}
 
 <main class="wrap">
 
+  <!-- 오픈 포지션 (career.athomecorp.com 실시간 미러링) -->
+  <a href="https://career.athomecorp.com/recruit" target="_blank" style="text-decoration:none;color:inherit;">
+    <div class="kpi" id="openPosCard" style="margin-top:24px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+      <div>
+        <div class="kpi-label">지금 오픈된 포지션 · career.athomecorp.com ↗</div>
+        <div class="kpi-val" id="openPosVal" style="font-size:26px">—</div>
+      </div>
+      <div id="openPosBreakdown" style="font-size:11.5px;color:var(--text-4);text-align:right;line-height:1.7;"></div>
+    </div>
+  </a>
+
   <!-- 성과 스코어카드 -->
   <section class="sec" id="secScore" style="margin-top:24px">
     <div class="kpis kpis--5" id="scoreTiles"></div>
@@ -654,6 +665,25 @@ const CALENDAR_CSV_URL='https://docs.google.com/spreadsheets/d/1bnLQypIuMb0gw0Rx
 function normChannel(ch){const s=(ch||'').trim().toLowerCase();if(s.includes('링크드')||s==='linkedin')return'linkedin';if(s.includes('블로그')||s==='blog')return'blog';if(s.includes('채용')||s.includes('recruit'))return'recruit';if(s.includes('팟캐스트')||s.includes('홈레코딩')||s==='podcast')return'podcast';return s||'other';}
 async function syncCalendar(){try{const res=await fetch(CALENDAR_CSV_URL,{cache:'no-store'});if(!res.ok)throw 0;const{data}=Papa.parse(await res.text(),{header:true,skipEmptyLines:true});const ev=data.map(r=>({date:(r['시기']||'').trim(),title:(r['주요 주제']||'').trim(),channel:normChannel(r['채널']),url:(r['URL']||r['url']||r['링크']||'').trim()})).filter(e=>e.date&&e.title);if(ev.length){DB['__calendar__']=ev;render();}}catch(e){console.warn('[calendar] sync skip');}}
 
+// career.athomecorp.com 오픈 포지션 실시간 미러링 (ninehire 공개 API, baked 데이터와 무관하게 매 방문 시 조회)
+async function syncOpenPositions(){
+  const valEl=$('#openPosVal'),bdEl=$('#openPosBreakdown');
+  try{
+    const res=await fetch('https://api.ninehire.com/identity-access/homepage/recruitments?companyId=f6b69a00-168c-11f0-8d01-3f2475e76c63&page=1&countPerPage=100',{cache:'no-store'});
+    if(!res.ok)throw 0;
+    const {count,results}=await res.json();
+    valEl.textContent=`${fmt(count)}건`;
+    const byGroup={};
+    (results||[]).forEach(r=>{const g=r.jobGroup?.title||'기타';byGroup[g]=(byGroup[g]||0)+1;});
+    const top=Object.entries(byGroup).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    bdEl.innerHTML=top.map(([g,n])=>`${esc(g)} ${n}`).join('<br>');
+  }catch(e){
+    valEl.textContent='—';
+    bdEl.textContent='실시간 조회 실패 · career.athomecorp.com에서 확인';
+    console.warn('[openPositions] sync skip', e);
+  }
+}
+
 /* ════════ 9. STALE ════════ */
 // LinkedIn refresh 토큰 만료일 — linkedin_oauth.py로 재발급하면 이 날짜도 함께 갱신할 것
 const __LI_TOKEN_EXPIRES__="2026-08-21";
@@ -679,6 +709,7 @@ checkStale();
 if($('#lastUpd')&&__LAST_UPDATED__&&__LAST_UPDATED__!=='—'){const el=$('#lastUpd');const m=__LAST_UPDATED__.match(/(\d+)월\s*(\d+)일(?:\s*([\d:]+))?/);el.textContent=m?`⟳ ${m[1]}/${m[2]}${m[3]?' '+m[3]:''}`:'⟳ '+__LAST_UPDATED__;el.title='최근 업데이트 '+__LAST_UPDATED__;}
 render();
 syncCalendar();
+syncOpenPositions();
 
 // 잘린 제목 호버 → 즉시 전문 툴팁 (기본 title은 hover 동안 제거해 중복 방지)
 (function(){
