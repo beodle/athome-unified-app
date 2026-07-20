@@ -12,6 +12,7 @@
   --fs-kicker: 28px; --fs-cover-title: 84px; --fs-quote: 52px;
   --fs-insight-headline: 56px; --fs-insight-body: 42px; --fs-outro-title: 56px;
   --fs-cta: 38px; --fs-footer: 22px; --pad-x: 120px; --pad-y: 120px;
+  --image-zone-height: 620px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif; background: #555; color: var(--dark); -webkit-font-smoothing: antialiased; }
@@ -42,6 +43,10 @@ u { text-decoration: none; border-bottom: 3px solid currentColor; padding-bottom
 .card--insight .body { font-size: var(--fs-insight-body); font-weight: 500; line-height: 1.55; letter-spacing: -0.015em; white-space: pre-line; }
 .card--outro { background: var(--bg-light); color: var(--dark); justify-content: flex-start; }
 .card--outro .body { font-size: var(--fs-insight-body); font-weight: 500; line-height: 1.55; letter-spacing: -0.015em; white-space: pre-line; }
+.has-image { justify-content: flex-start !important; padding-bottom: calc(var(--image-zone-height) + 48px) !important; }
+.image-zone { position: absolute; left: 0; right: 0; bottom: 0; overflow: hidden; height: var(--image-zone-height); }
+.image-zone img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.has-image .footer, .has-image .page-num { color: var(--white); opacity: 0.92; text-shadow: 0 1px 8px rgba(0,0,0,0.4); z-index: 1; }
 .footer { position: absolute; left: var(--pad-x); bottom: 100px; color: var(--dark); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; opacity: 0.6; max-width: 720px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .page-num { position: absolute; right: var(--pad-x); bottom: 100px; font-size: 20px; font-weight: 600; color: var(--dark); opacity: 0.5; }
 .card--cover .page-num { display: none; }
@@ -67,6 +72,8 @@ u { text-decoration: none; border-bottom: 3px solid currentColor; padding-bottom
   .field input, .field textarea, .field select { width: 100%; background: #FFFFFF; color: #1a1a1a; border: 1.5px solid #DAD6CF; border-radius: 8px; padding: 7px 10px; font-family: inherit; font-size: 13px; line-height: 1.5; transition: border-color 0.12s; }
   .field textarea { resize: vertical; min-height: 56px; }
   .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: #FF5D00; box-shadow: 0 0 0 3px rgba(255,93,0,.08); }
+  .img-field-preview { margin-bottom: 6px; }
+  .img-field-preview img { width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid #DAD6CF; margin-bottom: 5px; }
 
   /* ---- 액션 그룹 ---- */
   .ed-groups { padding: 10px 18px; border-bottom: 1px solid #ECEAE5; flex-shrink: 0; }
@@ -315,25 +322,32 @@ function renderCover(c, m) {
     <h1 class="title">${lines}</h1>
   </section>`;
 }
+function renderImageZone(c) {
+  if (!c.image_url) return '';
+  return `<div class="image-zone"><img src="${c.image_url.replace(/"/g, '&quot;')}" alt=""></div>`;
+}
 function renderQuote(c, m, i, n) {
-  return `<section class="card card--quote">
+  return `<section class="card card--quote${c.image_url ? ' has-image' : ''}">
     <p class="body">${richText(c.body || '')}</p>
+    ${renderImageZone(c)}
     <div class="footer">${escapeHtml(m.title || '')}</div>
     <div class="page-num">${i}/${n}</div>
   </section>`;
 }
 function renderInsight(c, m, i, n) {
-  return `<section class="card card--insight">
+  return `<section class="card card--insight${c.image_url ? ' has-image' : ''}">
     ${c.headline ? `<h2 class="headline">${applyInline(escapeHtml(c.headline))}</h2>` : ''}
     <p class="body">${richText(c.body || '')}</p>
+    ${renderImageZone(c)}
     <div class="footer">${escapeHtml(m.title || '')}</div>
     <div class="page-num">${i}/${n}</div>
   </section>`;
 }
 function renderOutro(c, m, i, n) {
   const bodyText = c.body || c.title || '';
-  return `<section class="card card--outro">
+  return `<section class="card card--outro${c.image_url ? ' has-image' : ''}">
     ${bodyText ? `<p class="body">${richText(bodyText)}</p>` : ''}
+    ${renderImageZone(c)}
     <div class="footer">${escapeHtml(m.title || '')}</div>
     <div class="page-num">${i}/${n}</div>
   </section>`;
@@ -363,6 +377,59 @@ function field(label, value, oninput, opts = {}) {
   return `<div class="field"><label>${label}</label>${tag}</div>`;
 }
 
+function readImageFile(file, maxDim = 1350, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale); height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function imageField(c, label = '사진 (선택)') {
+  const inputId = 'img_' + Math.random().toString(36).slice(2, 8);
+  const preview = c.image_url
+    ? `<div class="img-field-preview"><img src="${escapeHtml(c.image_url)}"><button type="button" class="ed-btn" data-remove-image>사진 제거</button></div>` : '';
+  setTimeout(() => {
+    const wrap = document.getElementById(inputId)?.closest('.field');
+    wrap?.querySelector('input[type=file]')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { alert('이미지 파일만 가능합니다'); return; }
+      pushUndo();
+      const dataUrl = await readImageFile(file);
+      c.image_url = dataUrl;
+      renderAll();
+      const kb = Math.round(dataUrl.length / 1024);
+      showToast(kb > 900 ? `사진 추가됨 (${kb}KB, 큰 편)` : `사진 추가됨 (${kb}KB)`);
+    });
+    wrap?.querySelector('[data-remove-image]')?.addEventListener('click', () => {
+      pushUndo();
+      delete c.image_url;
+      renderAll();
+      showToast('사진 제거됨');
+    });
+  }, 0);
+  return `<div class="field"><label>${label}</label>${preview}
+    <label class="ed-btn ed-btn-file" style="display:inline-block;">${c.image_url ? '사진 교체' : '사진 추가'}<input type="file" id="${inputId}" accept="image/*"></label>
+  </div>`;
+}
+
 function syncMetaTitleFromCover() {
   const cover = state.cards.find(c => c.type === 'cover');
   if (cover && Array.isArray(cover.title_lines) && cover.title_lines.length) {
@@ -389,16 +456,19 @@ function renderEditor() {
       fields += field('kicker', c.kicker, v => { c.kicker = v; renderPreview(); });
       fields += field('title_lines (한 줄에 하나씩)', (c.title_lines || []).join('\n'),
         v => { c.title_lines = v.split('\n').filter(Boolean); renderPreview(); }, { textarea: true, rows: 3 });
-      fields += field('image_url (og:image — 비우면 컬러 그라데이션)', c.image_url, v => { c.image_url = v; renderPreview(); });
+      fields += imageField(c, '커버 사진 (선택 — 비우면 컬러 그라데이션)');
       fields += field('image_overlay (gradient | dark | light | none)', c.image_overlay || 'gradient', v => { c.image_overlay = v; renderPreview(); });
       fields += field('accent_color (이미지 없을 때 사용)', c.accent_color || '#FF5D00', v => { c.accent_color = v; renderPreview(); });
     } else if (c.type === 'quote') {
       fields += field('body', c.body, v => { c.body = v; renderPreview(); }, { textarea: true, rows: 6 });
+      fields += imageField(c);
     } else if (c.type === 'insight') {
       fields += field('headline (선택)', c.headline, v => { c.headline = v; renderPreview(); });
       fields += field('body', c.body, v => { c.body = v; renderPreview(); }, { textarea: true, rows: 6 });
+      fields += imageField(c);
     } else if (c.type === 'outro') {
       fields += field('body (마무리 본문 — __밑줄__, **볼드**, ==강조== 사용 가능)', c.body || c.title || '', v => { c.body = v; delete c.title; renderPreview(); }, { textarea: true, rows: 5 });
+      fields += imageField(c);
     }
 
     item.innerHTML = `
@@ -521,6 +591,7 @@ $('#exportHtml').addEventListener('click', async () => {
 
 // ---------- Export PNG / PDF helpers ----------
 async function imageToDataUrl(url) {
+  if (url.startsWith('data:')) return url;
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error('fetch ' + res.status);
