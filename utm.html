@@ -128,12 +128,13 @@ body {
 
 /* ── 출력 카드 (우패널) ── */
 .output-card {
-  background: #CECECE;
+  background: var(--bg-card);
   border: 1.5px solid var(--border-2);
-  border-left: 3px solid var(--accent);
+  border-left: 4px solid var(--accent);
   border-radius: 12px;
   padding: 18px 20px;
   position: relative;
+  box-shadow: 0 2px 8px rgba(255,93,0,.10), 0 8px 28px rgba(40,30,20,.06);
 }
 .output-label {
   font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
@@ -168,6 +169,7 @@ body {
   display: flex; flex-wrap: wrap; gap: 6px;
   margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
 }
+.params-preview:empty { display: none; margin-top: 0; padding-top: 0; border-top: none; }
 .param-badge {
   display: flex; align-items: center; gap: 4px;
   border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600;
@@ -186,6 +188,12 @@ body {
   padding: 18px 20px;
   box-shadow: var(--shadow);
 }
+.guide-card.panel-secondary {
+  background: var(--bg-soft);
+  box-shadow: none;
+  padding: 14px 16px;
+}
+.guide-card.panel-secondary .guide-card-title { font-size: 10px; margin-bottom: 10px; }
 .guide-card-title {
   font-size: 11px; font-weight: 700; color: var(--text-4);
   letter-spacing: .06em; text-transform: uppercase;
@@ -195,6 +203,13 @@ body {
   content: ''; display: block; width: 3px; height: 12px;
   background: var(--border-2); border-radius: 2px; flex-shrink: 0;
 }
+summary.guide-card-title { cursor: pointer; list-style: none; user-select: none; }
+summary.guide-card-title::-webkit-details-marker { display: none; }
+summary.guide-card-title::after {
+  content: '▾'; margin-left: auto; color: var(--text-4); font-size: 10px; transition: transform .15s;
+}
+details[open] summary.guide-card-title::after { transform: rotate(180deg); }
+details .guide-grid { margin-top: 12px; }
 .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .guide-item { background: var(--bg-soft); border-radius: 8px; padding: 10px 12px; }
 .guide-item .gi-label { font-size: 10px; font-weight: 700; color: var(--text-4); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 3px; }
@@ -295,19 +310,6 @@ body {
       <p class="page-desc">채용 공고·콘텐츠 URL에 UTM 파라미터를 붙여 유입 경로를 정확하게 추적하세요.</p>
     </div>
 
-    <!-- 채널 프리셋 -->
-    <div class="card">
-      <div class="card-title">채널 프리셋 — 원클릭 입력</div>
-      <div class="preset-grid">
-        <button class="preset-btn" onclick="applyPreset(this,'linkedin','social')"><span class="p-name">링크드인 게시물</span><span class="p-val">linkedin / social</span></button>
-        <button class="preset-btn" onclick="applyPreset(this,'newsletter','email')"><span class="p-name">뉴스레터</span><span class="p-val">newsletter / email</span></button>
-        <button class="preset-btn" onclick="applyPreset(this,'youtube','video')"><span class="p-name">유튜브 영상</span><span class="p-val">youtube / video</span></button>
-        <button class="preset-btn" onclick="applyPreset(this,'blog','referral')"><span class="p-name">블로그 CTA</span><span class="p-val">blog / referral</span></button>
-        <button class="preset-btn" onclick="applyPreset(this,'kakao','social')"><span class="p-name">카카오 오픈톡</span><span class="p-val">kakao / social</span></button>
-        <button class="preset-btn" onclick="applyPreset(this,'google','cpc')"><span class="p-name">구글 검색광고</span><span class="p-val">google / cpc</span></button>
-      </div>
-    </div>
-
     <!-- 필수 파라미터 -->
     <div class="card">
       <div class="card-title">필수 파라미터</div>
@@ -316,6 +318,15 @@ body {
         <div class="field-label">랜딩페이지 URL <span class="required">필수</span></div>
         <div class="field-hint">UTM을 붙일 원본 URL. (예: https://career.athomecorp.com/jobs/123)</div>
         <input type="url" id="f-url" placeholder="https://career.athomecorp.com/…" oninput="generate()" autocomplete="off" spellcheck="false">
+      </div>
+
+      <div class="field" style="margin-bottom:14px;">
+        <div class="field-label" style="margin-bottom:7px;">빠른 채널 선택</div>
+        <div class="preset-grid">
+          <button class="preset-btn" onclick="applyPreset(this,'linkedin','social')"><span class="p-name">링크드인</span><span class="p-val">linkedin / social</span></button>
+          <button class="preset-btn" onclick="applyPreset(this,'blog','referral')"><span class="p-name">블로그</span><span class="p-val">blog / referral</span></button>
+          <button class="preset-btn" onclick="applyPreset(this,'youtube','referral')"><span class="p-name">유튜브</span><span class="p-val">youtube / referral</span></button>
+        </div>
       </div>
 
       <div class="field-row">
@@ -398,7 +409,7 @@ body {
     <!-- 생성된 UTM 링크 -->
     <div class="output-card" id="output-card">
       <div style="padding-right:72px;">
-        <div class="output-label">생성된 UTM 링크</div>
+        <div class="output-label" id="output-label">UTM 링크 만들기</div>
         <div class="output-url" id="output-url">
           <span class="output-empty">URL, source, medium을 입력하면 링크가 완성됩니다.</span>
         </div>
@@ -417,48 +428,50 @@ body {
       <div id="dup-note" style="margin-top:10px;font-size:11px;font-weight:700;color:#B45309;" hidden></div>
     </div>
 
-    <!-- 앳홈 채널 네이밍 가이드 -->
-    <div class="guide-card">
-      <div class="guide-card-title">앳홈 채널 네이밍 가이드</div>
-      <div class="guide-grid">
-        <div class="guide-item">
-          <div class="gi-label">LinkedIn 피드</div>
-          <div class="gi-val">linkedin / social</div>
-          <div class="gi-ex">campaign=hiring_open</div>
-        </div>
-        <div class="guide-item">
-          <div class="gi-label">뉴스레터</div>
-          <div class="gi-val">newsletter / email</div>
-          <div class="gi-ex">campaign=weekly_jul</div>
-        </div>
-        <div class="guide-item">
-          <div class="gi-label">유튜브 영상</div>
-          <div class="gi-val">youtube / video</div>
-          <div class="gi-ex">campaign=자기만의방</div>
-        </div>
-        <div class="guide-item">
-          <div class="gi-label">블로그 포스트</div>
-          <div class="gi-val">blog / referral</div>
-          <div class="gi-ex">campaign=culture_series</div>
-        </div>
-        <div class="guide-item">
-          <div class="gi-label">카카오 오픈톡</div>
-          <div class="gi-val">kakao / social</div>
-          <div class="gi-ex">campaign=channel_post</div>
-        </div>
-        <div class="guide-item">
-          <div class="gi-label">Google 검색광고</div>
-          <div class="gi-val">google / cpc</div>
-          <div class="gi-ex">term=프론트개발자채용</div>
-        </div>
-      </div>
-    </div>
-
     <!-- 최근 생성한 링크 -->
-    <div class="guide-card">
+    <div class="guide-card panel-secondary">
       <div class="guide-card-title">최근 생성한 링크</div>
       <div class="history-list" id="history-list"></div>
       <button class="history-clear" id="history-clear" onclick="clearHistory()" hidden>전체 삭제</button>
+    </div>
+
+    <!-- 앳홈 채널 네이밍 가이드 (기본 접힘) -->
+    <div class="guide-card panel-secondary">
+      <details id="guideDetails">
+        <summary class="guide-card-title">앳홈 채널 네이밍 가이드</summary>
+        <div class="guide-grid">
+          <div class="guide-item">
+            <div class="gi-label">LinkedIn 피드</div>
+            <div class="gi-val">linkedin / social</div>
+            <div class="gi-ex">campaign=hiring_open</div>
+          </div>
+          <div class="guide-item">
+            <div class="gi-label">뉴스레터</div>
+            <div class="gi-val">newsletter / email</div>
+            <div class="gi-ex">campaign=weekly_jul</div>
+          </div>
+          <div class="guide-item">
+            <div class="gi-label">유튜브 영상</div>
+            <div class="gi-val">youtube / video</div>
+            <div class="gi-ex">campaign=자기만의방</div>
+          </div>
+          <div class="guide-item">
+            <div class="gi-label">블로그 포스트</div>
+            <div class="gi-val">blog / referral</div>
+            <div class="gi-ex">campaign=culture_series</div>
+          </div>
+          <div class="guide-item">
+            <div class="gi-label">카카오 오픈톡</div>
+            <div class="gi-val">kakao / social</div>
+            <div class="gi-ex">campaign=channel_post</div>
+          </div>
+          <div class="guide-item">
+            <div class="gi-label">Google 검색광고</div>
+            <div class="gi-val">google / cpc</div>
+            <div class="gi-ex">term=프론트개발자채용</div>
+          </div>
+        </div>
+      </details>
     </div>
 
   </div>
@@ -494,6 +507,7 @@ body {
       copyBtn.disabled = true;
       copyMain.disabled = true;
       document.getElementById('dup-note').hidden = true;
+      document.getElementById('output-label').textContent = 'UTM 링크 만들기';
       updateBadges(source, medium, campaign, content, term);
       return;
     }
@@ -516,6 +530,7 @@ body {
     copyMain.disabled = false;
     copyBtn.classList.remove('copied');
     document.getElementById('copy-label').textContent = '복사';
+    document.getElementById('output-label').textContent = '생성된 UTM 링크';
 
     // 중복 생성 경고 — 히스토리에 동일 링크가 있으면 알림
     const dupNote = document.getElementById('dup-note');
@@ -532,10 +547,11 @@ body {
 
   function updateBadges(source, medium, campaign, content, term) {
     const params = [['source',source],['medium',medium],['campaign',campaign],['content',content],['term',term]];
-    document.getElementById('params-preview').innerHTML = params.map(([k, v]) => {
+    const hasAny = source || medium || campaign || content || term;
+    document.getElementById('params-preview').innerHTML = hasAny ? params.map(([k, v]) => {
       const filled = !!v;
       return `<span class="param-badge ${filled?'filled':'empty'}"><span class="dot"></span>${k}${filled?': '+v:''}</span>`;
-    }).join('');
+    }).join('') : '';
   }
 
   function setChip(fieldId, chipsId, val) {
@@ -673,6 +689,16 @@ body {
 
   renderHistory();
   generate();
+
+  // 가이드 접힘 상태 기억 (기본 접힘)
+  const GUIDE_KEY = 'athome-utm-guide-open';
+  const guideDetails = document.getElementById('guideDetails');
+  if (guideDetails) {
+    try { guideDetails.open = localStorage.getItem(GUIDE_KEY) === '1'; } catch {}
+    guideDetails.addEventListener('toggle', () => {
+      try { localStorage.setItem(GUIDE_KEY, guideDetails.open ? '1' : '0'); } catch {}
+    });
+  }
 </script>
 </body>
 </html>
