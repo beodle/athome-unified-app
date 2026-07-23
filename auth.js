@@ -13,10 +13,6 @@
   };
   var ALLOWED_DOMAIN = '@athomecorp.com';
 
-  // 앱 전체 로그인 게이트를 통과하는 순간 콘텐츠 캘린더의 Sheets 쓰기 권한도 함께 받아온다.
-  // (앱을 쓸 수 있다는 것 자체가 이미 회사 계정 인증을 의미하므로, 캘린더에 별도 로그인 버튼을 두지 않는다.)
-  var SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
-
   var hideStyle = document.createElement('style');
   hideStyle.setAttribute('data-athome-auth', '1');
   hideStyle.textContent = 'body{visibility:hidden!important;}#athome-auth-gate{visibility:visible!important;}';
@@ -107,7 +103,6 @@
         }
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ hd: 'athomecorp.com' });
-        provider.addScope(SHEETS_SCOPE);
 
         // GitHub Pages는 커스텀 응답 헤더(Cross-Origin-Opener-Policy)를 설정할 수 없어서
         // signInWithPopup을 쓰면 크롬이 팝업↔원본 페이지 통신을 막아버려
@@ -124,24 +119,15 @@
           return firebase.auth().signInWithRedirect(provider);
         };
         window.__athomeSignOut__ = function () {
-          window.__athomeSheetsToken__ = null;
           return firebase.auth().signOut();
         };
 
-        // 리다이렉트로 돌아온 직후 이 페이지에서 결과를 받는다 — accessToken은 오직 이
-        // 결과에서만 얻을 수 있고(onAuthStateChanged에는 안 실림), 로그인 없이 세션이
-        // 유지된 상태로 들어온 경우엔 user가 없어 조용히 아무 일도 하지 않는다.
-        // onAuthStateChanged보다 먼저 끝나야 한다 — 안 그러면 'athome-auth-ready'가
-        // accessToken이 채워지기도 전에 먼저 발사돼, 그 이벤트를 듣는 페이지(캘린더 등)가
-        // 아직 없는 토큰을 보고 지나가버린다.
+        // 리다이렉트로 돌아온 직후인지(로그인 없이 세션이 유지된 상태로 들어온 경우와
+        // 구분) 확인해 아래에서 저장해둔 해시를 복원할지 판단한다.
         return firebase.auth().getRedirectResult().catch(function (err) {
           console.error('[auth] redirect result error', err);
           return null;
         }).then(function (result) {
-          if (result && result.user) {
-            var cred = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
-            window.__athomeSheetsToken__ = cred && cred.accessToken;
-          }
           // signInWithRedirect가 지운 해시를 로그인 직전 저장해둔 값으로 복원한다.
           // 이 시점(redirectResult 처리 직후)에만 복원해야 평소 새로고침/재방문 시
           // 사용자가 이미 이동해있는 해시를 되돌리는 부작용이 없다.

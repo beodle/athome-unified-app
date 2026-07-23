@@ -400,10 +400,16 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
         removeNoteDom(id); // 다른 사람이 삭제한 노트 반영
         return;
       }
-      const data = Object.assign({ id }, change.doc.data());
+      // 기존 노트는 새 객체로 바꿔치기하지 않고 그 자리에서 값만 갱신한다 — renderNote()가
+      // 걸어둔 드래그/리사이즈 핸들러가 이 객체를 클로저로 참조하고 있어서, 참조 자체를
+      // 바꾸면 핸들러는 계속 옛 객체를 보게 되고 다음 조작 때 값이 되돌아가버린다.
+      const el = elsById.get(id);
+      const existing = notesById.get(id);
+      const data = existing
+        ? Object.assign(existing, { id }, change.doc.data())
+        : Object.assign({ id }, change.doc.data());
       notesById.set(id, data);
       zTop = Math.max(zTop, data.z||1);
-      const el = elsById.get(id);
       if(!el){
         renderNote(data); // 다른 사람이 추가한 새 노트
       } else if(id !== activeId){
