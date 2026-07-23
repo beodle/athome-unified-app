@@ -104,43 +104,17 @@
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ hd: 'athomecorp.com' });
 
-        // GitHub Pages는 커스텀 응답 헤더(Cross-Origin-Opener-Policy)를 설정할 수 없어서
-        // signInWithPopup을 쓰면 크롬이 팝업↔원본 페이지 통신을 막아버려
-        // "auth/popup-closed-by-user"로 계속 실패한다(실제로는 로그인이 끝났는데 결과를 못 받음).
-        // 그래서 팝업 대신 페이지 전체가 이동했다가 돌아오는 리다이렉트 방식을 쓴다.
+        // 팝업은 결과가 signInWithPopup()의 반환 Promise로 바로 오기 때문에 페이지 이동/
+        // 새로고침 자체가 없다 — 리다이렉트 방식에서 겪은 "URL 해시 유실", "제3자 저장소
+        // 접근 차단으로 로그인 결과를 못 받아옴" 문제가 구조적으로 없다. (GitHub Pages가
+        // Cross-Origin-Opener-Policy 헤더를 못 줘서 팝업이 계속 실패했던 적이 있었는데,
+        // 그건 브라우저/보안 정책에 따라 달라질 수 있어 필요하면 재검토한다.)
         window.__athomeSignIn__ = function () {
-          // signInWithRedirect는 리다이렉트 왕복 후 URL의 해시(#)를 보존하지 않는다.
-          // 로그인 직전 해시를 저장해뒀다가 복귀 후 되돌려주지 않으면 사용자가
-          // 원래 보던 탭(예: 캘린더)이 아니라 사이트 루트로 떨어져 "로그인해도
-          // 안 된다"고 느끼게 된다.
-          try {
-            sessionStorage.setItem('athome-return-hash', location.hash || '');
-          } catch (e) { /* 세션 스토리지 접근 불가 시 무시 */ }
-          return firebase.auth().signInWithRedirect(provider);
+          return firebase.auth().signInWithPopup(provider);
         };
         window.__athomeSignOut__ = function () {
           return firebase.auth().signOut();
         };
-
-        // 리다이렉트로 돌아온 직후인지(로그인 없이 세션이 유지된 상태로 들어온 경우와
-        // 구분) 확인해 아래에서 저장해둔 해시를 복원할지 판단한다.
-        return firebase.auth().getRedirectResult().catch(function (err) {
-          console.error('[auth] redirect result error', err);
-          return null;
-        }).then(function (result) {
-          // signInWithRedirect가 지운 해시를 로그인 직전 저장해둔 값으로 복원한다.
-          // 이 시점(redirectResult 처리 직후)에만 복원해야 평소 새로고침/재방문 시
-          // 사용자가 이미 이동해있는 해시를 되돌리는 부작용이 없다.
-          try {
-            var savedHash = sessionStorage.getItem('athome-return-hash');
-            if (savedHash !== null) {
-              sessionStorage.removeItem('athome-return-hash');
-              if (result && result.user && location.hash !== savedHash) {
-                location.hash = savedHash;
-              }
-            }
-          } catch (e) { /* 세션 스토리지 접근 불가 시 무시 */ }
-        });
       })
       .then(function () {
         // signOut()은 비동기라 도메인 거부 메시지를 보여준 직후 onAuthStateChanged(null)이
