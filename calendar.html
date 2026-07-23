@@ -61,27 +61,6 @@
     .btn-refresh:hover { background: var(--color-gray-light); color: var(--color-text-primary); }
     .btn-refresh:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-    /* ── 편집 로그인 버튼 ── */
-    .btn-login {
-      background: none;
-      border: 1px solid var(--color-gray-mid);
-      border-radius: 6px;
-      padding: 4px 12px;
-      font-size: var(--size-caption);
-      font-family: var(--font-body-ko);
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-      color: var(--color-text-primary);
-    }
-    .btn-login:hover { border-color: var(--color-text-primary); }
-    .btn-login.authenticated {
-      background: #059669;
-      border-color: #059669;
-      color: #fff;
-    }
-    .btn-login:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-
     /* ── 캘린더 헤더 (월 네비게이션) ── */
     .cal-header {
       display: flex;
@@ -533,8 +512,7 @@
       onmouseout="this.style.color='var(--color-gray-mid)'"
     >시트 열기 ↗</a>
     <div class="header-actions">
-      <button class="btn-add" id="btn-add" hidden>＋ 일정 추가</button>
-      <button class="btn-login" id="btn-login">✎ 편집 로그인</button>
+      <button class="btn-add" id="btn-add">＋ 일정 추가</button>
       <button class="btn-refresh" id="btn-refresh" title="새로고침">↻</button>
     </div>
   </header>
@@ -681,44 +659,61 @@
       }
     }
 
-    document.getElementById('btn-login').addEventListener('click', async () => {
-      if (accessToken) {
-        // 편집 모드 해제 (앱 전체 로그인은 유지, Sheets 쓰기 토큰만 폐기)
-        accessToken = null;
-        sheetName   = '콘텐츠 캘린더';
-        const btn = document.getElementById('btn-login');
-        btn.textContent = '✎ 편집 로그인';
-        btn.classList.remove('authenticated');
-        document.getElementById('btn-add').hidden = true; // 편집 모드 해제 → 버튼 숨김
-        closeAddModal(); // 열려 있던 모달도 닫기
-        showToast('편집 모드 해제됨');
-        renderAll();
-        return;
-      }
+    // 앱 전체 로그인 게이트를 통과했다는 것 자체가 이미 회사 계정 인증이므로,
+    // 캘린더에는 별도 편집 로그인 버튼을 두지 않고 Sheets 쓰기 토큰을 자동으로 확보한다.
+    // (index.html 셸의 iframe으로 열린 경우, 부모 창이 앱 게이트 로그인 시점에 이미 받아온
+    //  토큰을 캐시하고 있을 수 있으므로 부모 창을 먼저 확인한다.)
+    function authWindow() {
       try {
-        await window.__athomeSignIn__();
-        accessToken = window.__athomeSheetsToken__;
-        if (!accessToken) {
-          showToast('Sheets 편집 권한을 가져오지 못했어요. 다시 시도해주세요.', true);
-          return;
-        }
-        const btn = document.getElementById('btn-login');
-        btn.textContent = '✓ 편집 활성';
-        btn.classList.add('authenticated');
+        if (window.parent && window.parent !== window && window.parent.__athomeSignIn__) return window.parent;
+      } catch (e) { /* cross-origin이면 접근 불가 — 자기 자신으로 폴백 */ }
+      return window;
+    }
+
+    async function ensureSheetsToken() {
+      const w = authWindow();
+      if (w.__athomeSheetsToken__) return w.__athomeSheetsToken__;
+      await w.__athomeSignIn__();
+      return w.__athomeSheetsToken__;
+    }
+
+    // 동시에 여러 트리거(auth-ready 이벤트 + 즉시 체크 + 버튼 클릭)가 겹쳐도 한 번만 진행되도록
+    // boolean 플래그를 동기적으로 먼저 세운다 (Promise 변수 대입은 비동기 함수의 동기 구간이 끝난
+    // 뒤에야 반영되므로, 그 사이에 재진입이 들어오면 대입 전 상태를 보고 다시 진입해버릴 수 있음).
+    let enablingEditing = false;
+    async function enableEditing() {
+      if (accessToken) return true;
+      if (enablingEditing) return false;
+      enablingEditing = true;
+      try {
+        accessToken = await ensureSheetsToken();
+        if (!accessToken) return false;
         await fetchSheetName();
-        document.getElementById('btn-add').hidden = false; // 편집 모드에서만 노출
-        showToast('편집 모드 활성화. 카드를 드래그하거나 + 일정 추가를 눌러보세요.');
         renderAll(); // draggable 카드로 다시 렌더
+        return true;
       } catch (e) {
-        showToast('로그인 실패: ' + (e && e.message ? e.message : '알 수 없는 오류'), true);
+        console.warn('Sheets 편집 권한 확보 실패:', e);
+        return false;
+      } finally {
+        enablingEditing = false;
       }
+    }
+
+    document.getElementById('btn-add').addEventListener('click', () => {
+      if (!accessToken) enableEditing(); // 모달은 openAddModal에서 계속 열리고, 저장 시점엔 토큰이 준비돼 있음
     });
+
+    // 페이지 진입 시 한 번 시도 — 대개 부모 창(index.html)에 이미 토큰이 캐시돼 있어 조용히 성공한다.
+    // (팝업 차단으로 실패해도 조용히 넘어가고, 실제 클릭/드래그 시점에 다시 시도된다.)
+    document.addEventListener('athome-auth-ready', enableEditing);
+    if (window.__athomeUser__) enableEditing();
 
     /* ────────────────────────────────────────────
        Sheets API 쓰기
     ──────────────────────────────────────────── */
     async function updateEventDate(event, newDate) {
-      if (!accessToken) throw new Error('로그인 필요');
+      if (!accessToken) accessToken = await ensureSheetsToken();
+      if (!accessToken) throw new Error('편집 권한을 가져오지 못했어요');
       if (!sheetName)   throw new Error('시트명 불명');
 
       // 컬럼 문자 계산 (0→A, 1→B, …)
@@ -772,7 +767,8 @@
     }
 
     async function appendEvent(form) {
-      if (!accessToken) throw new Error('로그인 필요');
+      if (!accessToken) accessToken = await ensureSheetsToken();
+      if (!accessToken) throw new Error('편집 권한을 가져오지 못했어요');
       if (!sheetName)   throw new Error('시트명 불명');
 
       const range = encodeURIComponent(`${sheetName}!A:Z`);
@@ -799,7 +795,8 @@
        Sheets API 행 수정 / 삭제
     ──────────────────────────────────────────── */
     async function updateEventRow(rowIndex, form) {
-      if (!accessToken) throw new Error('로그인 필요');
+      if (!accessToken) accessToken = await ensureSheetsToken();
+      if (!accessToken) throw new Error('편집 권한을 가져오지 못했어요');
       if (!sheetName)   throw new Error('시트명 불명');
 
       const cols    = (headerFields && headerFields.length) ? headerFields : DEFAULT_COLUMNS;
@@ -826,7 +823,8 @@
     }
 
     async function deleteEventRow(rowIndex) {
-      if (!accessToken) throw new Error('로그인 필요');
+      if (!accessToken) accessToken = await ensureSheetsToken();
+      if (!accessToken) throw new Error('편집 권한을 가져오지 못했어요');
 
       const res = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`,

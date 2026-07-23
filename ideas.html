@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <script src="./auth.js"></script>
+<script>window.__athomeNeedsFirestore__ = true;</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>앳홈 아이디어 노트</title>
@@ -104,34 +105,69 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
 <script>
 (function(){
-  const STORAGE_KEY = 'athome-idea-notes-v1';
   const COLORS = ['#FFE38F','#FFC9A3','#C9E9C6','#BFDBFE','#E3D3F7','#FFC9DC'];
   const board = document.getElementById('board');
   const boardScroll = document.getElementById('boardScroll');
   const boardEmpty = document.getElementById('boardEmpty');
   const noteCountEl = document.getElementById('noteCount');
   const toastEl = document.getElementById('toast');
-  let notes = [];
+
+  // 노트는 팀 전체가 공유하는 Firestore 컬렉션(ideaNotes)에 문서 하나당 하나씩 저장된다.
+  // 로컬 상태는 실시간 스냅샷을 그대로 반영하는 캐시일 뿐, source of truth는 Firestore.
+  let db = null;
+  const notesById = new Map(); // id -> 노트 데이터
+  const elsById = new Map();   // id -> 렌더된 DOM 엘리먼트
   let zTop = 1;
-  let saveTimer = null;
+
+  // 지금 이 브라우저에서 편집/드래그/리사이즈 중인 노트는 원격 스냅샷이 와도 DOM을 덮어쓰지 않는다
+  // (안 그러면 타이핑 중 커서가 튀거나 드래그 중 위치가 되돌아가는 등 다른 사람 동시 편집과 충돌한다).
+  let activeId = null, activeIdleTimer = null;
+  function markActive(id){
+    activeId = id;
+    clearTimeout(activeIdleTimer);
+    activeIdleTimer = setTimeout(()=>{ if(activeId===id) activeId=null; }, 600);
+  }
+  function clearActive(id){
+    if(activeId===id){ activeId = null; clearTimeout(activeIdleTimer); }
+  }
+
+  const roById = new Map(); // id -> ResizeObserver (삭제 시 반드시 disconnect 해야 함)
+
+  // 노트 DOM과 옵저버를 한 곳에서 정리 — 로컬 삭제든 원격(다른 사람) 삭제든 동일하게 사용.
+  // ResizeObserver를 끊지 않고 el.remove()만 하면, 크기가 0으로 줄어드는 것을 리사이즈로 감지해서
+  // scheduleNoteSave({w:0,h:0})가 호출되어 방금 지운 노트를 Firestore에 다시 만들어버리는 버그가 생긴다.
+  function removeNoteDom(id){
+    const ro = roById.get(id);
+    if(ro) ro.disconnect();
+    roById.delete(id);
+    const el = elsById.get(id);
+    if(el) el.remove();
+    elsById.delete(id);
+    notesById.delete(id);
+  }
+
+  // 같은 노트에 대한 연속된 필드 변경(타이핑, 드래그 등)을 짧게 모아 한 번의 Firestore 쓰기로 합친다.
+  const pendingWrites = new Map(); // id -> {patch, timer}
+  function scheduleNoteSave(id, patch){
+    const entry = pendingWrites.get(id) || { patch:{} };
+    Object.assign(entry.patch, patch);
+    clearTimeout(entry.timer);
+    entry.timer = setTimeout(()=>{
+      pendingWrites.delete(id);
+      if(!db) return;
+      db.collection('ideaNotes').doc(id).set(entry.patch, { merge:true }).catch(err=>{
+        console.error('[ideas] save failed', err);
+        showToast('저장 실패: 네트워크를 확인해주세요');
+      });
+    }, 200);
+    pendingWrites.set(id, entry);
+  }
+  function cancelPendingSave(id){
+    const entry = pendingWrites.get(id);
+    if(entry){ clearTimeout(entry.timer); pendingWrites.delete(id); }
+  }
 
   function uid(){ return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-
-  function load(){
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      notes = raw ? JSON.parse(raw) : [];
-    }catch(e){ notes = []; }
-    if(!Array.isArray(notes)) notes = [];
-    zTop = notes.reduce((m,n)=>Math.max(m,n.z||1),1) + 1;
-  }
-
-  function scheduleSave(){
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(()=>{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-    }, 150);
-  }
 
   function showToast(msg){
     toastEl.textContent = msg;
@@ -141,11 +177,9 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
   }
 
   function updateEmptyState(){
-    boardEmpty.style.display = notes.length ? 'none' : 'block';
-    noteCountEl.textContent = notes.length + '개';
+    boardEmpty.style.display = notesById.size ? 'none' : 'block';
+    noteCountEl.textContent = notesById.size + '개';
   }
-
-  function findNote(id){ return notes.find(n=>n.id===id); }
 
   function renderNote(data){
     const el = document.createElement('div');
@@ -179,10 +213,13 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
     del.addEventListener('pointerdown', (e)=> e.stopPropagation());
     del.addEventListener('click', (e)=>{
       e.stopPropagation();
-      notes = notes.filter(n=>n.id!==data.id);
-      el.remove();
+      cancelPendingSave(data.id);
+      removeNoteDom(data.id);
       updateEmptyState();
-      scheduleSave();
+      if(db) db.collection('ideaNotes').doc(data.id).delete().catch(err=>{
+        console.error('[ideas] delete failed', err);
+        showToast('삭제 실패: 네트워크를 확인해주세요');
+      });
     });
 
     head.appendChild(dot);
@@ -193,20 +230,25 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
     body.contentEditable = 'true';
     body.dataset.ph = '아이디어를 적어보세요…';
     body.textContent = data.text || '';
+    body.addEventListener('focus', ()=> markActive(data.id));
+    body.addEventListener('blur', ()=> clearActive(data.id));
     body.addEventListener('input', ()=>{
       data.text = body.textContent;
-      scheduleSave();
+      markActive(data.id);
+      scheduleNoteSave(data.id, { text: data.text });
     });
     body.addEventListener('mousedown', (e)=> e.stopPropagation());
 
     el.appendChild(head);
     el.appendChild(body);
     board.appendChild(el);
+    elsById.set(data.id, el);
 
     // drag
     head.addEventListener('pointerdown', (e)=>{
       e.preventDefault();
       bringToFront(data, el);
+      markActive(data.id);
       const startX = e.clientX, startY = e.clientY;
       const origX = data.x, origY = data.y;
       el.classList.add('dragging');
@@ -217,12 +259,13 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
         data.y = origY + (ev.clientY - startY);
         el.style.left = data.x + 'px';
         el.style.top = data.y + 'px';
+        markActive(data.id);
       }
       function onUp(){
         el.classList.remove('dragging');
         head.removeEventListener('pointermove', onMove);
         head.removeEventListener('pointerup', onUp);
-        scheduleSave();
+        scheduleNoteSave(data.id, { x: data.x, y: data.y });
       }
       head.addEventListener('pointermove', onMove);
       head.addEventListener('pointerup', onUp, {once:true});
@@ -234,21 +277,38 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
       if(Math.round(r.width)!==data.w || Math.round(r.height)!==data.h){
         data.w = Math.round(r.width);
         data.h = Math.round(r.height);
-        scheduleSave();
+        markActive(data.id);
+        scheduleNoteSave(data.id, { w: data.w, h: data.h });
       }
     });
     ro.observe(el);
+    roById.set(data.id, ro);
 
     el.addEventListener('pointerdown', ()=> bringToFront(data, el));
 
     return el;
   }
 
+  // 원격(다른 사람) 변경분을 기존 DOM에 그대로 반영 — 리스너를 다시 붙이지 않고 값만 갱신한다
+  function patchNoteDom(el, data){
+    el.style.left = data.x + 'px';
+    el.style.top = data.y + 'px';
+    el.style.width = (data.w||220) + 'px';
+    el.style.height = (data.h||190) + 'px';
+    el.style.background = data.color;
+    el.style.zIndex = data.z||1;
+    el.style.transform = 'rotate(' + (data.rot||0) + 'deg)';
+    const dot = el.querySelector('.note-dot');
+    if(dot) dot.style.background = data.color;
+    const body = el.querySelector('.note-body');
+    if(body && body.textContent !== (data.text||'')) body.textContent = data.text || '';
+  }
+
   function bringToFront(data, el){
     zTop += 1;
     data.z = zTop;
     el.style.zIndex = zTop;
-    scheduleSave();
+    scheduleNoteSave(data.id, { z: zTop });
   }
 
   let swatchPop = null;
@@ -261,13 +321,13 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
       b.style.background = c;
       b.addEventListener('click', (e)=>{
         e.stopPropagation();
-        const data = findNote(noteId);
+        const data = notesById.get(noteId);
         if(!data) return;
         data.color = c;
-        const noteEl = board.querySelector('.note[data-id="'+noteId+'"]');
+        const noteEl = elsById.get(noteId);
         if(noteEl) noteEl.style.background = c;
         anchorEl.style.background = c;
-        scheduleSave();
+        scheduleNoteSave(noteId, { color: c });
         closeSwatches();
       });
       pop.appendChild(b);
@@ -285,20 +345,20 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
   function addNote(x, y){
     const scroll = boardScroll;
-    const col = notes.length % 6;
-    const row = Math.floor(notes.length / 6);
+    const col = notesById.size % 6;
+    const row = Math.floor(notesById.size / 6);
     const px = x != null ? x : scroll.scrollLeft + 40 + col * 250;
     const py = y != null ? y : scroll.scrollTop + 30 + row * 220;
     const data = {
       id: uid(), x: px, y: py, w: 220, h: 190,
-      color: COLORS[notes.length % COLORS.length],
-      rot: (Math.random() * 6 - 3).toFixed(1) * 1,
+      color: COLORS[notesById.size % COLORS.length],
+      rot: Number((Math.random() * 6 - 3).toFixed(1)),
       text: '', z: ++zTop
     };
-    notes.push(data);
+    notesById.set(data.id, data);
     const el = renderNote(data);
     updateEmptyState();
-    scheduleSave();
+    scheduleNoteSave(data.id, data); // 최초 생성 — 전체 필드를 그대로 저장
     requestAnimationFrame(()=>{
       el.querySelector('.note-body').focus();
     });
@@ -306,12 +366,20 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
   document.getElementById('addBtn').addEventListener('click', ()=> addNote());
   document.getElementById('clearBtn').addEventListener('click', ()=>{
-    if(!notes.length) return;
-    if(!confirm('노트 ' + notes.length + '개를 모두 삭제할까요? 되돌릴 수 없어요.')) return;
-    notes = [];
-    board.querySelectorAll('.note').forEach(n=>n.remove());
+    if(!notesById.size) return;
+    if(!confirm('노트 ' + notesById.size + '개를 모두 삭제할까요? 되돌릴 수 없어요.')) return;
+    const ids = [...notesById.keys()];
+    ids.forEach(cancelPendingSave);
+    ids.forEach(removeNoteDom);
     updateEmptyState();
-    scheduleSave();
+    if(db){
+      const batch = db.batch();
+      ids.forEach(id => batch.delete(db.collection('ideaNotes').doc(id)));
+      batch.commit().catch(err=>{
+        console.error('[ideas] clear-all failed', err);
+        showToast('전체 삭제 중 오류가 발생했어요');
+      });
+    }
     showToast('모든 노트를 삭제했어요');
   });
 
@@ -321,12 +389,38 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
     addNote(e.clientX - rect.left - 60, e.clientY - rect.top - 20);
   });
 
-  window.addEventListener('beforeunload', ()=>{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-  });
+  function handleSnapshot(snapshot){
+    snapshot.docChanges().forEach(change=>{
+      const id = change.doc.id;
+      if(change.type === 'removed'){
+        removeNoteDom(id); // 다른 사람이 삭제한 노트 반영
+        return;
+      }
+      const data = Object.assign({ id }, change.doc.data());
+      notesById.set(id, data);
+      zTop = Math.max(zTop, data.z||1);
+      const el = elsById.get(id);
+      if(!el){
+        renderNote(data); // 다른 사람이 추가한 새 노트
+      } else if(id !== activeId){
+        patchNoteDom(el, data); // 내가 지금 만지고 있지 않은 노트만 원격 값으로 갱신
+      }
+    });
+    updateEmptyState();
+  }
 
-  load();
-  notes.forEach(renderNote);
+  function initFirestoreSync(){
+    if(db) return;
+    db = window.__athomeDb__;
+    if(!db){ showToast('동기화 연결에 실패했어요'); return; }
+    db.collection('ideaNotes').onSnapshot(handleSnapshot, err=>{
+      console.error('[ideas] snapshot error', err);
+      showToast('동기화 오류가 발생했어요');
+    });
+  }
+  document.addEventListener('athome-auth-ready', initFirestoreSync);
+  if(window.__athomeUser__) initFirestoreSync();
+
   updateEmptyState();
 })();
 </script>

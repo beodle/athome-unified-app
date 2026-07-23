@@ -13,9 +13,9 @@
   };
   var ALLOWED_DOMAIN = '@athomecorp.com';
 
-  // 캘린더 등 개별 페이지가 로그인 시점에 함께 요청할 추가 Google OAuth scope를
-  // auth.js가 실제로 Firebase를 초기화하기 전에 미리 쌓아둘 수 있도록 배열을 먼저 노출한다.
-  window.__athomeExtraScopes = window.__athomeExtraScopes || [];
+  // 앱 전체 로그인 게이트를 통과하는 순간 콘텐츠 캘린더의 Sheets 쓰기 권한도 함께 받아온다.
+  // (앱을 쓸 수 있다는 것 자체가 이미 회사 계정 인증을 의미하므로, 캘린더에 별도 로그인 버튼을 두지 않는다.)
+  var SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 
   var hideStyle = document.createElement('style');
   hideStyle.setAttribute('data-athome-auth', '1');
@@ -95,12 +95,19 @@
         return loadScript('https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js');
       })
       .then(function () {
+        // 아이디어 노트처럼 Firestore가 필요한 페이지만 이 플래그를 auth.js 로드 직후에 세워둔다.
+        return window.__athomeNeedsFirestore__
+          ? loadScript('https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js')
+          : null;
+      })
+      .then(function () {
         firebase.initializeApp(firebaseConfig);
+        if (window.__athomeNeedsFirestore__) {
+          window.__athomeDb__ = firebase.firestore();
+        }
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ hd: 'athomecorp.com' });
-        window.__athomeExtraScopes.forEach(function (scope) {
-          provider.addScope(scope);
-        });
+        provider.addScope(SHEETS_SCOPE);
 
         window.__athomeSignIn__ = function () {
           return firebase.auth().signInWithPopup(provider).then(function (result) {
