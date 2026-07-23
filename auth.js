@@ -109,18 +109,35 @@
         provider.setCustomParameters({ hd: 'athomecorp.com' });
         provider.addScope(SHEETS_SCOPE);
 
+        // GitHub Pages는 커스텀 응답 헤더(Cross-Origin-Opener-Policy)를 설정할 수 없어서
+        // signInWithPopup을 쓰면 크롬이 팝업↔원본 페이지 통신을 막아버려
+        // "auth/popup-closed-by-user"로 계속 실패한다(실제로는 로그인이 끝났는데 결과를 못 받음).
+        // 그래서 팝업 대신 페이지 전체가 이동했다가 돌아오는 리다이렉트 방식을 쓴다.
         window.__athomeSignIn__ = function () {
-          return firebase.auth().signInWithPopup(provider).then(function (result) {
-            var cred = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
-            window.__athomeSheetsToken__ = cred && cred.accessToken;
-            return result;
-          });
+          return firebase.auth().signInWithRedirect(provider);
         };
         window.__athomeSignOut__ = function () {
           window.__athomeSheetsToken__ = null;
           return firebase.auth().signOut();
         };
 
+        // 리다이렉트로 돌아온 직후 이 페이지에서 결과를 받는다 — accessToken은 오직 이
+        // 결과에서만 얻을 수 있고(onAuthStateChanged에는 안 실림), 로그인 없이 세션이
+        // 유지된 상태로 들어온 경우엔 user가 없어 조용히 아무 일도 하지 않는다.
+        // onAuthStateChanged보다 먼저 끝나야 한다 — 안 그러면 'athome-auth-ready'가
+        // accessToken이 채워지기도 전에 먼저 발사돼, 그 이벤트를 듣는 페이지(캘린더 등)가
+        // 아직 없는 토큰을 보고 지나가버린다.
+        return firebase.auth().getRedirectResult().catch(function (err) {
+          console.error('[auth] redirect result error', err);
+          return null;
+        }).then(function (result) {
+          if (result && result.user) {
+            var cred = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+            window.__athomeSheetsToken__ = cred && cred.accessToken;
+          }
+        });
+      })
+      .then(function () {
         // signOut()은 비동기라 도메인 거부 메시지를 보여준 직후 onAuthStateChanged(null)이
         // 다시 호출되며 화면을 덮어쓴다. pendingMessage에 담아 그 재호출 때 그대로 이어서 보여준다.
         var pendingMessage = null;

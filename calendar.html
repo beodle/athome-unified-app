@@ -670,45 +670,51 @@
       return window;
     }
 
-    async function ensureSheetsToken() {
+    // allowRedirect가 true일 때만, 캐시된 토큰이 없으면 signInWithRedirect로 페이지 전체를
+    // 이동시킨다. 리다이렉트는 페이지가 통째로 이동했다가 돌아오는 방식이라 여기서 결과를
+    // 기다릴 수 없음 — 구글 인증 후 이 URL(#/calendar)로 돌아오면 auth.js가 토큰을 채워두고,
+    // 그 시점에 아래 enableEditing(false)의 "조용히 확인만" 경로가 이어서 마무리한다.
+    async function ensureSheetsToken(allowRedirect) {
       const w = authWindow();
       if (w.__athomeSheetsToken__) return w.__athomeSheetsToken__;
-      await w.__athomeSignIn__();
-      return w.__athomeSheetsToken__;
+      if (!allowRedirect) return null;
+      w.__athomeSignIn__();
+      return null;
     }
 
-    // 동시에 여러 트리거(auth-ready 이벤트 + 즉시 체크 + 버튼 클릭)가 겹쳐도 한 번만 진행되도록
+    // 동시에 여러 트리거(auth-ready 이벤트 + 즉시 체크 + 클릭)가 겹쳐도 한 번만 진행되도록
     // boolean 플래그를 동기적으로 먼저 세운다 (Promise 변수 대입은 비동기 함수의 동기 구간이 끝난
     // 뒤에야 반영되므로, 그 사이에 재진입이 들어오면 대입 전 상태를 보고 다시 진입해버릴 수 있음).
     let enablingEditing = false;
-    async function enableEditing() {
+    async function enableEditing(allowRedirect) {
       if (accessToken) return true;
       if (enablingEditing) return false;
       enablingEditing = true;
       try {
-        accessToken = await ensureSheetsToken();
+        accessToken = await ensureSheetsToken(allowRedirect);
         if (!accessToken) return false;
         await fetchSheetName();
         renderAll(); // draggable 카드로 다시 렌더
         return true;
       } catch (e) {
         console.warn('Sheets 편집 권한 확보 실패:', e);
+        showToast('편집 권한 확보 실패: ' + (e && (e.code || e.message) ? (e.code || e.message) : '알 수 없는 오류'), true);
         return false;
       } finally {
         enablingEditing = false;
       }
     }
 
-    document.getElementById('btn-add').addEventListener('click', () => {
-      if (!accessToken) enableEditing(); // 모달은 openAddModal에서 계속 열리고, 저장 시점엔 토큰이 준비돼 있음
-    });
+    // 페이지 진입 시엔 리다이렉트를 새로 띄우지 않고 "이미 받아온 토큰이 있는지"만 조용히 확인한다
+    // (구글 인증을 마치고 이 페이지로 막 돌아온 경우 여기서 바로 편집 가능 상태가 된다).
+    if (window.__athomeUser__) enableEditing(false);
+    document.addEventListener('athome-auth-ready', () => enableEditing(false));
 
-    // 페이지 진입과 동시에(사용자 클릭 없이) signInWithPopup을 시도하면 브라우저가 "사용자가
-    // 직접 트리거하지 않은 팝업"으로 보고 계속 막거나 완료시키지 않아, 캘린더 탭을 열 때마다
-    // 로그인 창만 뜨고 끝나는 문제가 있었다. 그래서 실제 사용자 제스처(첫 클릭/터치) 안에서만
-    // 시도하도록 바꾼다 — 부모 창에 토큰이 이미 캐시돼 있으면 이 시점에 팝업 없이 조용히 끝난다.
+    // 실제 사용자 클릭(첫 pointerdown)에서만 리다이렉트 로그인을 새로 시작한다 — 이동 자체는
+    // 팝업과 달리 제스처 없이도 막히지 않지만, 캘린더 탭을 열자마자 예고 없이 구글로 튕기면
+    // 당황스러우니 실제로 뭔가 조작하려는 시점에만 진행한다.
     document.addEventListener('pointerdown', () => {
-      if (!accessToken) enableEditing();
+      if (!accessToken) enableEditing(true);
     });
 
     /* ────────────────────────────────────────────
