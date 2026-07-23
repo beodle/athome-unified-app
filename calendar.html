@@ -703,10 +703,13 @@
       if (!accessToken) enableEditing(); // 모달은 openAddModal에서 계속 열리고, 저장 시점엔 토큰이 준비돼 있음
     });
 
-    // 페이지 진입 시 한 번 시도 — 대개 부모 창(index.html)에 이미 토큰이 캐시돼 있어 조용히 성공한다.
-    // (팝업 차단으로 실패해도 조용히 넘어가고, 실제 클릭/드래그 시점에 다시 시도된다.)
-    document.addEventListener('athome-auth-ready', enableEditing);
-    if (window.__athomeUser__) enableEditing();
+    // 페이지 진입과 동시에(사용자 클릭 없이) signInWithPopup을 시도하면 브라우저가 "사용자가
+    // 직접 트리거하지 않은 팝업"으로 보고 계속 막거나 완료시키지 않아, 캘린더 탭을 열 때마다
+    // 로그인 창만 뜨고 끝나는 문제가 있었다. 그래서 실제 사용자 제스처(첫 클릭/터치) 안에서만
+    // 시도하도록 바꾼다 — 부모 창에 토큰이 이미 캐시돼 있으면 이 시점에 팝업 없이 조용히 끝난다.
+    document.addEventListener('pointerdown', () => {
+      if (!accessToken) enableEditing();
+    });
 
     /* ────────────────────────────────────────────
        Sheets API 쓰기
