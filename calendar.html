@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <!-- 이후 이 페이지가 실제로 요청하게 될 외부 도메인들에 미리 연결(DNS+TLS)해둬서
+       첫 방문 시 콜드 스타트 지연을 조금이라도 줄인다. -->
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://accounts.google.com">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://docs.google.com">
+  <link rel="preconnect" href="https://sheets.googleapis.com">
+  <link rel="dns-prefetch" href="https://www.gstatic.com">
+  <link rel="dns-prefetch" href="https://accounts.google.com">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="dns-prefetch" href="https://docs.google.com">
+  <link rel="dns-prefetch" href="https://sheets.googleapis.com">
   <script src="./auth.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <meta charset="UTF-8">
