@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <script src="./auth.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>앳홈 콘텐츠 캘린더</title>
@@ -401,6 +402,27 @@
     }
     .btn-add:hover { opacity: 0.88; }
 
+    /* ── 편집 로그인 버튼 ── */
+    .btn-login {
+      background: none;
+      border: 1px solid var(--color-gray-mid);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: var(--size-caption);
+      font-family: var(--font-body-ko);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      color: var(--color-text-primary);
+    }
+    .btn-login:hover { border-color: var(--color-text-primary); }
+    .btn-login.authenticated {
+      background: #059669;
+      border-color: #059669;
+      color: #fff;
+    }
+    .btn-login:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
     /* ── 일정 추가 모달 ── */
     .modal-overlay {
       position: fixed;
@@ -512,7 +534,8 @@
       onmouseout="this.style.color='var(--color-gray-mid)'"
     >시트 열기 ↗</a>
     <div class="header-actions">
-      <button class="btn-add" id="btn-add">＋ 일정 추가</button>
+      <button class="btn-add" id="btn-add" hidden>＋ 일정 추가</button>
+      <button class="btn-login" id="btn-login">✎ 편집 로그인</button>
       <button class="btn-refresh" id="btn-refresh" title="새로고침">↻</button>
     </div>
   </header>
@@ -597,9 +620,8 @@
     const SPREADSHEET_ID = '1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak';
     const SHEET_GID      = '658998951';
 
-    // Sheets 쓰기 권한은 auth.js의 공유 Firebase 로그인 시점에 함께 요청한다(캘린더 전용 delegated scope)
-    window.__athomeExtraScopes = window.__athomeExtraScopes || [];
-    window.__athomeExtraScopes.push('https://www.googleapis.com/auth/spreadsheets');
+    // ⚠️ Google Cloud Console에서 발급한 OAuth Client ID를 여기에 입력하세요
+    const GOOGLE_CLIENT_ID = '956471338785-o7697b8kivvo5lvtrr7bamogc0vkaqal.apps.googleusercontent.com';
 
     /* ────────────────────────────────────────────
        채널 색상
@@ -621,6 +643,7 @@
     const DEFAULT_COLUMNS = ['시기', '주요 주제', '채널', '비고', 'URL'];
 
     /* ── OAuth ── */
+    let tokenClient  = null;
     let accessToken  = null;
     let sheetName    = '콘텐츠 캘린더';
 
@@ -642,8 +665,35 @@
     }
 
     /* ────────────────────────────────────────────
-       Sheets 편집 권한 (auth.js의 공유 Firebase 로그인에 위임)
+       Google Identity Services (OAuth)
     ──────────────────────────────────────────── */
+    function initGIS() {
+      if (typeof google === 'undefined' || !google.accounts) {
+        setTimeout(initGIS, 300);
+        return;
+      }
+      if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') return; // 미설정
+
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/spreadsheets',
+        callback: async (response) => {
+          if (response.error) {
+            showToast('로그인 실패: ' + response.error, true);
+            return;
+          }
+          accessToken = response.access_token;
+          const btn = document.getElementById('btn-login');
+          btn.textContent = '✓ 편집 활성';
+          btn.classList.add('authenticated');
+          await fetchSheetName();
+          document.getElementById('btn-add').hidden = false; // 편집 모드에서만 노출
+          showToast('편집 모드 활성화. 카드를 드래그하거나 + 일정 추가를 눌러보세요.');
+          renderAll(); // draggable 카드로 다시 렌더
+        }
+      });
+    }
+
     async function fetchSheetName() {
       try {
         const res = await fetch(
@@ -659,83 +709,32 @@
       }
     }
 
-    // 앱 전체 로그인 게이트를 통과했다는 것 자체가 이미 회사 계정 인증이므로,
-    // 캘린더에는 별도 편집 로그인 버튼을 두지 않고 Sheets 쓰기 토큰을 자동으로 확보한다.
-    // (index.html 셸의 iframe으로 열린 경우, 부모 창이 앱 게이트 로그인 시점에 이미 받아온
-    //  토큰을 캐시하고 있을 수 있으므로 부모 창을 먼저 확인한다.)
-    function authWindow() {
-      try {
-        if (window.parent && window.parent !== window && window.parent.__athomeSignIn__) return window.parent;
-      } catch (e) { /* cross-origin이면 접근 불가 — 자기 자신으로 폴백 */ }
-      return window;
-    }
-
-    // allowRedirect가 true일 때만, 캐시된 토큰이 없으면 signInWithRedirect로 페이지 전체를
-    // 이동시킨다. 리다이렉트는 페이지가 통째로 이동했다가 돌아오는 방식이라 여기서 결과를
-    // 기다릴 수 없음 — 구글 인증 후 이 URL(#/calendar)로 돌아오면 auth.js가 토큰을 채워두고,
-    // 그 시점에 아래 enableEditing(false)의 "조용히 확인만" 경로가 이어서 마무리한다.
-    async function ensureSheetsToken(allowRedirect) {
-      const w = authWindow();
-      if (w.__athomeSheetsToken__) return w.__athomeSheetsToken__;
-      if (!allowRedirect) return null;
-      // 리다이렉트가 정상 시작되면 페이지가 곧 이동하므로 이 아래 코드는 보통 실행되지 않는다.
-      // await로 잡아두는 이유는 리다이렉트 자체가 실패했을 때(설정 오류 등) 조용히
-      // 묻히지 않고 enableEditing()의 catch로 넘어가 토스트로 보이게 하기 위함.
-      await w.__athomeSignIn__();
-      return null;
-    }
-
-    // 동시에 여러 트리거(auth-ready 이벤트 + 즉시 체크 + 클릭)가 겹쳐도 한 번만 진행되도록
-    // boolean 플래그를 동기적으로 먼저 세운다 (Promise 변수 대입은 비동기 함수의 동기 구간이 끝난
-    // 뒤에야 반영되므로, 그 사이에 재진입이 들어오면 대입 전 상태를 보고 다시 진입해버릴 수 있음).
-    let enablingEditing = false;
-    async function enableEditing(allowRedirect) {
-      if (accessToken) return true;
-      if (enablingEditing) return false;
-      enablingEditing = true;
-      try {
-        accessToken = await ensureSheetsToken(allowRedirect);
-        if (!accessToken) return false;
-        await fetchSheetName();
-        renderAll(); // draggable 카드로 다시 렌더
-        return true;
-      } catch (e) {
-        console.warn('Sheets 편집 권한 확보 실패:', e);
-        showToast('편집 권한 확보 실패: ' + (e && (e.code || e.message) ? (e.code || e.message) : '알 수 없는 오류'), true);
-        return false;
-      } finally {
-        enablingEditing = false;
+    document.getElementById('btn-login').addEventListener('click', () => {
+      if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
+        alert('GOOGLE_CLIENT_ID를 설정해주세요.\n\n설정 방법은 콘솔을 확인하거나 담당자에게 문의하세요.');
+        return;
       }
-    }
-
-    // 페이지 진입 시엔 리다이렉트를 새로 띄우지 않고 "이미 받아온 토큰이 있는지"만 조용히 확인한다
-    // (구글 인증을 마치고 이 페이지로 막 돌아온 경우 여기서 바로 편집 가능 상태가 된다).
-    if (window.__athomeUser__) enableEditing(false);
-    document.addEventListener('athome-auth-ready', () => enableEditing(false));
-    // index.html 셸의 iframe으로 열린 경우: 구글에서 리다이렉트로 돌아오면 실제로 인증이
-    // 끝나는 곳은 부모 창(최상위 페이지)이고, 그 시점이 이 iframe이 처음 로드되는 시점보다
-    // 늦을 수 있다(부모가 아직 토큰을 받는 중일 때 iframe이 먼저 만들어지는 경우). 그러면 위의
-    // 즉시 체크에서는 아직 토큰이 없어 실패하고, 이후 부모가 토큰을 받아도 iframe은 다시
-    // 확인할 계기가 없어 영영 편집 모드로 못 들어간다 — 그래서 부모 창의 완료 이벤트도 듣는다.
-    try {
-      if (window.parent && window.parent !== window && window.parent.document) {
-        window.parent.document.addEventListener('athome-auth-ready', () => enableEditing(false));
+      if (accessToken) {
+        // 로그아웃
+        accessToken = null;
+        sheetName   = '콘텐츠 캘린더';
+        const btn = document.getElementById('btn-login');
+        btn.textContent = '✎ 편집 로그인';
+        btn.classList.remove('authenticated');
+        document.getElementById('btn-add').hidden = true; // 편집 모드 해제 → 버튼 숨김
+        closeAddModal(); // 열려 있던 모달도 닫기
+        showToast('편집 모드 해제됨');
+        renderAll();
+        return;
       }
-    } catch (e) { /* cross-origin이면 접근 불가 — 무시 */ }
-
-    // 실제 사용자 클릭(첫 pointerdown)에서만 리다이렉트 로그인을 새로 시작한다 — 이동 자체는
-    // 팝업과 달리 제스처 없이도 막히지 않지만, 캘린더 탭을 열자마자 예고 없이 구글로 튕기면
-    // 당황스러우니 실제로 뭔가 조작하려는 시점에만 진행한다.
-    document.addEventListener('pointerdown', () => {
-      if (!accessToken) enableEditing(true);
+      if (tokenClient) tokenClient.requestAccessToken();
     });
 
     /* ────────────────────────────────────────────
        Sheets API 쓰기
     ──────────────────────────────────────────── */
     async function updateEventDate(event, newDate) {
-      if (!accessToken) accessToken = await ensureSheetsToken();
-      if (!accessToken) throw new Error('편집 권한을 가져오지 못했어요');
+      if (!accessToken) throw new Error('로그인 필요');
       if (!sheetName)   throw new Error('시트명 불명');
 
       // 컬럼 문자 계산 (0→A, 1→B, …)
@@ -789,8 +788,7 @@
     }
 
     async function appendEvent(form) {
-      if (!accessToken) accessToken = await ensureSheetsToken();
-      if (!accessToken) throw new Error('편집 권한을 가져오지 못했어요');
+      if (!accessToken) throw new Error('로그인 필요');
       if (!sheetName)   throw new Error('시트명 불명');
 
       const range = encodeURIComponent(`${sheetName}!A:Z`);
@@ -817,8 +815,7 @@
        Sheets API 행 수정 / 삭제
     ──────────────────────────────────────────── */
     async function updateEventRow(rowIndex, form) {
-      if (!accessToken) accessToken = await ensureSheetsToken();
-      if (!accessToken) throw new Error('편집 권한을 가져오지 못했어요');
+      if (!accessToken) throw new Error('로그인 필요');
       if (!sheetName)   throw new Error('시트명 불명');
 
       const cols    = (headerFields && headerFields.length) ? headerFields : DEFAULT_COLUMNS;
@@ -845,8 +842,7 @@
     }
 
     async function deleteEventRow(rowIndex) {
-      if (!accessToken) accessToken = await ensureSheetsToken();
-      if (!accessToken) throw new Error('편집 권한을 가져오지 못했어요');
+      if (!accessToken) throw new Error('로그인 필요');
 
       const res = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`,
@@ -1551,6 +1547,8 @@
           </div>`;
       }
     });
+
+    initGIS();
   </script>
 </body>
 </html>
