@@ -237,7 +237,10 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
     body.addEventListener('focus', ()=> markActive(data.id));
     body.addEventListener('blur', ()=> clearActive(data.id));
     body.addEventListener('input', ()=>{
-      data.text = body.textContent;
+      // contenteditable에서 엔터로 만든 줄바꿈은 <div>/<br> 같은 별도 블록으로 들어가서
+      // textContent로 읽으면 그 경계가 사라져 여러 줄이 한 줄로 합쳐져 저장된다.
+      // innerText는 화면에 보이는 줄바꿈을 그대로 '\n'으로 반영해줘서 이 문제가 없다.
+      data.text = body.innerText;
       markActive(data.id);
       scheduleNoteSave(data.id, { text: data.text });
     });
@@ -305,7 +308,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
     const dot = el.querySelector('.note-dot');
     if(dot) dot.style.background = data.color;
     const body = el.querySelector('.note-body');
-    if(body && body.textContent !== (data.text||'')) body.textContent = data.text || '';
+    if(body && body.innerText !== (data.text||'')) body.textContent = data.text || '';
   }
 
   function bringToFront(data, el){
