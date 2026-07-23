@@ -12,6 +12,9 @@
     appId: '1:291977900858:web:c8660aaff0ee91c95a9603'
   };
   var ALLOWED_DOMAIN = '@athomecorp.com';
+  // 캘린더의 Sheets 편집 로그인과 동일한 OAuth 클라이언트 — 이미 이 origin(GitHub Pages)에서
+  // 문제없이 동작이 확인된 값이라 재사용한다.
+  var GIS_CLIENT_ID = '956471338785-o7697b8kivvo5lvtrr7bamogc0vkaqal.apps.googleusercontent.com';
 
   var hideStyle = document.createElement('style');
   hideStyle.setAttribute('data-athome-auth', '1');
@@ -52,16 +55,13 @@
       (message
         ? '<div style="font-size:12.5px;color:#DC2626;font-weight:700;">' + message + '</div>'
         : '') +
-      '<button id="athome-auth-signin" style="border:0;border-radius:10px;padding:12px 22px;' +
-      'background:#FF5D00;color:#fff;font-weight:800;font-size:13.5px;cursor:pointer;">Google 계정으로 로그인</button>';
-    var btn = el.querySelector('#athome-auth-signin');
-    btn.addEventListener('click', function () {
-      btn.disabled = true;
-      btn.textContent = '로그인 중…';
-      window.__athomeSignIn__().catch(function (err) {
-        showLoginScreen('로그인에 실패했어요: ' + (err && err.message ? err.message : '알 수 없는 오류'));
-      });
-    });
+      '<div id="athome-auth-gsi-btn"></div>';
+    // Google Identity Services가 자기 버튼을 그려넣는다 (window.__athomeRenderSignInButton__은
+    // boot()의 Firebase/GIS 스크립트 로드가 끝난 뒤에 정의되므로, 그 전에 게이트가 먼저
+    // 보여지는 경우를 대비해 방어적으로 확인한다).
+    if (window.__athomeRenderSignInButton__) {
+      window.__athomeRenderSignInButton__(el.querySelector('#athome-auth-gsi-btn'));
+    }
   }
 
   function closeGate() {
@@ -97,20 +97,33 @@
           : null;
       })
       .then(function () {
+        // Firebase의 signInWithPopup/signInWithRedirect는 둘 다 GitHub Pages에서 실패했다
+        // (COOP 헤더를 못 줘서 팝업 통신이 막히거나, 리다이렉트 결과를 받아올 제3자 저장소
+        // 접근이 막힘). 대신 캘린더의 Sheets 편집 로그인과 같은 Google Identity Services(GIS)
+        // 버튼으로 신원만 먼저 받고, 그 ID 토큰을 Firebase 자격증명으로 변환해
+        // signInWithCredential(순수 API 호출, 팝업/리다이렉트 불필요)로 로그인한다.
+        return loadScript('https://accounts.google.com/gsi/client');
+      })
+      .then(function () {
         firebase.initializeApp(firebaseConfig);
         if (window.__athomeNeedsFirestore__) {
           window.__athomeDb__ = firebase.firestore();
         }
-        var provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ hd: 'athomecorp.com' });
 
-        // 팝업은 결과가 signInWithPopup()의 반환 Promise로 바로 오기 때문에 페이지 이동/
-        // 새로고침 자체가 없다 — 리다이렉트 방식에서 겪은 "URL 해시 유실", "제3자 저장소
-        // 접근 차단으로 로그인 결과를 못 받아옴" 문제가 구조적으로 없다. (GitHub Pages가
-        // Cross-Origin-Opener-Policy 헤더를 못 줘서 팝업이 계속 실패했던 적이 있었는데,
-        // 그건 브라우저/보안 정책에 따라 달라질 수 있어 필요하면 재검토한다.)
-        window.__athomeSignIn__ = function () {
-          return firebase.auth().signInWithPopup(provider);
+        google.accounts.id.initialize({
+          client_id: GIS_CLIENT_ID,
+          hd: 'athomecorp.com',
+          callback: function (response) {
+            var cred = firebase.auth.GoogleAuthProvider.credential(response.credential);
+            firebase.auth().signInWithCredential(cred).catch(function (err) {
+              console.error('[auth] signInWithCredential failed', err);
+              showLoginScreen('로그인에 실패했어요: ' + (err && err.message ? err.message : '알 수 없는 오류'));
+            });
+          }
+        });
+
+        window.__athomeRenderSignInButton__ = function (container) {
+          google.accounts.id.renderButton(container, { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with' });
         };
         window.__athomeSignOut__ = function () {
           return firebase.auth().signOut();
