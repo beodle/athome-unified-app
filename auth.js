@@ -114,6 +114,13 @@
         // "auth/popup-closed-by-user"로 계속 실패한다(실제로는 로그인이 끝났는데 결과를 못 받음).
         // 그래서 팝업 대신 페이지 전체가 이동했다가 돌아오는 리다이렉트 방식을 쓴다.
         window.__athomeSignIn__ = function () {
+          // signInWithRedirect는 리다이렉트 왕복 후 URL의 해시(#)를 보존하지 않는다.
+          // 로그인 직전 해시를 저장해뒀다가 복귀 후 되돌려주지 않으면 사용자가
+          // 원래 보던 탭(예: 캘린더)이 아니라 사이트 루트로 떨어져 "로그인해도
+          // 안 된다"고 느끼게 된다.
+          try {
+            sessionStorage.setItem('athome-return-hash', location.hash || '');
+          } catch (e) { /* 세션 스토리지 접근 불가 시 무시 */ }
           return firebase.auth().signInWithRedirect(provider);
         };
         window.__athomeSignOut__ = function () {
@@ -135,6 +142,18 @@
             var cred = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
             window.__athomeSheetsToken__ = cred && cred.accessToken;
           }
+          // signInWithRedirect가 지운 해시를 로그인 직전 저장해둔 값으로 복원한다.
+          // 이 시점(redirectResult 처리 직후)에만 복원해야 평소 새로고침/재방문 시
+          // 사용자가 이미 이동해있는 해시를 되돌리는 부작용이 없다.
+          try {
+            var savedHash = sessionStorage.getItem('athome-return-hash');
+            if (savedHash !== null) {
+              sessionStorage.removeItem('athome-return-hash');
+              if (result && result.user && location.hash !== savedHash) {
+                location.hash = savedHash;
+              }
+            }
+          } catch (e) { /* 세션 스토리지 접근 불가 시 무시 */ }
         });
       })
       .then(function () {
