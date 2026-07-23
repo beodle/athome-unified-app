@@ -178,6 +178,24 @@
     .shell-add:hover { opacity: .9; }
     .shell-add[hidden] { display: none; }
 
+    .shell-login {
+      border: 1px solid var(--shell-line);
+      border-radius: 9px;
+      padding: 7px 12px;
+      background: var(--shell-panel);
+      color: var(--shell-muted);
+      font: 800 12.5px/1 var(--shell-font);
+      cursor: pointer;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .shell-login:hover { color: var(--shell-ink); border-color: var(--shell-faint); }
+    .shell-login.authenticated {
+      background: #059669;
+      border-color: #059669;
+      color: #fff;
+    }
+    .shell-login[hidden] { display: none; }
+
     .shell-sheet-link {
       font-size: 12px;
       font-weight: 600;
@@ -359,7 +377,8 @@
       <div class="shell-title" id="shell-title">대시보드</div>
       <!-- 캘린더 전용 액션 (캘린더 뷰에서만 노출) -->
       <div class="cal-header-actions" id="cal-header-actions" hidden>
-        <button class="shell-add" id="shell-add" type="button">＋ 일정 추가</button>
+        <button class="shell-add" id="shell-add" type="button" hidden>＋ 일정 추가</button>
+        <button class="shell-login" id="shell-login" type="button">✎ 편집 로그인</button>
         <a class="shell-sheet-link" id="shell-sheet-link"
            href="https://docs.google.com/spreadsheets/d/1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak/edit?gid=658998951#gid=658998951"
            target="_blank">시트 열기 ↗</a>
@@ -422,8 +441,39 @@
     const calHeaderActions = document.getElementById('cal-header-actions');
     const shellRefreshBtn = document.getElementById('shell-refresh');
     const shellAddBtn = document.getElementById('shell-add');
+    const shellLoginBtn = document.getElementById('shell-login');
 
     calHeaderActions.hidden = true;
+
+    // 캘린더 iframe 내부의 '편집 로그인' 버튼(#btn-login)은 calendar.html 자체 헤더에
+    // 있고, 그 헤더는 shell-mode에서 display:none 처리되어 화면에 안 보인다.
+    // 그래서 셸 쪽에 대리 버튼을 두고, 클릭은 iframe 버튼으로 위임 + 상태(텍스트/색)는
+    // MutationObserver로 그대로 미러링한다.
+    let loginBtnObserver = null;
+    function syncShellLoginFromFrame(frameBtn) {
+      if (!frameBtn) return;
+      const authenticated = frameBtn.classList.contains('authenticated');
+      shellLoginBtn.textContent = frameBtn.textContent;
+      shellLoginBtn.classList.toggle('authenticated', authenticated);
+      shellAddBtn.hidden = currentRoute() !== 'calendar' || !authenticated;
+    }
+
+    function watchCalendarLoginButton() {
+      if (loginBtnObserver) {
+        loginBtnObserver.disconnect();
+        loginBtnObserver = null;
+      }
+      const frameBtn = currentFrameDocument()?.querySelector('#btn-login');
+      if (!frameBtn) return;
+      syncShellLoginFromFrame(frameBtn);
+      loginBtnObserver = new MutationObserver(() => syncShellLoginFromFrame(frameBtn));
+      loginBtnObserver.observe(frameBtn, { attributes: true, attributeFilter: ['class'], childList: true, characterData: true, subtree: true });
+    }
+
+    shellLoginBtn.addEventListener('click', () => {
+      const loginBtn = currentFrameDocument()?.querySelector('#btn-login');
+      if (loginBtn) loginBtn.click();
+    });
 
     const authWidget = document.getElementById('auth-widget');
     const authEmail = document.getElementById('auth-email');
@@ -464,7 +514,10 @@
       shellTitle.textContent = routes[route].title;
       const isCalendar = route === 'calendar';
       calHeaderActions.hidden = !isCalendar;
-      shellAddBtn.hidden = !isCalendar;
+      shellLoginBtn.hidden = !isCalendar;
+      // 로그인 여부는 새 iframe이 뜬 뒤 watchCalendarLoginButton()이 다시 판단한다 —
+      // 그 전까지는 일단 숨겨서 아직 로그인 안 된 상태로 클릭되는 걸 방지한다.
+      shellAddBtn.hidden = true;
     }
 
     function injectViewChromeStyles(frame, route) {
@@ -498,7 +551,10 @@
       // (GitHub Pages의 10분 강제 캐시 + iframe 고정 URL + bfcache 복원 조합으로 옛 데이터가 남는 문제 방지)
       const basePath = routes[route].path;
       frame.src = basePath + (basePath.includes('?') ? '&' : '?') + '_=' + Date.now();
-      frame.onload = () => injectViewChromeStyles(frame, route);
+      frame.onload = () => {
+        injectViewChromeStyles(frame, route);
+        if (route === 'calendar') watchCalendarLoginButton();
+      };
       frame.onerror = () => {
         viewContainer.innerHTML = '<div class="view-error">화면을 불러오지 못했습니다.</div>';
       };
