@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <script src="./auth.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
@@ -234,7 +235,48 @@
       background: rgba(245, 244, 241, .96);
       color: var(--shell-ink);
       border-right: 1px solid var(--shell-line);
+      display: flex;
+      flex-direction: column;
     }
+
+    .auth-widget {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 10px;
+      border-top: 1px solid var(--shell-line);
+    }
+    .auth-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22C55E;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, .18);
+      flex-shrink: 0;
+    }
+    .auth-email {
+      flex: 1;
+      min-width: 0;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--shell-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .auth-logout {
+      border: 1px solid var(--shell-line);
+      background: var(--shell-panel);
+      color: var(--shell-muted);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font: 700 11px/1 var(--shell-font);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: color .15s, border-color .15s;
+    }
+    .auth-logout:hover { color: var(--shell-ink); border-color: var(--shell-faint); }
 
     .side-label {
       margin: 0 10px 9px;
@@ -365,6 +407,15 @@
           <span class="nav-icon" aria-hidden="true">▨</span>
           <span>카드뉴스 에디터</span>
         </a>
+        <a class="nav-link" data-route="ideas" href="#/ideas">
+          <span class="nav-icon" aria-hidden="true">📌</span>
+          <span>아이디어 노트</span>
+        </a>
+        <div class="auth-widget" id="auth-widget" hidden>
+          <span class="auth-dot"></span>
+          <span class="auth-email" id="auth-email"></span>
+          <button class="auth-logout" id="auth-logout" type="button">로그아웃</button>
+        </div>
       </aside>
       <section class="view-shell" aria-live="polite">
         <div id="view-container"><div class="view-loading">불러오는 중</div></div>
@@ -377,7 +428,8 @@
       dashboard: { path: './dashboard.html?shell=1', title: '대시보드' },
       calendar: { path: './calendar.html?shell=1', title: '콘텐츠 캘린더' },
       utm: { path: './utm.html', title: 'UTM 빌더' },
-      cardnews: { path: './cardnews-editor.html', title: '카드뉴스 에디터' }
+      cardnews: { path: './cardnews-editor.html', title: '카드뉴스 에디터' },
+      ideas: { path: './ideas.html?shell=1', title: '아이디어 노트' }
     };
 
     const viewContainer = document.getElementById('view-container');
@@ -390,6 +442,19 @@
 
     shellLogin.hidden = true;
     calHeaderActions.hidden = true;
+
+    const authWidget = document.getElementById('auth-widget');
+    const authEmail = document.getElementById('auth-email');
+    const authLogout = document.getElementById('auth-logout');
+
+    document.addEventListener('athome-auth-ready', (e) => {
+      authWidget.hidden = false;
+      authEmail.textContent = e.detail && e.detail.email ? e.detail.email : '';
+    });
+    authLogout.addEventListener('click', () => {
+      if (typeof window.__athomeSignOut__ === 'function') window.__athomeSignOut__();
+      authWidget.hidden = true;
+    });
 
     function currentFrameDocument() {
       return viewContainer.querySelector('iframe')?.contentDocument;

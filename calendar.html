@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="./auth.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>앳홈 콘텐츠 캘린더</title>
@@ -12,7 +13,6 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23FF5D00'/><rect x='18' y='28' width='64' height='54' rx='8' fill='white'/><rect x='18' y='28' width='64' height='22' rx='8' fill='white'/><rect x='18' y='38' width='64' height='12' fill='white'/><rect x='30' y='15' width='8' height='20' rx='4' fill='white'/><rect x='62' y='15' width='8' height='20' rx='4' fill='white'/><rect x='26' y='58' width='10' height='10' rx='2' fill='%23FF5D00'/><rect x='45' y='58' width='10' height='10' rx='2' fill='%23FF5D00'/><rect x='64' y='58' width='10' height='10' rx='2' fill='%23FF5D00'/><rect x='26' y='72' width='10' height='10' rx='2' fill='%23FF5D00'/><rect x='45' y='72' width='10' height='10' rx='2' fill='%23FF5D00'/></svg>">
   <link rel="stylesheet" href="./athome-tokens.css">
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     .shell-mode .site-header { display: none !important; }
 
@@ -619,8 +619,9 @@
     const SPREADSHEET_ID = '1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak';
     const SHEET_GID      = '658998951';
 
-    // ⚠️ Google Cloud Console에서 발급한 OAuth Client ID를 여기에 입력하세요
-    const GOOGLE_CLIENT_ID = '956471338785-o7697b8kivvo5lvtrr7bamogc0vkaqal.apps.googleusercontent.com';
+    // Sheets 쓰기 권한은 auth.js의 공유 Firebase 로그인 시점에 함께 요청한다(캘린더 전용 delegated scope)
+    window.__athomeExtraScopes = window.__athomeExtraScopes || [];
+    window.__athomeExtraScopes.push('https://www.googleapis.com/auth/spreadsheets');
 
     /* ────────────────────────────────────────────
        채널 색상
@@ -642,7 +643,6 @@
     const DEFAULT_COLUMNS = ['시기', '주요 주제', '채널', '비고', 'URL'];
 
     /* ── OAuth ── */
-    let tokenClient  = null;
     let accessToken  = null;
     let sheetName    = '콘텐츠 캘린더';
 
@@ -664,35 +664,8 @@
     }
 
     /* ────────────────────────────────────────────
-       Google Identity Services (OAuth)
+       Sheets 편집 권한 (auth.js의 공유 Firebase 로그인에 위임)
     ──────────────────────────────────────────── */
-    function initGIS() {
-      if (typeof google === 'undefined' || !google.accounts) {
-        setTimeout(initGIS, 300);
-        return;
-      }
-      if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') return; // 미설정
-
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/spreadsheets',
-        callback: async (response) => {
-          if (response.error) {
-            showToast('로그인 실패: ' + response.error, true);
-            return;
-          }
-          accessToken = response.access_token;
-          const btn = document.getElementById('btn-login');
-          btn.textContent = '✓ 편집 활성';
-          btn.classList.add('authenticated');
-          await fetchSheetName();
-          document.getElementById('btn-add').hidden = false; // 편집 모드에서만 노출
-          showToast('편집 모드 활성화. 카드를 드래그하거나 + 일정 추가를 눌러보세요.');
-          renderAll(); // draggable 카드로 다시 렌더
-        }
-      });
-    }
-
     async function fetchSheetName() {
       try {
         const res = await fetch(
@@ -708,13 +681,9 @@
       }
     }
 
-    document.getElementById('btn-login').addEventListener('click', () => {
-      if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
-        alert('index.html의 GOOGLE_CLIENT_ID를 설정해주세요.\n\n설정 방법은 콘솔을 확인하거나 담당자에게 문의하세요.');
-        return;
-      }
+    document.getElementById('btn-login').addEventListener('click', async () => {
       if (accessToken) {
-        // 로그아웃
+        // 편집 모드 해제 (앱 전체 로그인은 유지, Sheets 쓰기 토큰만 폐기)
         accessToken = null;
         sheetName   = '콘텐츠 캘린더';
         const btn = document.getElementById('btn-login');
@@ -726,7 +695,23 @@
         renderAll();
         return;
       }
-      if (tokenClient) tokenClient.requestAccessToken();
+      try {
+        await window.__athomeSignIn__();
+        accessToken = window.__athomeSheetsToken__;
+        if (!accessToken) {
+          showToast('Sheets 편집 권한을 가져오지 못했어요. 다시 시도해주세요.', true);
+          return;
+        }
+        const btn = document.getElementById('btn-login');
+        btn.textContent = '✓ 편집 활성';
+        btn.classList.add('authenticated');
+        await fetchSheetName();
+        document.getElementById('btn-add').hidden = false; // 편집 모드에서만 노출
+        showToast('편집 모드 활성화. 카드를 드래그하거나 + 일정 추가를 눌러보세요.');
+        renderAll(); // draggable 카드로 다시 렌더
+      } catch (e) {
+        showToast('로그인 실패: ' + (e && e.message ? e.message : '알 수 없는 오류'), true);
+      }
     });
 
     /* ────────────────────────────────────────────
@@ -1530,9 +1515,6 @@
       const now = new Date();
       currentYear  = now.getFullYear();
       currentMonth = now.getMonth();
-
-      // GIS 초기화 (스크립트 로드 후)
-      initGIS();
 
       try {
         allEvents = await loadEvents();
