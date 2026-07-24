@@ -65,36 +65,23 @@ body {
 }
 
 /* ── 페이지 헤더 ── */
-.page-header { margin-bottom: 32px; }
-.page-eyebrow {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--accent); background: var(--accent-light);
-  border: 1px solid var(--accent-mid); border-radius: 20px;
-  padding: 4px 10px; margin-bottom: 12px;
-}
-.page-eyebrow svg { flex-shrink: 0; }
-.page-title { font-size: 24px; font-weight: 800; letter-spacing: -.03em; color: var(--text-1); line-height: 1.2; margin-bottom: 6px; }
-.page-desc { font-size: 13px; color: var(--text-3); line-height: 1.7; }
+.page-header { margin-bottom: 36px; }
+.page-title { font-size: 26px; font-weight: 800; letter-spacing: -.03em; color: var(--text-1); line-height: 1.2; margin-bottom: 8px; }
+.page-desc { font-size: 13.5px; color: var(--text-3); line-height: 1.6; }
 
 /* ── 카드 ── */
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: var(--shadow);
-  padding: 22px 24px;
-  margin-bottom: 12px;
+  padding: 26px 28px;
+  margin-bottom: 14px;
 }
 .card:last-of-type { margin-bottom: 0; }
 .card-title {
-  font-size: 12px; font-weight: 700; color: var(--text-3);
-  letter-spacing: .05em; text-transform: uppercase;
-  margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
-}
-.card-title::before {
-  content: ''; display: block; width: 3px; height: 13px;
-  background: var(--accent); border-radius: 2px; flex-shrink: 0;
+  font-size: 11.5px; font-weight: 700; color: var(--text-4);
+  letter-spacing: .06em; text-transform: uppercase;
+  margin-bottom: 20px;
 }
 
 /* ── 필드 ── */
@@ -134,12 +121,10 @@ body {
 /* ── 출력 카드 (우패널) ── */
 .output-card {
   background: var(--bg-card);
-  border: 1.5px solid var(--border-2);
-  border-left: 4px solid var(--accent);
-  border-radius: 12px;
-  padding: 18px 20px;
+  border-radius: 14px;
+  padding: 20px 22px;
   position: relative;
-  box-shadow: 0 2px 8px rgba(255,93,0,.10), 0 8px 28px rgba(40,30,20,.06);
+  box-shadow: var(--shadow);
 }
 .output-label {
   font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
@@ -188,25 +173,20 @@ body {
 /* ── 가이드 (우패널) ── */
 .guide-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px 20px;
+  border-radius: 14px;
+  padding: 20px 22px;
   box-shadow: var(--shadow);
 }
 .guide-card.panel-secondary {
-  background: var(--bg-soft);
+  background: transparent;
   box-shadow: none;
-  padding: 14px 16px;
+  padding: 16px 4px;
 }
-.guide-card.panel-secondary .guide-card-title { font-size: 10px; margin-bottom: 10px; }
+.guide-card.panel-secondary .guide-card-title { font-size: 10px; margin-bottom: 12px; }
 .guide-card-title {
   font-size: 11px; font-weight: 700; color: var(--text-4);
   letter-spacing: .06em; text-transform: uppercase;
-  margin-bottom: 12px; display: flex; align-items: center; gap: 7px;
-}
-.guide-card-title::before {
-  content: ''; display: block; width: 3px; height: 12px;
-  background: var(--border-2); border-radius: 2px; flex-shrink: 0;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
 }
 summary.guide-card-title { cursor: pointer; list-style: none; user-select: none; }
 summary.guide-card-title::-webkit-details-marker { display: none; }
@@ -307,10 +287,6 @@ details .guide-grid { margin-top: 12px; }
   <div class="left-panel">
 
     <div class="page-header">
-      <div class="page-eyebrow">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        채널 트래킹
-      </div>
       <h1 class="page-title">UTM 링크 빌더</h1>
       <p class="page-desc">채용 공고·콘텐츠 URL에 UTM 파라미터를 붙여 유입 경로를 정확하게 추적하세요.</p>
     </div>
