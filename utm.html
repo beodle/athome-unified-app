@@ -287,11 +287,11 @@ body {
           </label>
           <label class="field">
             <span class="field-label">소스 <span class="required">필수</span></span>
-            <input type="text" id="f-source" placeholder="linkedin" oninput="generate()" autocomplete="off">
+            <input type="text" id="f-source" placeholder="linkedin" oninput="autofillMedium(); generate()" autocomplete="off">
           </label>
           <label class="field">
             <span class="field-label">매체 <span class="required">필수</span></span>
-            <input type="text" id="f-medium" placeholder="social" oninput="generate()" autocomplete="off">
+            <input type="text" id="f-medium" placeholder="social" oninput="mediumTouched = true; generate()" autocomplete="off">
           </label>
           <label class="field">
             <span class="field-label">세부 태그 <span class="optional">content/term</span></span>
@@ -336,22 +336,13 @@ body {
       <div class="guide-card-title">Quick-Copy Presets</div>
 
       <div class="qc-group">
-        <div class="qc-group-title">블로그</div>
+        <div class="qc-group-title">채널 선택 (매체 자동 입력)</div>
         <div class="qc-tags">
-          <button class="qc-tag" onclick="applyQuickCopy('blog','referral','jia_interview')">김지아님 인터뷰 ↗</button>
-          <button class="qc-tag" onclick="applyQuickCopy('blog','referral','gyu_interview')">최규성님 인터뷰 ↗</button>
-          <button class="qc-tag" onclick="applyQuickCopy('blog','referral','day_interview')">유다영님 인터뷰 ↗</button>
-          <button class="qc-tag" onclick="applyQuickCopy('blog','referral','cpr_making')">코스맥스 연구원 ↗</button>
-        </div>
-      </div>
-
-      <div class="qc-group">
-        <div class="qc-group-title">링크드인</div>
-        <div class="qc-tags">
-          <button class="qc-tag" onclick="applyQuickCopy('linkedin','social','jia_interview')">김지아님 인터뷰 ↗</button>
-          <button class="qc-tag" onclick="applyQuickCopy('linkedin','social','gyu_interview')">최규성님 인터뷰 ↗</button>
-          <button class="qc-tag" onclick="applyQuickCopy('linkedin','social','room_of_lsy')">서영님 인터뷰 ↗</button>
-          <button class="qc-tag" onclick="applyQuickCopy('linkedin','social','cpr_making')">코스맥스 연구원 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('blog')">블로그 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('linkedin')">링크드인 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('youtube')">유튜브 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('google')">Google ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('kakao')">카카오 ↗</button>
         </div>
       </div>
     </div>
@@ -359,7 +350,7 @@ body {
     <!-- Pro Tip -->
     <div class="pro-tip">
       <div class="pt-title">💡 Pro Tip</div>
-      <div class="pt-body">utm_source·medium은 소문자로, 여러 단어는 띄어쓰기 대신 언더스코어(_)로 이어주세요. 나중에 GA4에서 채널별로 집계할 때 헷갈리지 않아요.</div>
+      <div class="pt-body">채널마다 정해진 매체 문법이 있어요 — linkedin엔 항상 social, blog엔 항상 referral처럼요. 소스를 입력하면 매체가 자동으로 채워집니다(직접 수정도 가능).</div>
     </div>
 
   </div>
@@ -372,9 +363,29 @@ body {
 
 <script>
   let generatedUrl = '';
+  let mediumTouched = false; // 매체를 사용자가 직접 고친 적 있으면 자동 채우기를 멈춤
+
+  // 채널별 매체 문법 — 앳홈에서 실제로 항상 이렇게 짝지어 쓰는 규칙
+  const SOURCE_MEDIUM_MAP = {
+    linkedin: 'social',
+    blog: 'referral',
+    youtube: 'referral',
+    google: 'cpc',
+    kakao: 'social',
+    naver: 'referral',
+    instagram: 'social',
+    newsletter: 'email',
+  };
 
   function slug(str) {
     return str.trim().toLowerCase().replace(/\s+/g, '_');
+  }
+
+  function autofillMedium() {
+    if (mediumTouched) return;
+    const source = slug(document.getElementById('f-source').value);
+    const medium = SOURCE_MEDIUM_MAP[source];
+    if (medium) document.getElementById('f-medium').value = medium;
   }
 
   function generate() {
@@ -454,14 +465,15 @@ body {
     ['f-url','f-source','f-medium','f-campaign','f-content'].forEach(id => {
       document.getElementById(id).value = '';
     });
+    mediumTouched = false;
     generate();
   }
 
-  /* ── 우패널 Quick-Copy Presets ── */
-  function applyQuickCopy(source, medium, content) {
+  /* ── 우패널 Quick-Copy Presets: 채널(소스)만 선택하면 문법에 맞는 매체가 자동으로 채워짐 ── */
+  function applyQuickCopy(source) {
     document.getElementById('f-source').value = source;
-    document.getElementById('f-medium').value = medium;
-    document.getElementById('f-content').value = content || '';
+    mediumTouched = false;
+    autofillMedium();
     generate();
     document.getElementById('f-url').focus();
   }
@@ -516,6 +528,7 @@ body {
       document.getElementById('f-content').value  = p.get('utm_content')  || '';
       ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k => p.delete(k));
       document.getElementById('f-url').value = url.origin + url.pathname + (p.toString() ? '?' + p.toString() : '') + url.hash;
+      mediumTouched = true; // 불러온 매체값을 그대로 유지 (소스 자동완성이 덮어쓰지 않도록)
       generate();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {}
