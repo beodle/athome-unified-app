@@ -32,11 +32,11 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(--bg-page);-webkit-font-smoothing:antialiased;letter-spacing:-.006em;line-height:1.6;}
-.wrap{max-width:1120px;margin:0 auto;padding:24px 24px 64px;}
+.wrap{max-width:1360px;margin:0 auto;padding:24px 24px 64px;}
 
 /* ── TOPBAR ── */
 .topbar{position:sticky;top:0;z-index:60;background:rgba(245,244,241,.85);backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border);}
-.topbar-in{max-width:1120px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px;}
+.topbar-in{max-width:1360px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px;}
 .shell-mode .topbar .brand{display:none!important;}
 .shell-mode .topbar-in{max-width:none;padding-left:24px;padding-right:24px;}
 .brand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
@@ -56,13 +56,20 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 /* ── KPI ── */
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 @media(max-width:640px){ .kpis{grid-template-columns:1fr;} }
-.kpi{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;}
-.kpi-label{font-size:11.5px;font-weight:700;letter-spacing:.02em;color:var(--text-3);margin-bottom:8px;}
+.kpi{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;transition:transform .14s,box-shadow .14s;}
+.kpi:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(40,30,20,.06);}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.kpi-label{font-size:11.5px;font-weight:700;letter-spacing:.02em;color:var(--text-3);}
+.kpi-spark{display:flex;align-items:center;}
 .kpi-val{font-size:28px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;}
 .kpi-sub{margin-top:6px;font-size:12px;font-weight:600;color:var(--text-4);}
+.cmp{display:inline-flex;align-items:center;gap:3px;margin-top:7px;font-size:11px;font-weight:700;}
+.cmp.up{color:var(--up);} .cmp.down{color:var(--down);} .cmp.flat{color:var(--text-4);}
 
 .ov-body{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-top:16px;align-items:start;}
 @media (max-width:860px){.ov-body{grid-template-columns:1fr;}}
+.ov-add-btn{margin-left:auto;background:none;border:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;padding:2px 0;}
+.ov-add-btn:hover{text-decoration:underline;}
 
 /* ── 이번 주 콘텐츠 일정 (평일 미니 캘린더) ── */
 .ov-cal{padding:12px 18px 18px;}
@@ -86,6 +93,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
   padding:10px 13px 12px;font-size:12.5px;font-weight:600;line-height:1.5;color:rgba(0,0,0,.78);
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
   transform:rotate(var(--r,0deg));transition:transform .15s;
+  cursor:pointer;
 }
 .ov-note:hover{transform:rotate(0deg);}
 
@@ -129,9 +137,9 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
 <div class="wrap">
   <div class="kpis" id="kpiTiles">
-    <div class="kpi"><div class="kpi-label">LINKEDIN 팔로워</div><div class="kpi-val">—</div></div>
-    <div class="kpi"><div class="kpi-label">LINKEDIN 노출</div><div class="kpi-val">—</div></div>
-    <div class="kpi"><div class="kpi-label">블로그 조회</div><div class="kpi-val">—</div></div>
+    <div class="kpi"><div class="kpi-top"><span class="kpi-label">LINKEDIN 팔로워</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><span class="cmp"></span></div>
+    <div class="kpi"><div class="kpi-top"><span class="kpi-label">LINKEDIN 노출</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><span class="cmp"></span></div>
+    <div class="kpi"><div class="kpi-top"><span class="kpi-label">블로그 조회</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><span class="cmp"></span></div>
   </div>
 
   <div class="ov-body">
@@ -144,7 +152,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
     </section>
 
     <aside class="card">
-      <div class="card-h"><span class="t">최근 아이디어</span></div>
+      <div class="card-h"><span class="t">최근 아이디어</span><button class="ov-add-btn" onclick="navigateTo('ideas')">+ 아이디어 추가</button></div>
       <div class="ov-ideas-board" id="ovIdeasBoard"></div>
     </aside>
   </div>
@@ -155,6 +163,35 @@ const PRESET_COLORS = { '링크드인': '#4A77B5', '블로그': '#059669', '팟�
 const FALLBACK_PALETTE = ['#2563EB','#059669','#7C3AED','#B45309','#DB2777','#0891B2'];
 
 function fmt(n){ return (n||0).toLocaleString('ko-KR'); }
+
+/* 셸(index.html) iframe 안에서 실행 중이면 부모 해시를 바꿔 실제 탭 전환, 아니면 자기 해시로 폴백 */
+function navigateTo(route){
+  const target = '#/' + route;
+  if (window.parent && window.parent !== window) {
+    try { window.parent.location.hash = target; return; } catch (e) {}
+  }
+  location.hash = target;
+}
+
+function mom(cur, prev){
+  if (prev == null) return null;
+  const diff = cur - prev, pct = prev > 0 ? diff / prev * 100 : null;
+  return { diff, pct, dir: diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat' };
+}
+function spark(vals){
+  if (vals.length < 2) return '';
+  const mx = Math.max(...vals), mn = Math.min(...vals), rg = mx - mn || 1, W = 54, H = 24;
+  const pts = vals.map((v,i) => `${(i/(vals.length-1)*W).toFixed(1)},${(H-((v-mn)/rg)*(H-4)-2).toFixed(1)}`).join(' ');
+  const c = vals[vals.length-1] >= vals[vals.length-2] ? '#16A34A' : '#DC2626';
+  const ly = (H-((vals[vals.length-1]-mn)/rg)*(H-4)-2).toFixed(1);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="opacity:.7;flex-shrink:0"><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${W}" cy="${ly}" r="2.4" fill="${c}"/></svg>`;
+}
+function badge(m){
+  if (!m) return '';
+  const a = m.dir === 'up' ? '▲' : m.dir === 'down' ? '▼' : '―';
+  const p = m.pct != null ? ` ${m.pct >= 0 ? '+' : ''}${m.pct.toFixed(1)}%` : '';
+  return `<span class="cmp ${m.dir}">${a}${p} vs 직전</span>`;
+}
 
 function ymd(d){
   const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
@@ -180,14 +217,28 @@ async function loadKpis(){
 
   const weeks = Object.keys(baked).filter(k => /^\d{4}-W\d{2}$/.test(k)).sort();
   const last4 = weeks.slice(-4);
-  const latestFollowers = weeks.length ? (baked[weeks[weeks.length-1]].followers || 0) : 0;
-  const impSum = last4.reduce((a,w) => a + (baked[w].impressions || 0), 0);
-  const blogSum = last4.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0);
+  const prev4 = weeks.slice(-8, -4);
+  const spk8 = weeks.slice(-8);
 
-  const tiles = document.querySelectorAll('#kpiTiles .kpi-val');
-  tiles[0].textContent = fmt(latestFollowers);
-  tiles[1].textContent = fmt(impSum);
-  tiles[2].textContent = fmt(blogSum);
+  const latestFollowers = weeks.length ? (baked[weeks[weeks.length-1]].followers || 0) : 0;
+  const prevFollowers = weeks.length > 4 ? (baked[weeks[weeks.length-5]].followers ?? null) : null;
+  const impSum = last4.reduce((a,w) => a + (baked[w].impressions || 0), 0);
+  const prevImpSum = prev4.length ? prev4.reduce((a,w) => a + (baked[w].impressions || 0), 0) : null;
+  const blogSum = last4.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0);
+  const prevBlogSum = prev4.length ? prev4.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0) : null;
+
+  const tiles = [
+    { val: latestFollowers, mom: mom(latestFollowers, prevFollowers), spk: spk8.map(w => baked[w].followers || 0) },
+    { val: impSum, mom: mom(impSum, prevImpSum), spk: spk8.map(w => baked[w].impressions || 0) },
+    { val: blogSum, mom: mom(blogSum, prevBlogSum), spk: spk8.map(w => baked[w].blog_pageviews || 0) },
+  ];
+
+  document.querySelectorAll('#kpiTiles .kpi').forEach((el, i) => {
+    const t = tiles[i];
+    el.querySelector('.kpi-val').textContent = fmt(t.val);
+    el.querySelector('.kpi-spark').innerHTML = spark(t.spk);
+    el.querySelector('.cmp').outerHTML = badge(t.mom) || '<span class="cmp"></span>';
+  });
 
   const summary = await db.collection('dashboardMeta').doc('summary').get();
   if (summary.exists && summary.data().last_updated) {
@@ -234,7 +285,7 @@ async function loadWeekCalendar(){
       chip.style.color = color;
       chip.textContent = `${ev.channel || ''} · ${ev.title || ''}`;
       chip.title = ev.title || '';
-      if (ev.url) chip.addEventListener('click', () => window.open(ev.url, '_blank'));
+      chip.addEventListener('click', () => navigateTo('calendar'));
       cell.appendChild(chip);
     });
     if (dayEvents.length > 2) {
@@ -268,6 +319,7 @@ async function loadLatestIdeas(){
     note.style.setProperty('--r', (n.rot || 0) + 'deg');
     note.style.background = n.color || '#FFE38F';
     note.textContent = n.text;
+    note.addEventListener('click', () => navigateTo('ideas'));
     board.appendChild(note);
   });
 }
