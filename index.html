@@ -545,6 +545,13 @@
     }
 
     function loadView(route) {
+      // 이전 iframe(있었다면 캘린더)은 곧 통째로 사라지므로, 그 안의 #btn-login을 감시하던
+      // observer도 다음 캘린더 방문 때까지 미루지 말고 지금 바로 끊어서 끊긴 iframe 문서를
+      // 계속 참조하고 있지 않게 한다.
+      if (loginBtnObserver) {
+        loginBtnObserver.disconnect();
+        loginBtnObserver = null;
+      }
       setActive(route);
       viewContainer.innerHTML = '<div class="view-loading">불러오는 중</div>';
 

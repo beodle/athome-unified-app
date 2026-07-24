@@ -13,8 +13,9 @@
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="dns-prefetch" href="https://docs.google.com">
   <link rel="dns-prefetch" href="https://sheets.googleapis.com">
+  <!-- Google Identity Services 스크립트는 auth.js가 이미 로드하므로 여기서 중복으로
+       또 로드하지 않는다 (initGIS()의 폴링이 auth.js 쪽 로드 완료를 기다려준다). -->
   <script src="./auth.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>앳홈 콘텐츠 캘린더</title>
@@ -658,6 +659,7 @@
     let tokenClient  = null;
     let accessToken  = null;
     let sheetName    = '콘텐츠 캘린더';
+    let authInFlight = false; // 편집 로그인 팝업이 응답을 기다리는 중인지
 
     /* ── 드래그 상태 ── */
     let draggingRowIndex = null; // 드래그 중인 이벤트의 _rowIndex
@@ -679,8 +681,15 @@
     /* ────────────────────────────────────────────
        Google Identity Services (OAuth)
     ──────────────────────────────────────────── */
+    let gisInitAttempts = 0;
+    const GIS_INIT_MAX_ATTEMPTS = 10; // 300ms * 10 = 3초 정도 기다려보고 포기
     function initGIS() {
       if (typeof google === 'undefined' || !google.accounts) {
+        gisInitAttempts += 1;
+        if (gisInitAttempts >= GIS_INIT_MAX_ATTEMPTS) {
+          showToast('편집 로그인을 불러오지 못했어요 — 네트워크나 차단 프로그램을 확인해주세요', true);
+          return;
+        }
         setTimeout(initGIS, 300);
         return;
       }
@@ -690,6 +699,7 @@
         client_id: GOOGLE_CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/spreadsheets',
         callback: async (response) => {
+          authInFlight = false;
           if (response.error) {
             showToast('로그인 실패: ' + response.error, true);
             return;
@@ -739,7 +749,21 @@
         renderAll();
         return;
       }
-      if (tokenClient) tokenClient.requestAccessToken();
+      if (tokenClient) {
+        authInFlight = true;
+        tokenClient.requestAccessToken();
+      }
+    });
+
+    // 편집 로그인 팝업이 떠 있는 동안 이 iframe(캘린더 탭)을 벗어나면(다른 탭 클릭 등)
+    // 셸이 iframe을 통째로 새로 만들어버려 tokenClient의 콜백 클로저가 함께 사라진다 —
+    // 그러면 팝업에서 로그인을 완료해도 받을 대상이 없어 조용히 아무 일도 안 일어난다.
+    // 근본 해결(팝업 상태를 셸까지 끌어올리는 것)은 과해서, 최소한 콘솔에라도 남겨둔다.
+    // (iframe이 DOM에서 제거될 때는 visibilitychange가 아니라 pagehide가 실제로 발생한다.)
+    window.addEventListener('pagehide', () => {
+      if (authInFlight) {
+        console.warn('[calendar] 편집 로그인 진행 중 캘린더 탭을 벗어났어요 — 팝업 완료 결과를 못 받을 수 있어요. 캘린더로 돌아와 다시 시도해주세요.');
+      }
     });
 
     /* ────────────────────────────────────────────
