@@ -1,19 +1,22 @@
 """
-LinkedIn 조직 성과 수집 → dashboard.html __BAKED_DATA__ 머지 (대시보드용)
+LinkedIn 조직 성과 수집 → Firestore(dashboardWeekly/dashboardMeta) 머지 (대시보드용)
 
 ⚠️ 비밀값은 전부 환경변수에서만 읽음 (이 파일/repo에 하드코딩 금지 — public repo):
     LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REFRESH_TOKEN, LINKEDIN_ORG_URN
     (선택) LINKEDIN_VERSION (기본 202606)
+    FIRESTORE_SA_KEY_PATH (Firestore 서비스 계정 키 경로 — firestore_sync.py가 사용)
 
 수집:
   - 게시물 목록 + 게시물별 통계 → 발행 주차별 노출 합(impressions) + 게시물 TOP(__li_posts__)
   - networkSizes → 현재 누적 팔로워 → 최신 주차 followers 스냅샷, newFollowers=직전주 대비 증감
 
 사용:  python3 linkedin_fetch.py [--dry]
-  --dry : index.html 수정 없이 머지 결과만 출력
+  --dry : Firestore 수정 없이 머지 결과만 출력
 """
-import os, re, sys, json, datetime, urllib.parse, pathlib
+import os, re, sys, datetime, urllib.parse
 import requests
+
+from firestore_sync import load_baked, save_baked
 
 VERSION = os.environ.get("LINKEDIN_VERSION", "202606")
 BASE = "https://api.linkedin.com/rest"
@@ -130,10 +133,7 @@ def main():
         })
     li_posts.sort(key=lambda x: x["impressions"], reverse=True)
 
-    html = pathlib.Path(__file__).with_name("dashboard.html")
-    src = html.read_text()
-    m = re.search(r'(const __BAKED_DATA__ = )(\{.*?\});', src, re.DOTALL)
-    baked = json.loads(m.group(2))
+    baked = load_baked()
 
     for wk, imp in week_imp.items():
         baked.setdefault(wk, {})["impressions"] = imp
@@ -156,11 +156,10 @@ def main():
         print(f"   최신주 {latest}: followers={followers} newFollowers={baked[latest]['newFollowers']}")
 
     if dry:
-        print("🔸 --dry: dashboard.html 미수정")
+        print("🔸 --dry: Firestore 미수정")
         return
-    src = src[:m.start(2)] + json.dumps(baked, ensure_ascii=False) + src[m.end(2):]
-    html.write_text(src)
-    print("✅ dashboard.html __BAKED_DATA__ 머지 완료")
+    save_baked(baked)
+    print("✅ Firestore 머지 완료")
 
 
 if __name__ == "__main__":

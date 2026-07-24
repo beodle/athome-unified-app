@@ -1,0 +1,40 @@
+name: Sync Content Calendar
+
+# 콘텐츠 캘린더 구글 시트 → Firestore 단방향 동기화(읽기 전용).
+# 시트가 여전히 편집 원본(source of truth)이고, 이 워크플로는 그걸 Firestore에
+# 복사해두는 역할만 한다 — calendar.html이 더 이상 공개 CSV export URL을 직접
+# 열지 않고 이 Firestore 컬렉션을 읽도록 하기 위함(로그인 게이트 우회 방지).
+on:
+  schedule:
+    - cron: '*/20 * * * *'  # 20분마다
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calendar-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install --quiet google-cloud-firestore requests
+
+      - name: Restore Firestore service account key
+        run: printf '%s' "$FIRESTORE_SA_KEY" > "$RUNNER_TEMP/firestore-key.json"
+        env:
+          FIRESTORE_SA_KEY: ${{ secrets.FIRESTORE_SA_KEY }}
+
+      - name: Run calendar_sync.py
+        env:
+          FIRESTORE_SA_KEY_PATH: ${{ runner.temp }}/firestore-key.json
+        run: python3 calendar_sync.py

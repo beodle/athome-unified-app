@@ -1,12 +1,15 @@
 """
-YouTube 팟캐스트(홈레코딩) 성과 수집 → index.html __BAKED_DATA__ 머지
+YouTube 팟캐스트(홈레코딩) 성과 수집 → Firestore(dashboardWeekly/dashboardMeta) 머지
 
 ⚠️ 비밀값은 환경변수에서만: YOUTUBE_API_KEY  (선택) YOUTUBE_CHANNEL_ID
+    FIRESTORE_SA_KEY_PATH (Firestore 서비스 계정 키 경로 — firestore_sync.py가 사용)
 수집: 채널 구독자(현재값) + 홈레코딩 시리즈 영상별 조회·좋아요·댓글 (전체 시리즈, 조회순)
 사용: python3 youtube_fetch.py [--dry]
 """
-import os, re, sys, json, pathlib, datetime
+import os, re, sys, datetime
 import requests
+
+from firestore_sync import load_baked, save_baked
 
 API = "https://www.googleapis.com/youtube/v3"
 CHANNEL = os.environ.get("YOUTUBE_CHANNEL_ID", "UCfRWcGQK-952YXBIaHFcsNA")
@@ -66,10 +69,7 @@ def main():
             })
     vids.sort(key=lambda x: x["views"], reverse=True)
 
-    html = pathlib.Path(__file__).with_name("dashboard.html")
-    src = html.read_text()
-    m = re.search(r'(const __BAKED_DATA__ = )(\{.*?\});', src, re.DOTALL)
-    baked = json.loads(m.group(2))
+    baked = load_baked()
     baked["__yt_subscribers__"] = subs
     baked["__yt_videos__"] = vids
 
@@ -88,11 +88,10 @@ def main():
     for v in vids[:5]:
         print(f"   조회 {v['views']:>5} | {v['title'][:34]}")
     if dry:
-        print("🔸 --dry: dashboard.html 미수정")
+        print("🔸 --dry: Firestore 미수정")
         return
-    src = src[:m.start(2)] + json.dumps(baked, ensure_ascii=False) + src[m.end(2):]
-    html.write_text(src)
-    print("✅ dashboard.html __BAKED_DATA__ 머지 완료")
+    save_baked(baked)
+    print("✅ Firestore 머지 완료")
 
 
 if __name__ == "__main__":

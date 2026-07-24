@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write          # update.sh의 git push 허용
+  contents: read           # dashboard.html은 더 이상 git에 쓰지 않고 Firestore로 바로 반영
   issues: write            # 실패 시 알림 이슈 생성
 
 concurrency:
@@ -24,22 +24,23 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install GA4 client
-        run: pip install --quiet google-analytics-data requests
+      - name: Install dependencies
+        run: pip install --quiet google-analytics-data google-cloud-firestore requests
 
       - name: Restore GA4 service account key
         run: printf '%s' "$GA4_SA_KEY" > "$RUNNER_TEMP/ga4-key.json"
         env:
           GA4_SA_KEY: ${{ secrets.GA4_SA_KEY }}
 
-      - name: Configure git author
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Restore Firestore service account key
+        run: printf '%s' "$FIRESTORE_SA_KEY" > "$RUNNER_TEMP/firestore-key.json"
+        env:
+          FIRESTORE_SA_KEY: ${{ secrets.FIRESTORE_SA_KEY }}
 
-      - name: Run update.sh (extract → bake → commit → push)
+      - name: Run update.sh (extract GA4/LinkedIn/YouTube → Firestore 반영)
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/ga4-key.json
+          FIRESTORE_SA_KEY_PATH: ${{ runner.temp }}/firestore-key.json
           LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
           LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
           LINKEDIN_REFRESH_TOKEN: ${{ secrets.LINKEDIN_REFRESH_TOKEN }}

@@ -1,5 +1,5 @@
 #!/bin/bash
-# GA4 채용 페이지 + 블로그 데이터 갱신 → 대시보드 베이크 → 커밋·푸시
+# GA4 채용 페이지 + 블로그 데이터 갱신 → Firestore 반영 (대시보드는 로그인 후 Firestore에서 읽어감)
 # 사용법:
 #   ./update.sh                    # 최근 4주 자동
 #   ./update.sh 2026-W16 2026-W17  # 특정 주차 지정
@@ -27,10 +27,14 @@ export WEEKS="$WEEKS_STR"
 # 로컬에선 기본 키 경로, CI(GitHub Actions)에선 미리 export된 값을 사용
 : "${GOOGLE_APPLICATION_CREDENTIALS:=/Users/jangmyeongseong/Desktop/claude code/clauide-mcp-c1d375c27ae7.json}"
 export GOOGLE_APPLICATION_CREDENTIALS
+# Firestore 쓰기용 서비스 계정 — GA4 키(GOOGLE_APPLICATION_CREDENTIALS)와는 다른 프로젝트/계정이라
+# 별도 env var로 분리한다(같이 쓰면 GA4 클라이언트가 이 키로 인증을 시도해 충돌함). CI에선
+# FIRESTORE_SA_KEY 시크릿을 파일로 복원해 미리 export해준다.
+: "${FIRESTORE_SA_KEY_PATH:?FIRESTORE_SA_KEY_PATH가 필요합니다 (Firestore 서비스 계정 키 파일 경로)}"
+export FIRESTORE_SA_KEY_PATH
 python3 << 'PYEOF'
-import os, re, json
+import os
 from datetime import date, timedelta, datetime, timezone
-from pathlib import Path
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     RunReportRequest, Dimension, Metric, DateRange, FilterExpression, Filter, OrderBy
@@ -139,21 +143,19 @@ for wk in WEEKS:
     new_data[wk] = d
     print(f'    채용 users={d["users"]} confirm={d["confirm_pv"]} | 블로그 PV={d["blog_pageviews"]} users={d["blog_users"]}')
 
-p = Path('dashboard.html')
-src = p.read_text()
-m = re.search(r'(const __BAKED_DATA__ = )(\{.*?\});', src, re.DOTALL)
-baked = json.loads(m.group(2))
+from firestore_sync import load_baked, save_baked
+
+baked = load_baked()
 for wk, fields in new_data.items():
     if wk not in baked: baked[wk] = {'posts': []}
     baked[wk].update(fields)
-src = src[:m.start(2)] + json.dumps(baked, ensure_ascii=False) + src[m.end(2):]
 
 now = datetime.now(timezone(timedelta(hours=9)))  # KST 기준 갱신 시각
 stamp = f"{now.year}년 {now.month}월 {now.day}일 {now.hour:02d}:{now.minute:02d}"
-src = re.sub(r'const __LAST_UPDATED__ = "[^"]*";',
-             f'const __LAST_UPDATED__ = "{stamp}";', src)
-p.write_text(src)
-print(f'→ {len(new_data)}주 머지 완료')
+baked['__LAST_UPDATED__'] = stamp
+
+save_baked(baked)
+print(f'→ {len(new_data)}주 머지 완료 (Firestore)')
 PYEOF
 
 # ── 2.5 LinkedIn 수집 (env 있을 때만: 노출·게시물·팔로워) ──
@@ -192,12 +194,4 @@ else
   echo "→ YouTube env 없음, 건너뜀"
 fi
 
-# ── 3. 커밋·푸시 ──────────────────────────────────────────
-if git diff --quiet dashboard.html; then
-  echo "→ 변경 없음, 종료"
-  exit 0
-fi
-git add dashboard.html
-git commit -m "Refresh recruit + blog GA4 data ($WEEKS_STR) — $(date +%Y-%m-%d)"
-git push origin main
-echo "✅ 푸시 완료. 1~2분 후 https://beodle.github.io/athome-unified-app/ 반영"
+echo "✅ Firestore 반영 완료. 로그인 후 대시보드에서 바로 확인 가능"
