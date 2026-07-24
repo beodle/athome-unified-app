@@ -12,9 +12,12 @@
     appId: '1:291977900858:web:c8660aaff0ee91c95a9603'
   };
   var ALLOWED_DOMAIN = '@athomecorp.com';
-  // 캘린더의 Sheets 편집 로그인과 동일한 OAuth 클라이언트 — 이미 이 origin(GitHub Pages)에서
-  // 문제없이 동작이 확인된 값이라 재사용한다.
-  var GIS_CLIENT_ID = '956471338785-o7697b8kivvo5lvtrr7bamogc0vkaqal.apps.googleusercontent.com';
+  // signInWithCredential은 이 ID 토큰을 발급한 OAuth 클라이언트가 "이 Firebase
+  // 프로젝트(athome-contents-workspace) 소속"이어야만 신뢰한다. 캘린더의 Sheets 편집
+  // 로그인용 클라이언트는 완전히 다른 GCP 프로젝트 소속이라 재사용하면 auth/invalid-credential로
+  // 실패한다 — Firebase 콘솔 Authentication > Sign-in method > Google > 웹 SDK 구성의
+  // "웹 클라이언트 ID" 값을 써야 한다.
+  var GIS_CLIENT_ID = '291977900858-rl3f2c1r8fr48g2i3lojkdcd0j0ek5jq.apps.googleusercontent.com';
 
   var hideStyle = document.createElement('style');
   hideStyle.setAttribute('data-athome-auth', '1');
