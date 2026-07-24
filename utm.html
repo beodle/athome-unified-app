@@ -100,11 +100,10 @@ body {
 .card-h2 { font-size: 17px; font-weight: 800; letter-spacing: -.02em; color: var(--text-1); margin-bottom: 22px; }
 
 /* ── 필드 ── */
-.field { margin-bottom: 18px; }
-.field:last-child { margin-bottom: 0; }
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.field-row--3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-@media (max-width: 700px) { .field-row--3 { grid-template-columns: 1fr; } }
+.form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 14px; margin-bottom: 18px; }
+@media (max-width: 700px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
+.field { display: block; margin-bottom: 0; }
 .field-label {
   display: flex; align-items: baseline; gap: 6px;
   font-size: 10.5px; font-weight: 700; color: var(--text-3);
@@ -124,68 +123,40 @@ body {
 .field input::placeholder { color: var(--text-4); }
 .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 
-/* ── 칩 ── */
-.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
-.chip {
-  border: 1px solid var(--border-2); border-radius: 20px;
-  padding: 3px 9px; font-family: var(--font); font-size: 11.5px;
-  font-weight: 600; color: var(--text-3); background: var(--bg-card);
-  cursor: pointer; transition: all .12s; white-space: nowrap;
-}
-.chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-.chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-light); font-weight: 700; }
-
-/* ── 출력 영역 (생성기 카드 내부 inset) ── */
-.output-card {
+/* ── 생성된 URL (생성기 카드 내부 inset) ── */
+.generated-box {
   background: var(--bg-soft);
   border-radius: 12px;
-  padding: 18px 20px;
-  position: relative;
-  margin-top: 6px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
 }
-.output-label {
+.generated-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 10px;
+}
+.generated-head span {
   font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--text-2); margin-bottom: 10px;
+  color: var(--text-2);
 }
-.output-url {
-  font-size: 12.5px; color: var(--text-1); line-height: 1.65;
-  word-break: break-all; min-height: 40px;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-}
-.output-url .base { color: var(--text-2); }
-.output-url .sep { color: var(--accent); opacity: .8; }
-.output-url .param-key { color: #CC3D00; font-weight: 700; }
-.output-url .param-val { color: var(--text-1); }
-.output-empty { color: var(--text-3); font-style: italic; font-family: var(--font); font-size: 12.5px; }
-
-.copy-btn {
-  position: absolute; top: 16px; right: 16px;
-  display: flex; align-items: center; gap: 5px;
+.generated-head button {
   background: var(--bg-card); border: 1.5px solid var(--border-2);
   border-radius: 7px; padding: 5px 11px;
   font-family: var(--font); font-size: 12px; font-weight: 700;
   color: var(--text-2); cursor: pointer; transition: all .14s; white-space: nowrap;
 }
-.copy-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-.copy-btn:disabled { opacity: .4; cursor: default; pointer-events: none; }
-.copy-btn.copied { border-color: #059669; color: #059669; background: rgba(5,150,105,.06); }
-.copy-btn svg { flex-shrink: 0; }
-
-/* ── 파라미터 배지 ── */
-.params-preview {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+.generated-head button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.generated-head button:disabled { opacity: .4; cursor: default; pointer-events: none; }
+.generated-head button.copied { border-color: #059669; color: #059669; background: rgba(5,150,105,.06); }
+.generated-url {
+  font-size: 12.5px; color: var(--text-1); line-height: 1.65;
+  word-break: break-all;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
 }
-.params-preview:empty { display: none; margin-top: 0; padding-top: 0; border-top: none; }
-.param-badge {
-  display: flex; align-items: center; gap: 4px;
-  border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600;
-}
-.param-badge.filled { background: var(--accent-light); border: 1px solid var(--accent-mid); color: var(--accent); }
-.param-badge.empty { background: rgba(0,0,0,.08); border: 1px solid rgba(0,0,0,.12); color: var(--text-2); }
-.param-badge .dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
-.param-badge.filled .dot { background: var(--accent); }
-.param-badge.empty .dot { background: var(--border-2); }
+.generated-url .base { color: var(--text-2); }
+.generated-url .sep { color: var(--accent); opacity: .8; }
+.generated-url .param-key { color: #CC3D00; font-weight: 700; }
+.generated-url .param-val { color: var(--text-1); }
+.output-empty { color: var(--text-3); font-style: italic; font-family: var(--font); font-size: 12.5px; }
 
 /* ── 가이드 (우패널) ── */
 .guide-card {
@@ -205,19 +176,6 @@ body {
   letter-spacing: .06em; text-transform: uppercase;
   margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
 }
-
-/* ── 채널 프리셋 ── */
-.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.preset-btn {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  background: var(--bg-card); border: 1.5px solid var(--border-2); border-radius: 10px;
-  padding: 10px 12px; font-family: var(--font); cursor: pointer; text-align: left;
-  transition: all .12s;
-}
-.preset-btn:hover, .preset-btn.on { border-color: var(--accent); background: var(--accent-light); }
-.preset-btn .p-name { font-size: 12.5px; font-weight: 700; color: var(--text-1); }
-.preset-btn .p-val { font-size: 10.5px; color: var(--text-4); font-family: 'SF Mono', monospace; }
-@media (max-width: 600px) { .preset-grid { grid-template-columns: 1fr 1fr; } }
 
 /* ── 우패널: 채널별 빠른 복사 프리셋 ── */
 .qc-group { margin-bottom: 14px; }
@@ -246,7 +204,7 @@ body {
 .pro-tip .pt-body { font-size: 12px; color: var(--text-3); line-height: 1.6; }
 
 /* ── 생성 히스토리 (좌패널 테이블) ── */
-.history-card-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 18px; }
+.history-card-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
 .history-empty { font-size: 12.5px; color: var(--text-4); font-style: italic; padding: 8px 0; }
 .history-table { width: 100%; border-collapse: collapse; }
 .history-table th {
@@ -268,34 +226,33 @@ body {
   cursor: pointer; display: grid; place-items: center; transition: all .12s;
 }
 .history-table .h-btn:hover { border-color: var(--accent); color: var(--accent); }
-.history-clear { border: none; background: none; font-family: var(--font); font-size: 11.5px; font-weight: 600; color: var(--text-4); cursor: pointer; }
-.history-clear:hover { color: var(--text-2); }
-.history-export {
+.history-tools { display: flex; gap: 6px; }
+.history-tools button {
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border: 1px solid var(--border-2); background: var(--bg-card);
-  border-radius: 8px; color: var(--text-3); cursor: pointer; transition: all .12s;
+  border-radius: 8px; color: var(--text-3); cursor: pointer; transition: all .12s; font-size: 13px;
 }
-.history-export:hover { border-color: var(--accent); color: var(--accent); }
+.history-tools button:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── 액션 버튼 ── */
-.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-.btn-primary {
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.actions .primary {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--accent); color: #fff; border: none;
   border-radius: 9px; padding: 10px 18px;
   font-family: var(--font); font-size: 13.5px; font-weight: 700;
   cursor: pointer; transition: opacity .14s;
 }
-.btn-primary:hover { opacity: .88; }
-.btn-primary:disabled { opacity: .4; cursor: default; }
-.btn-secondary {
+.actions .primary:hover { opacity: .88; }
+.actions .primary:disabled { opacity: .4; cursor: default; }
+.actions .secondary {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--bg-card); color: var(--text-2);
   border: 1.5px solid var(--border-2); border-radius: 9px;
   padding: 10px 18px; font-family: var(--font); font-size: 13.5px; font-weight: 600;
   cursor: pointer; transition: all .14s;
 }
-.btn-secondary:hover { border-color: var(--text-4); color: var(--text-1); }
+.actions .secondary:hover { border-color: var(--text-4); color: var(--text-1); }
 
 /* ── 토스트 ── */
 #toast {
@@ -316,7 +273,6 @@ body {
   .right-panel { border-left: none; border-top: 1px solid var(--border); }
 }
 @media (max-width: 600px) {
-  .field-row { grid-template-columns: 1fr; }
   .left-panel { padding: 24px 16px 48px; }
   .right-panel { padding: 20px 16px; }
 }
@@ -349,107 +305,53 @@ body {
     <div class="card">
       <div class="card-h2">Campaign Link Generator</div>
 
-      <div class="field-row">
-        <div class="field">
-          <div class="field-label">랜딩페이지 URL <span class="required">필수</span></div>
-          <input type="url" id="f-url" placeholder="https://career.athomecorp.com/…" oninput="generate()" autocomplete="off" spellcheck="false">
+      <form id="utmForm" onsubmit="return false;">
+        <div class="form-grid">
+          <label class="field">
+            <span class="field-label">웹사이트 URL <span class="required">필수</span></span>
+            <input type="url" id="f-url" placeholder="https://career.athomecorp.com/jobs" oninput="generate()" autocomplete="off" spellcheck="false">
+          </label>
+          <label class="field">
+            <span class="field-label">캠페인명</span>
+            <input type="text" id="f-campaign" placeholder="recruitment_july_2026" oninput="generate()" autocomplete="off">
+          </label>
+          <label class="field">
+            <span class="field-label">소스 <span class="required">필수</span></span>
+            <input type="text" id="f-source" placeholder="linkedin" oninput="generate()" autocomplete="off">
+          </label>
+          <label class="field">
+            <span class="field-label">매체 <span class="required">필수</span></span>
+            <input type="text" id="f-medium" placeholder="social" oninput="generate()" autocomplete="off">
+          </label>
+          <label class="field">
+            <span class="field-label">세부 태그 <span class="optional">content/term</span></span>
+            <input type="text" id="f-content" placeholder="designer_post" oninput="generate()" autocomplete="off">
+          </label>
         </div>
-        <div class="field">
-          <div class="field-label">utm_campaign <span class="optional">선택</span></div>
-          <input type="text" id="f-campaign" placeholder="hiring_open_2025q3 …" oninput="generate()" autocomplete="off">
-        </div>
-      </div>
-      <div class="field" style="margin-bottom:14px;">
-        <div class="chips">
-          <button class="chip" onclick="setChip('f-campaign',null,'자기만의방')">자기만의방</button>
-          <button class="chip" onclick="setChip('f-campaign',null,'hiring_open')">hiring_open</button>
-          <button class="chip" onclick="setChip('f-campaign',null,'blog_series')">blog_series</button>
-        </div>
-      </div>
 
-      <div class="field" style="margin-bottom:14px;">
-        <div class="field-label" style="margin-bottom:7px;">빠른 채널 선택</div>
-        <div class="preset-grid">
-          <button class="preset-btn" onclick="applyPreset(this,'linkedin','social')"><span class="p-name">링크드인</span><span class="p-val">linkedin / social</span></button>
-          <button class="preset-btn" onclick="applyPreset(this,'blog','referral')"><span class="p-name">블로그</span><span class="p-val">blog / referral</span></button>
-          <button class="preset-btn" onclick="applyPreset(this,'youtube','referral')"><span class="p-name">유튜브</span><span class="p-val">youtube / referral</span></button>
-        </div>
-      </div>
-
-      <div class="field-row--3">
-        <div class="field">
-          <div class="field-label">utm_source <span class="required">필수</span></div>
-          <input type="text" id="f-source" placeholder="linkedin, google …" oninput="generate(); syncChips('f-source', 'chips-source')" autocomplete="off">
-          <div class="chips" id="chips-source">
-            <button class="chip" onclick="setChip('f-source','chips-source','linkedin')">LinkedIn</button>
-            <button class="chip" onclick="setChip('f-source','chips-source','google')">Google</button>
-            <button class="chip" onclick="setChip('f-source','chips-source','newsletter')">Newsletter</button>
-            <button class="chip" onclick="setChip('f-source','chips-source','youtube')">YouTube</button>
-            <button class="chip" onclick="setChip('f-source','chips-source','kakao')">Kakao</button>
-            <button class="chip" onclick="setChip('f-source','chips-source','naver')">Naver</button>
-            <button class="chip" onclick="setChip('f-source','chips-source','instagram')">Instagram</button>
+        <div class="generated-box" id="output-card">
+          <div class="generated-head">
+            <span id="output-label">생성된 URL</span>
+            <button type="button" id="copy-btn" onclick="copyGenerated()" disabled>복사</button>
           </div>
+          <p class="generated-url" id="output-url"><span class="output-empty">URL, 소스, 매체를 입력하면 링크가 완성됩니다.</span></p>
         </div>
 
-        <div class="field">
-          <div class="field-label">utm_medium <span class="required">필수</span></div>
-          <input type="text" id="f-medium" placeholder="social, email, blog …" oninput="generate(); syncChips('f-medium', 'chips-medium')" autocomplete="off">
-          <div class="chips" id="chips-medium">
-            <button class="chip" onclick="setChip('f-medium','chips-medium','social')">social</button>
-            <button class="chip" onclick="setChip('f-medium','chips-medium','email')">email</button>
-            <button class="chip" onclick="setChip('f-medium','chips-medium','blog')">blog</button>
-            <button class="chip" onclick="setChip('f-medium','chips-medium','cpc')">cpc</button>
-            <button class="chip" onclick="setChip('f-medium','chips-medium','video')">video</button>
-            <button class="chip" onclick="setChip('f-medium','chips-medium','referral')">referral</button>
-          </div>
+        <div class="actions">
+          <button class="primary" type="submit" id="btn-copy-main" onclick="saveToHistory()" disabled>히스토리에 저장</button>
+          <button class="secondary" type="button" id="clearFields" onclick="resetForm()">필드 초기화</button>
         </div>
-
-        <div class="field">
-          <div class="field-label">utm_term/content <span class="optional">선택</span></div>
-          <input type="text" id="f-content" placeholder="banner_top, cta_orange …" oninput="generate()" autocomplete="off" style="margin-bottom:6px;">
-          <input type="text" id="f-term" placeholder="검색광고 키워드…" oninput="generate()" autocomplete="off">
-        </div>
-      </div>
-
-      <!-- 생성된 UTM 링크 (inset) -->
-      <div class="output-card" id="output-card">
-        <div style="padding-right:72px;">
-          <div class="output-label" id="output-label">UTM 링크 만들기</div>
-          <div class="output-url" id="output-url">
-            <span class="output-empty">URL, source, medium을 입력하면 링크가 완성됩니다.</span>
-          </div>
-        </div>
-        <button class="copy-btn" id="copy-btn" onclick="copyUrl()" disabled>
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span id="copy-label">복사</span>
-        </button>
-        <div class="params-preview" id="params-preview">
-          <span class="param-badge empty"><span class="dot"></span>source</span>
-          <span class="param-badge empty"><span class="dot"></span>medium</span>
-          <span class="param-badge empty"><span class="dot"></span>campaign</span>
-          <span class="param-badge empty"><span class="dot"></span>content</span>
-          <span class="param-badge empty"><span class="dot"></span>term</span>
-        </div>
-        <div id="dup-note" style="margin-top:10px;font-size:11px;font-weight:700;color:#B45309;" hidden></div>
-      </div>
-
-      <div class="actions">
-        <button class="btn-primary" id="btn-copy-main" onclick="copyUrl()" disabled>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          링크 복사
-        </button>
-        <button class="btn-secondary" onclick="resetForm()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.2-3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          초기화
-        </button>
-      </div>
+      </form>
     </div>
 
     <!-- 생성 히스토리 (테이블) -->
     <div class="card">
       <div class="history-card-h">
         <span class="card-h2" style="margin-bottom:0;">History</span>
-        <button class="history-export" id="history-clear" onclick="clearHistory()" title="전체 삭제" hidden>🗑</button>
+        <div class="history-tools">
+          <button id="exportHistory" type="button" onclick="exportHistory()" title="내보내기">⇧</button>
+          <button id="deleteHistory" type="button" onclick="clearHistory()" title="전체 삭제">⌫</button>
+        </div>
       </div>
       <div id="history-list"></div>
     </div>
@@ -464,32 +366,29 @@ body {
       <div class="guide-card-title">Quick-Copy Presets</div>
 
       <div class="qc-group">
-        <div class="qc-group-title">LinkedIn</div>
+        <div class="qc-group-title">링크드인</div>
         <div class="qc-tags">
-          <button class="qc-tag" onclick="applyQuickCopy('linkedin','social','hiring_open')"><span class="qc-ico">↳</span>피드 게시물</button>
-          <button class="qc-tag" onclick="applyQuickCopy('linkedin','email','weekly_jul')"><span class="qc-ico">↳</span>뉴스레터</button>
+          <button class="qc-tag" onclick="applyQuickCopy('linkedin','social','organic_post')">오가닉 게시물 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('linkedin','inmail','inmail_ad')">인메일 광고 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('linkedin','profile','profile_link')">프로필 링크 ↗</button>
         </div>
       </div>
 
       <div class="qc-group">
-        <div class="qc-group-title">블로그</div>
+        <div class="qc-group-title">네이버 블로그</div>
         <div class="qc-tags">
-          <button class="qc-tag" onclick="applyQuickCopy('blog','referral','culture_series')"><span class="qc-ico">↳</span>블로그 포스트</button>
+          <button class="qc-tag" onclick="applyQuickCopy('blog','body_anchor','body_anchor')">본문 앵커 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('blog','cta_button','cta_button')">CTA 버튼 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('blog','floating_bar','floating_bar')">플로팅 바 ↗</button>
         </div>
       </div>
 
       <div class="qc-group">
         <div class="qc-group-title">유튜브</div>
         <div class="qc-tags">
-          <button class="qc-tag" onclick="applyQuickCopy('youtube','video','자기만의방')"><span class="qc-ico">↳</span>영상 설명란</button>
-        </div>
-      </div>
-
-      <div class="qc-group">
-        <div class="qc-group-title">기타 채널</div>
-        <div class="qc-tags">
-          <button class="qc-tag" onclick="applyQuickCopy('kakao','social','channel_post')"><span class="qc-ico">↳</span>카카오 오픈톡</button>
-          <button class="qc-tag" onclick="applyQuickCopy('google','cpc','','프론트개발자채용')"><span class="qc-ico">↳</span>Google 검색광고</button>
+          <button class="qc-tag" onclick="applyQuickCopy('youtube','description','description')">설명란 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('youtube','pinned_comment','pinned_comment')">고정 댓글 ↗</button>
+          <button class="qc-tag" onclick="applyQuickCopy('youtube','end_card','end_card')">엔드카드 ↗</button>
         </div>
       </div>
     </div>
@@ -521,20 +420,16 @@ body {
     const medium = slug(document.getElementById('f-medium').value);
     const campaign = slug(document.getElementById('f-campaign').value);
     const content = slug(document.getElementById('f-content').value);
-    const term = slug(document.getElementById('f-term').value);
 
     const outputEl = document.getElementById('output-url');
     const copyBtn = document.getElementById('copy-btn');
-    const copyMain = document.getElementById('btn-copy-main');
+    const saveBtn = document.getElementById('btn-copy-main');
 
     if (!raw || !source || !medium) {
-      outputEl.innerHTML = '<span class="output-empty">URL, source, medium을 채우면 링크가 완성됩니다.</span>';
+      outputEl.innerHTML = '<span class="output-empty">URL, 소스, 매체를 입력하면 링크가 완성됩니다.</span>';
       generatedUrl = '';
       copyBtn.disabled = true;
-      copyMain.disabled = true;
-      document.getElementById('dup-note').hidden = true;
-      document.getElementById('output-label').textContent = 'UTM 링크 만들기';
-      updateBadges(source, medium, campaign, content, term);
+      saveBtn.disabled = true;
       return;
     }
 
@@ -542,7 +437,6 @@ body {
     const params = [['utm_source', source], ['utm_medium', medium]];
     if (campaign) params.push(['utm_campaign', campaign]);
     if (content) params.push(['utm_content', content]);
-    if (term) params.push(['utm_term', term]);
 
     generatedUrl = raw + sep + params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
 
@@ -553,99 +447,58 @@ body {
 
     outputEl.innerHTML = `<span class="base">${escHtml(raw)}${sep}</span>${paramHtml}`;
     copyBtn.disabled = false;
-    copyMain.disabled = false;
+    saveBtn.disabled = false;
     copyBtn.classList.remove('copied');
-    document.getElementById('copy-label').textContent = '복사';
-    document.getElementById('output-label').textContent = '생성된 UTM 링크';
-
-    // 중복 생성 경고 — 히스토리에 동일 링크가 있으면 알림
-    const dupNote = document.getElementById('dup-note');
-    const dup = loadHistory().find(h => h.u === generatedUrl);
-    dupNote.hidden = !dup;
-    if (dup) dupNote.textContent = `⚠ 이미 만든 링크예요 (${relTime(dup.t)})`;
-
-    updateBadges(source, medium, campaign, content, term);
+    copyBtn.textContent = '복사';
   }
 
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function updateBadges(source, medium, campaign, content, term) {
-    const params = [['source',source],['medium',medium],['campaign',campaign],['content',content],['term',term]];
-    const hasAny = source || medium || campaign || content || term;
-    document.getElementById('params-preview').innerHTML = hasAny ? params.map(([k, v]) => {
-      const filled = !!v;
-      return `<span class="param-badge ${filled?'filled':'empty'}"><span class="dot"></span>${k}${filled?': '+v:''}</span>`;
-    }).join('') : '';
-  }
-
-  function setChip(fieldId, chipsId, val) {
-    const input = document.getElementById(fieldId);
-    input.value = val;
-    if (chipsId) syncChips(fieldId, chipsId);
-    generate();
-    input.focus();
-  }
-
-  function syncChips(fieldId, chipsId) {
-    if (!chipsId) return;
-    const val = document.getElementById(fieldId).value.trim().toLowerCase();
-    document.querySelectorAll(`#${chipsId} .chip`).forEach(chip => {
-      chip.classList.toggle('on', chip.textContent.toLowerCase() === val);
-    });
-  }
-
-  function copyUrl() {
+  function copyGenerated() {
     if (!generatedUrl) return;
     navigator.clipboard.writeText(generatedUrl).then(() => {
-      addToHistory(generatedUrl);
       const copyBtn = document.getElementById('copy-btn');
-      const copyMain = document.getElementById('btn-copy-main');
       copyBtn.classList.add('copied');
-      document.getElementById('copy-label').textContent = '복사됨';
-      copyMain.textContent = '복사됨 ✓';
-
-      const toast = document.getElementById('toast');
-      toast.classList.add('show');
+      copyBtn.textContent = '복사됨';
+      showToast('클립보드에 복사됐어요!');
       setTimeout(() => {
-        toast.classList.remove('show');
         copyBtn.classList.remove('copied');
-        document.getElementById('copy-label').textContent = '복사';
-        copyMain.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> 링크 복사`;
+        copyBtn.textContent = '복사';
       }, 2200);
     });
   }
 
-  function resetForm() {
-    ['f-url','f-source','f-medium','f-campaign','f-content','f-term'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('on'));
-    generate();
+  function saveToHistory() {
+    if (!generatedUrl) return;
+    addToHistory(generatedUrl);
+    const saveBtn = document.getElementById('btn-copy-main');
+    const original = saveBtn.textContent;
+    saveBtn.textContent = '저장됨 ✓';
+    showToast('히스토리에 저장됐어요!');
+    setTimeout(() => { saveBtn.textContent = original; }, 2200);
   }
 
-  /* ── 채널 프리셋 ── */
-  function applyPreset(btn, source, medium) {
-    document.getElementById('f-source').value = source;
-    document.getElementById('f-medium').value = medium;
-    syncChips('f-source', 'chips-source');
-    syncChips('f-medium', 'chips-medium');
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('on', b === btn));
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.lastChild.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  function resetForm() {
+    ['f-url','f-source','f-medium','f-campaign','f-content'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
     generate();
-    document.getElementById('f-campaign').focus();
   }
 
   /* ── 우패널 Quick-Copy Presets ── */
-  function applyQuickCopy(source, medium, campaign, term) {
+  function applyQuickCopy(source, medium, content) {
     document.getElementById('f-source').value = source;
     document.getElementById('f-medium').value = medium;
-    document.getElementById('f-campaign').value = campaign || '';
-    document.getElementById('f-term').value = term || '';
-    syncChips('f-source', 'chips-source');
-    syncChips('f-medium', 'chips-medium');
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('on'));
+    document.getElementById('f-content').value = content || '';
     generate();
     document.getElementById('f-url').focus();
   }
@@ -698,11 +551,8 @@ body {
       document.getElementById('f-medium').value   = p.get('utm_medium')   || '';
       document.getElementById('f-campaign').value = p.get('utm_campaign') || '';
       document.getElementById('f-content').value  = p.get('utm_content')  || '';
-      document.getElementById('f-term').value     = p.get('utm_term')     || '';
       ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k => p.delete(k));
       document.getElementById('f-url').value = url.origin + url.pathname + (p.toString() ? '?' + p.toString() : '') + url.hash;
-      syncChips('f-source', 'chips-source');
-      syncChips('f-medium', 'chips-medium');
       generate();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {}
@@ -725,10 +575,17 @@ body {
   }
   function filterHistory() { renderHistory(); }
 
+  function exportHistory() {
+    const list = loadHistory();
+    if (!list.length) { showToast('내보낼 히스토리가 없어요'); return; }
+    navigator.clipboard.writeText(list.map(h => h.u).join('\n')).then(() => {
+      showToast(`${list.length}개 링크를 클립보드에 복사했어요`);
+    });
+  }
+
   function renderHistory() {
     const list = loadHistory();
     const el = document.getElementById('history-list');
-    document.getElementById('history-clear').hidden = !list.length;
     if (!list.length) {
       el.innerHTML = '<div class="history-empty">복사한 링크가 여기에 쌓입니다.</div>';
       return;
