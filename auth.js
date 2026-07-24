@@ -1,5 +1,5 @@
 /* 앳홈 채용 콘텐츠 워크스페이스 — 공유 로그인 게이트
- * 모든 뷰(index.html, dashboard.html, calendar.html, utm.html, cardnews-editor.html, ideas.html)의
+ * 모든 뷰(index.html, overview.html, dashboard.html, calendar.html, utm.html, cardnews-editor.html, ideas.html)의
  * <head> 최상단에서 이 스크립트를 로드해야 함.
  */
 (function () {

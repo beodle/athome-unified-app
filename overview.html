@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://accounts.google.com">
+  <link rel="dns-prefetch" href="https://www.gstatic.com">
+  <link rel="dns-prefetch" href="https://accounts.google.com">
+  <script src="./auth.js"></script>
+  <script>window.__athomeNeedsFirestore__ = true;</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>앳홈 채용 콘텐츠 홈</title>
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1') {
+      document.documentElement.classList.add('shell-mode');
+    }
+  </script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231A1A1A'/><rect x='12' y='55' width='18' height='33' rx='4' fill='%23FF5D00'/><rect x='41' y='35' width='18' height='53' rx='4' fill='%23FF5D00'/><rect x='70' y='18' width='18' height='70' rx='4' fill='%23FF5D00'/></svg>">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --accent:#FF5D00; --accent-light:rgba(255,93,0,.08);
+  --text-1:#1A1714; --text-2:#4A4540; --text-3:#6B6660; --text-4:#A8A29A;
+  --bg-page:#F5F4F1; --bg-card:#FFFFFF; --bg-soft:#F0EEE9; --bg-gray:#E9E6E0;
+  --border:#ECEAE5; --border-2:#DAD6CF;
+  --up:#16A34A; --down:#DC2626;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(40,30,20,.03),0 3px 14px rgba(40,30,20,.035);
+  --font:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(--bg-page);-webkit-font-smoothing:antialiased;letter-spacing:-.006em;line-height:1.6;}
+.wrap{max-width:1120px;margin:0 auto;padding:24px 24px 64px;}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:60;background:rgba(245,244,241,.85);backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border);}
+.topbar-in{max-width:1120px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px;}
+.shell-mode .topbar .brand{display:none!important;}
+.shell-mode .topbar-in{max-width:none;padding-left:24px;padding-right:24px;}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.brand img{height:15px;display:block;}
+.brand b{font-size:15px;font-weight:800;letter-spacing:-.02em;}
+.brand .sep{width:1px;height:16px;background:var(--border-2);}
+.brand span{font-size:13px;font-weight:700;color:var(--text-3);}
+.spacer{flex:1;}
+.last-upd{font-size:11.5px;color:var(--text-4);white-space:nowrap;}
+
+/* ── SECTIONS / CARD ── */
+.card{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);}
+.card-h{display:flex;align-items:baseline;gap:8px;padding:16px 18px 12px;border-bottom:1px solid var(--border);}
+.card-h .t{font-size:14.5px;font-weight:800;}
+.card-h .sub{font-size:11.5px;color:var(--text-4);margin-left:auto;}
+
+/* ── KPI ── */
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media(max-width:640px){ .kpis{grid-template-columns:1fr;} }
+.kpi{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;}
+.kpi-label{font-size:11.5px;font-weight:700;letter-spacing:.02em;color:var(--text-3);margin-bottom:8px;}
+.kpi-val{font-size:28px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;}
+.kpi-sub{margin-top:6px;font-size:12px;font-weight:600;color:var(--text-4);}
+
+.ov-body{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-top:16px;align-items:start;}
+@media (max-width:860px){.ov-body{grid-template-columns:1fr;}}
+
+/* ── 이번 주 콘텐츠 일정 (평일 미니 캘린더) ── */
+.ov-cal{padding:12px 18px 18px;}
+.ov-cal-labels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px;}
+.ov-cal-labels span{text-align:center;font-size:10.5px;font-weight:800;letter-spacing:.04em;color:var(--text-4);text-transform:uppercase;}
+.ov-cal-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.ov-cal-cell{background:var(--bg-soft);border-radius:9px;min-height:96px;padding:8px;display:flex;flex-direction:column;gap:5px;}
+.ov-cal-cell.today{background:var(--accent-light);outline:1.5px solid var(--accent);outline-offset:-1.5px;}
+.ov-cal-daynum{font-size:11px;font-weight:800;color:var(--text-4);}
+.ov-cal-cell.today .ov-cal-daynum{color:var(--accent);}
+.ov-cal-chip{font-size:10.5px;font-weight:700;padding:4px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+.ov-cal-chip:hover{filter:brightness(.95);}
+.ov-cal-more{font-size:10px;font-weight:700;color:var(--text-4);}
+.ov-empty{text-align:center;color:var(--text-4);font-size:12.5px;padding:28px 4px;}
+
+/* ── 최근 아이디어 (포스트잇) ── */
+.ov-ideas-board{display:flex;flex-direction:column;gap:14px;padding:14px 16px 18px;}
+.ov-note{
+  width:100%;min-height:88px;border-radius:2px 2px 10px 10px;
+  box-shadow:0 3px 10px rgba(40,30,20,.14),0 1px 2px rgba(40,30,20,.07);
+  padding:10px 13px 12px;font-size:12.5px;font-weight:600;line-height:1.5;color:rgba(0,0,0,.78);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  transform:rotate(var(--r,0deg));transition:transform .15s;
+}
+.ov-note:hover{transform:rotate(0deg);}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    --text-1:#F2EEE6; --text-2:#CFC9BC; --text-3:#9C968A; --text-4:#726C61;
+    --bg-page:#18160F; --bg-card:#242019; --bg-soft:#2C2820; --bg-gray:#332D22;
+    --border:#3A352B; --border-2:#453F33;
+    --accent:#FF7A33; --accent-light:rgba(255,122,51,.14);
+    --shadow:0 1px 2px rgba(0,0,0,.2),0 3px 14px rgba(0,0,0,.22);
+  }
+}
+:root[data-theme="dark"]{
+  --text-1:#F2EEE6; --text-2:#CFC9BC; --text-3:#9C968A; --text-4:#726C61;
+  --bg-page:#18160F; --bg-card:#242019; --bg-soft:#2C2820; --bg-gray:#332D22;
+  --border:#3A352B; --border-2:#453F33;
+  --accent:#FF7A33; --accent-light:rgba(255,122,51,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.2),0 3px 14px rgba(0,0,0,.22);
+}
+:root[data-theme="light"]{
+  --text-1:#1A1714; --text-2:#4A4540; --text-3:#6B6660; --text-4:#A8A29A;
+  --bg-page:#F5F4F1; --bg-card:#FFFFFF; --bg-soft:#F0EEE9; --bg-gray:#E9E6E0;
+  --border:#ECEAE5; --border-2:#DAD6CF;
+  --accent:#FF5D00; --accent-light:rgba(255,93,0,.08);
+  --shadow:0 1px 2px rgba(40,30,20,.03),0 3px 14px rgba(40,30,20,.035);
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <img src="https://raw.githubusercontent.com/beodle/athome-assets/main/ATHOME_CI_screen.svg" alt="ATHOME" style="filter:none">
+      <b>채용 콘텐츠</b><div class="sep"></div><span>홈</span>
+    </div>
+    <div class="spacer"></div>
+    <span id="lastUpd" class="last-upd"></span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="kpis" id="kpiTiles">
+    <div class="kpi"><div class="kpi-label">LINKEDIN 팔로워</div><div class="kpi-val">—</div></div>
+    <div class="kpi"><div class="kpi-label">LINKEDIN 노출</div><div class="kpi-val">—</div></div>
+    <div class="kpi"><div class="kpi-label">블로그 조회</div><div class="kpi-val">—</div></div>
+  </div>
+
+  <div class="ov-body">
+    <section class="card">
+      <div class="card-h"><span class="t">이번 주 콘텐츠 일정</span><span class="sub" id="ovCalSub"></span></div>
+      <div class="ov-cal">
+        <div class="ov-cal-labels"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span></div>
+        <div class="ov-cal-grid" id="ovCalGrid"></div>
+      </div>
+    </section>
+
+    <aside class="card">
+      <div class="card-h"><span class="t">최근 아이디어</span></div>
+      <div class="ov-ideas-board" id="ovIdeasBoard"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const PRESET_COLORS = { '링크드인': '#4A77B5', '블로그': '#059669', '팟캐스트': '#E08A4F', '보도자료': '#1A1A1A' };
+const FALLBACK_PALETTE = ['#2563EB','#059669','#7C3AED','#B45309','#DB2777','#0891B2'];
+
+function fmt(n){ return (n||0).toLocaleString('ko-KR'); }
+
+function ymd(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+function mondayOfThisWeek(){
+  const now = new Date();
+  const day = now.getDay(); // 0=일 ... 6=토
+  const diff = (day === 0 ? -6 : 1 - day);
+  const m = new Date(now);
+  m.setDate(now.getDate() + diff);
+  m.setHours(0,0,0,0);
+  return m;
+}
+
+/* ════════ KPI ════════ */
+async function loadKpis(){
+  const db = window.__athomeDb__;
+  const snap = await db.collection('dashboardWeekly').get();
+  const baked = {};
+  snap.forEach(d => baked[d.id] = d.data());
+
+  const weeks = Object.keys(baked).filter(k => /^\d{4}-W\d{2}$/.test(k)).sort();
+  const last4 = weeks.slice(-4);
+  const latestFollowers = weeks.length ? (baked[weeks[weeks.length-1]].followers || 0) : 0;
+  const impSum = last4.reduce((a,w) => a + (baked[w].impressions || 0), 0);
+  const blogSum = last4.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0);
+
+  const tiles = document.querySelectorAll('#kpiTiles .kpi-val');
+  tiles[0].textContent = fmt(latestFollowers);
+  tiles[1].textContent = fmt(impSum);
+  tiles[2].textContent = fmt(blogSum);
+
+  const summary = await db.collection('dashboardMeta').doc('summary').get();
+  if (summary.exists && summary.data().last_updated) {
+    document.getElementById('lastUpd').textContent = '⟳ ' + summary.data().last_updated;
+  }
+}
+
+/* ════════ 이번 주 콘텐츠 일정 ════════ */
+async function loadWeekCalendar(){
+  const db = window.__athomeDb__;
+  const snap = await db.collection('calendarEvents').get();
+  const events = snap.docs.map(doc => doc.data());
+
+  const channelColors = {};
+  let paletteIdx = 0;
+  const channels = [...new Set([...Object.keys(PRESET_COLORS), ...events.map(e => e.channel).filter(Boolean)])];
+  channels.forEach(ch => { channelColors[ch] = PRESET_COLORS[ch] || FALLBACK_PALETTE[paletteIdx++ % FALLBACK_PALETTE.length]; });
+
+  const monday = mondayOfThisWeek();
+  const days = [0,1,2,3,4].map(i => { const d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
+  const todayStr = ymd(new Date());
+
+  const sub = document.getElementById('ovCalSub');
+  sub.textContent = `${days[0].getMonth()+1}/${days[0].getDate()} ~ ${days[4].getMonth()+1}/${days[4].getDate()}`;
+
+  const grid = document.getElementById('ovCalGrid');
+  grid.innerHTML = '';
+  days.forEach(d => {
+    const dateStr = ymd(d);
+    const dayEvents = events.filter(e => e.date === dateStr);
+    const cell = document.createElement('div');
+    cell.className = 'ov-cal-cell' + (dateStr === todayStr ? ' today' : '');
+
+    const daynum = document.createElement('span');
+    daynum.className = 'ov-cal-daynum';
+    daynum.textContent = d.getDate();
+    cell.appendChild(daynum);
+
+    dayEvents.slice(0, 2).forEach(ev => {
+      const color = channelColors[ev.channel] || '#888';
+      const chip = document.createElement('span');
+      chip.className = 'ov-cal-chip';
+      chip.style.background = color + '20';
+      chip.style.color = color;
+      chip.textContent = `${ev.channel || ''} · ${ev.title || ''}`;
+      chip.title = ev.title || '';
+      if (ev.url) chip.addEventListener('click', () => window.open(ev.url, '_blank'));
+      cell.appendChild(chip);
+    });
+    if (dayEvents.length > 2) {
+      const more = document.createElement('span');
+      more.className = 'ov-cal-more';
+      more.textContent = `+${dayEvents.length - 2}건 더`;
+      cell.appendChild(more);
+    }
+    grid.appendChild(cell);
+  });
+}
+
+/* ════════ 최근 아이디어 ════════ */
+async function loadLatestIdeas(){
+  const db = window.__athomeDb__;
+  const snap = await db.collection('ideaNotes').get();
+  const notes = snap.docs.map(doc => doc.data())
+    .filter(n => n.text && n.text.trim())
+    .sort((a,b) => (b.z||0) - (a.z||0))
+    .slice(0, 4);
+
+  const board = document.getElementById('ovIdeasBoard');
+  board.innerHTML = '';
+  if (!notes.length) {
+    board.innerHTML = '<div class="ov-empty">아직 등록된 아이디어가 없습니다</div>';
+    return;
+  }
+  notes.forEach(n => {
+    const note = document.createElement('div');
+    note.className = 'ov-note';
+    note.style.setProperty('--r', (n.rot || 0) + 'deg');
+    note.style.background = n.color || '#FFE38F';
+    note.textContent = n.text;
+    board.appendChild(note);
+  });
+}
+
+async function init(){
+  try {
+    await Promise.all([loadKpis(), loadWeekCalendar(), loadLatestIdeas()]);
+  } catch (e) {
+    console.error('[overview] load failed', e);
+  }
+}
+
+if (window.__athomeUser__) init();
+document.addEventListener('athome-auth-ready', init);
+</script>
+</body>
+</html>

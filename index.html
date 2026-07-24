@@ -91,56 +91,6 @@
     .brand-mark span:nth-child(2) { height: 15px; }
     .brand-mark span:nth-child(3) { height: 20px; }
 
-    .shell-quicklinks {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      margin-left: 6px;
-      padding-left: 10px;
-      border-left: 1px solid var(--shell-line-2);
-    }
-    .shell-quicklinks button {
-      position: relative;
-      width: 28px;
-      height: 28px;
-      display: grid;
-      place-items: center;
-      border: 1px solid transparent;
-      border-radius: 7px;
-      background: none;
-      font-size: 14px;
-      line-height: 1;
-      cursor: pointer;
-      transition: background .15s, border-color .15s;
-    }
-    .shell-quicklinks button:hover {
-      background: var(--shell-panel);
-      border-color: var(--shell-line);
-    }
-    .shell-quicklinks button::after {
-      content: attr(data-tip);
-      position: absolute;
-      top: calc(100% + 7px);
-      right: 0;
-      background: var(--shell-ink);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 600;
-      line-height: 1;
-      padding: 5px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(-3px);
-      transition: opacity .12s, transform .12s;
-      z-index: 10;
-    }
-    .shell-quicklinks button:hover::after {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
     .brand-text {
       display: flex;
       align-items: baseline;
@@ -337,6 +287,36 @@
       background: transparent;
     }
 
+    .side-divider {
+      height: 1px;
+      background: var(--shell-line);
+      margin: 8px 10px 14px;
+    }
+    .nav-channel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+      margin-bottom: 2px;
+      padding: 0 10px;
+      border-radius: 9px;
+      color: var(--shell-faint);
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 600;
+      transition: color .15s, background .15s;
+    }
+    .nav-channel:hover {
+      color: var(--shell-ink);
+      background: var(--shell-soft);
+    }
+    .channel-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
     .view-shell {
       min-width: 0;
       overflow: clip;
@@ -373,12 +353,12 @@
 <body>
   <div class="app-shell">
     <header class="shell-header">
-      <a class="shell-brand" href="#/dashboard" aria-label="ATHOME 채용 콘텐츠 워크스페이스">
+      <a class="shell-brand" href="#/overview" aria-label="ATHOME 채용 콘텐츠 워크스페이스">
         <img src="https://raw.githubusercontent.com/beodle/athome-assets/main/ATHOME_CI_screen.svg"
              alt="ATHOME" style="height:18px;width:auto;display:block;">
         <span class="brand-text"><em>채용 콘텐츠 워크스페이스</em></span>
       </a>
-      <div class="shell-title" id="shell-title">대시보드</div>
+      <div class="shell-title" id="shell-title">홈</div>
       <!-- 캘린더 전용 액션 (캘린더 뷰에서만 노출) -->
       <div class="cal-header-actions" id="cal-header-actions" hidden>
         <button class="shell-add" id="shell-add" type="button" hidden>＋ 일정 추가</button>
@@ -388,17 +368,15 @@
            target="_blank">시트 열기 ↗</a>
         <button class="shell-refresh" id="shell-refresh" title="캘린더 새로고침">↻</button>
       </div>
-      <div class="shell-quicklinks">
-        <button type="button" onclick="window.open('https://blog.athomecorp.com/','_blank')" data-tip="블로그" aria-label="블로그">📝</button>
-        <button type="button" onclick="window.open('https://www.linkedin.com/company/90478773/','_blank')" data-tip="링크드인" aria-label="링크드인">💼</button>
-        <button type="button" onclick="window.open('https://www.youtube.com/channel/UCfRWcGQK-952YXBIaHFcsNA','_blank')" data-tip="유튜브 채널" aria-label="유튜브 채널">▶️</button>
-        <button type="button" onclick="window.open('https://career.athomecorp.com/','_blank')" data-tip="채용사이트" aria-label="채용사이트">🏢</button>
-      </div>
     </header>
 
     <main class="shell-main">
       <aside class="shell-sidebar" aria-label="앳홈 채용 인프라 메뉴">
         <p class="side-label">Workspace</p>
+        <a class="nav-link" data-route="overview" href="#/overview">
+          <span class="nav-icon" aria-hidden="true">⌂</span>
+          <span>홈</span>
+        </a>
         <a class="nav-link" data-route="dashboard" href="#/dashboard">
           <span class="nav-icon" aria-hidden="true">▦</span>
           <span>대시보드</span>
@@ -419,6 +397,22 @@
           <span class="nav-icon" aria-hidden="true">📌</span>
           <span>아이디어 노트</span>
         </a>
+
+        <div class="side-divider"></div>
+        <p class="side-label">Channels</p>
+        <a class="nav-channel" href="https://blog.athomecorp.com/" target="_blank" rel="noopener">
+          <span class="channel-dot" style="background:#059669"></span><span>블로그</span>
+        </a>
+        <a class="nav-channel" href="https://www.linkedin.com/company/90478773/" target="_blank" rel="noopener">
+          <span class="channel-dot" style="background:#4A77B5"></span><span>링크드인</span>
+        </a>
+        <a class="nav-channel" href="https://www.youtube.com/channel/UCfRWcGQK-952YXBIaHFcsNA" target="_blank" rel="noopener">
+          <span class="channel-dot" style="background:#E02B2B"></span><span>유튜브</span>
+        </a>
+        <a class="nav-channel" href="https://career.athomecorp.com/" target="_blank" rel="noopener">
+          <span class="channel-dot" style="background:#6B6660"></span><span>채용사이트</span>
+        </a>
+
         <div class="auth-widget" id="auth-widget" hidden>
           <span class="auth-dot"></span>
           <span class="auth-email" id="auth-email"></span>
@@ -433,6 +427,7 @@
 
   <script>
     const routes = {
+      overview: { path: './overview.html?shell=1', title: '홈' },
       dashboard: { path: './dashboard.html?shell=1', title: '대시보드' },
       calendar: { path: './calendar.html?shell=1', title: '콘텐츠 캘린더' },
       utm: { path: './utm.html', title: 'UTM 빌더' },
@@ -507,8 +502,8 @@
     });
 
     function currentRoute() {
-      const route = location.hash.replace(/^#\/?/, '') || 'dashboard';
-      return routes[route] ? route : 'dashboard';
+      const route = location.hash.replace(/^#\/?/, '') || 'overview';
+      return routes[route] ? route : 'overview';
     }
 
     function setActive(route) {
@@ -575,7 +570,7 @@
 
     function route() {
       if (!location.hash) {
-        location.replace('#/dashboard');
+        location.replace('#/overview');
         return;
       }
       loadView(currentRoute());
