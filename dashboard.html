@@ -465,7 +465,10 @@ function lastFollowers(weeks){
   const inRange=weeks.filter(w=>DB[w]?.followers);
   if(inRange.length)return DB[inRange[inRange.length-1]].followers;
   // 범위 내 스냅샷 없으면 전체에서 가장 가까운 값(과거 우선, 없으면 미래) — 팔로워는 누적이라 빈칸 방지
-  const all=sortedWeeks().filter(w=>DB[w]?.followers);
+  // sortedWeeks()는 "진행 중인 이번 주"를 제외하는데, linkedin_fetch.py는 팔로워 스냅샷을
+  // 항상 최신 주차(=대개 이번 주)에만 찍어두므로 여기서는 이번 주도 포함해 전체 주차에서 찾는다
+  // (팔로워는 노출/방문과 달리 부분 누적치가 아니라 그 시점의 스냅샷이라 이번 주 값도 그대로 유효함).
+  const all=Object.keys(DB).filter(k=>/^\d{4}-W\d{2}$/.test(k)&&DB[k]?.followers).sort();
   if(!all.length)return 0;
   const last=weeks[weeks.length-1];
   const past=all.filter(w=>w<=last);
