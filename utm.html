@@ -78,11 +78,7 @@ body {
   margin-bottom: 14px;
 }
 .card:last-of-type { margin-bottom: 0; }
-.card-title {
-  font-size: 11.5px; font-weight: 700; color: var(--text-4);
-  letter-spacing: .06em; text-transform: uppercase;
-  margin-bottom: 20px;
-}
+.card-h2 { font-size: 17px; font-weight: 800; letter-spacing: -.02em; color: var(--text-1); margin-bottom: 22px; }
 
 /* ── 필드 ── */
 .field { margin-bottom: 18px; }
@@ -98,7 +94,6 @@ body {
   font-size: 10px; font-weight: 600; color: var(--text-4); text-transform: none; letter-spacing: 0;
   background: var(--bg-gray); border-radius: 4px; padding: 1px 5px;
 }
-.field-hint { font-size: 11.5px; color: var(--text-4); margin-top: -3px; margin-bottom: 6px; line-height: 1.5; }
 .field input {
   width: 100%; border: 1.5px solid var(--border-2);
   border-radius: 9px; padding: 9px 12px;
@@ -119,13 +114,13 @@ body {
 .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-light); font-weight: 700; }
 
-/* ── 출력 카드 (우패널) ── */
+/* ── 출력 영역 (생성기 카드 내부 inset) ── */
 .output-card {
-  background: var(--bg-card);
-  border-radius: 14px;
-  padding: 20px 22px;
+  background: var(--bg-soft);
+  border-radius: 12px;
+  padding: 18px 20px;
   position: relative;
-  box-shadow: var(--shadow);
+  margin-top: 6px;
 }
 .output-label {
   font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
@@ -229,25 +224,37 @@ body {
 .pro-tip .pt-title { font-size: 11.5px; font-weight: 800; color: var(--text-1); margin-bottom: 6px; }
 .pro-tip .pt-body { font-size: 12px; color: var(--text-3); line-height: 1.6; }
 
-/* ── 생성 히스토리 ── */
-.history-list { display: flex; flex-direction: column; gap: 6px; }
-.history-empty { font-size: 12px; color: var(--text-4); font-style: italic; }
-.history-item {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 10px;
+/* ── 생성 히스토리 (좌패널 테이블) ── */
+.history-card-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 18px; }
+.history-empty { font-size: 12.5px; color: var(--text-4); font-style: italic; padding: 8px 0; }
+.history-table { width: 100%; border-collapse: collapse; }
+.history-table th {
+  text-align: left; font-size: 10.5px; font-weight: 700; color: var(--text-4);
+  letter-spacing: .05em; text-transform: uppercase; padding: 0 10px 10px 0;
+  border-bottom: 1px solid var(--border);
 }
-.history-item .h-main { flex: 1; min-width: 0; cursor: pointer; }
-.history-item .h-url { font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.history-item .h-meta { font-size: 10px; color: var(--text-4); }
-.history-item .h-btn {
+.history-table td { padding: 12px 10px 12px 0; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+.history-table tr:last-child td { border-bottom: none; }
+.history-table .h-campaign { cursor: pointer; }
+.history-table .h-campaign-name { font-weight: 700; color: var(--text-1); }
+.history-table .h-url { font-size: 11px; color: var(--text-4); font-family: 'SF Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; display: block; margin-top: 2px; }
+.history-table .h-date { color: var(--text-3); white-space: nowrap; }
+.chan-badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; }
+.history-table .h-actions { display: flex; gap: 4px; }
+.history-table .h-btn {
   flex-shrink: 0; border: 1px solid var(--border-2); background: var(--bg-card);
-  border-radius: 6px; width: 24px; height: 24px; font-size: 12px; color: var(--text-3);
+  border-radius: 6px; width: 26px; height: 26px; font-size: 12px; color: var(--text-3);
   cursor: pointer; display: grid; place-items: center; transition: all .12s;
 }
-.history-item .h-btn:hover { border-color: var(--accent); color: var(--accent); }
-.history-clear { margin-top: 8px; border: none; background: none; font-family: var(--font); font-size: 11px; color: var(--text-4); cursor: pointer; text-decoration: underline; }
+.history-table .h-btn:hover { border-color: var(--accent); color: var(--accent); }
+.history-clear { border: none; background: none; font-family: var(--font); font-size: 11.5px; font-weight: 600; color: var(--text-4); cursor: pointer; }
 .history-clear:hover { color: var(--text-2); }
+.history-export {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border: 1px solid var(--border-2); background: var(--bg-card);
+  border-radius: 8px; color: var(--text-3); cursor: pointer; transition: all .12s;
+}
+.history-export:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── 액션 버튼 ── */
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
@@ -306,14 +313,26 @@ body {
       <p class="page-desc">채용 공고·콘텐츠 URL에 UTM 파라미터를 붙여 유입 경로를 정확하게 추적하세요.</p>
     </div>
 
-    <!-- 필수 파라미터 -->
+    <!-- Campaign Link Generator (통합 카드) -->
     <div class="card">
-      <div class="card-title">필수 파라미터</div>
+      <div class="card-h2">Campaign Link Generator</div>
 
-      <div class="field">
-        <div class="field-label">랜딩페이지 URL <span class="required">필수</span></div>
-        <div class="field-hint">UTM을 붙일 원본 URL. (예: https://career.athomecorp.com/jobs/123)</div>
-        <input type="url" id="f-url" placeholder="https://career.athomecorp.com/…" oninput="generate()" autocomplete="off" spellcheck="false">
+      <div class="field-row">
+        <div class="field">
+          <div class="field-label">랜딩페이지 URL <span class="required">필수</span></div>
+          <input type="url" id="f-url" placeholder="https://career.athomecorp.com/…" oninput="generate()" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <div class="field-label">utm_campaign <span class="optional">선택</span></div>
+          <input type="text" id="f-campaign" placeholder="hiring_open_2025q3 …" oninput="generate()" autocomplete="off">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:14px;">
+        <div class="chips">
+          <button class="chip" onclick="setChip('f-campaign',null,'자기만의방')">자기만의방</button>
+          <button class="chip" onclick="setChip('f-campaign',null,'hiring_open')">hiring_open</button>
+          <button class="chip" onclick="setChip('f-campaign',null,'blog_series')">blog_series</button>
+        </div>
       </div>
 
       <div class="field" style="margin-bottom:14px;">
@@ -328,7 +347,6 @@ body {
       <div class="field-row">
         <div class="field">
           <div class="field-label">utm_source <span class="required">필수</span></div>
-          <div class="field-hint">트래픽 출처 — 채널 이름</div>
           <input type="text" id="f-source" placeholder="linkedin, google …" oninput="generate(); syncChips('f-source', 'chips-source')" autocomplete="off">
           <div class="chips" id="chips-source">
             <button class="chip" onclick="setChip('f-source','chips-source','linkedin')">LinkedIn</button>
@@ -343,7 +361,6 @@ body {
 
         <div class="field">
           <div class="field-label">utm_medium <span class="required">필수</span></div>
-          <div class="field-hint">유입 매체·형식</div>
           <input type="text" id="f-medium" placeholder="social, email, blog …" oninput="generate(); syncChips('f-medium', 'chips-medium')" autocomplete="off">
           <div class="chips" id="chips-medium">
             <button class="chip" onclick="setChip('f-medium','chips-medium','social')">social</button>
@@ -355,74 +372,65 @@ body {
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- 선택 파라미터 -->
-    <div class="card">
-      <div class="card-title">선택 파라미터</div>
-
-      <div class="field">
-        <div class="field-label">utm_campaign <span class="optional">선택</span></div>
-        <div class="field-hint">공고명·시리즈명·이벤트명</div>
-        <input type="text" id="f-campaign" placeholder="2025_product_designer, hiring_open_2025q3 …" oninput="generate()" autocomplete="off">
-        <div class="chips">
-          <button class="chip" onclick="setChip('f-campaign',null,'자기만의방')">자기만의방</button>
-          <button class="chip" onclick="setChip('f-campaign',null,'hiring_open')">hiring_open</button>
-          <button class="chip" onclick="setChip('f-campaign',null,'blog_series')">blog_series</button>
-        </div>
-      </div>
 
       <div class="field-row">
         <div class="field">
           <div class="field-label">utm_content <span class="optional">선택</span></div>
-          <div class="field-hint">소재 구분 — A/B 테스트</div>
           <input type="text" id="f-content" placeholder="banner_top, cta_orange …" oninput="generate()" autocomplete="off">
         </div>
         <div class="field">
           <div class="field-label">utm_term <span class="optional">선택</span></div>
-          <div class="field-hint">검색 광고 키워드</div>
           <input type="text" id="f-term" placeholder="프론트엔드개발자채용 …" oninput="generate()" autocomplete="off">
         </div>
       </div>
+
+      <!-- 생성된 UTM 링크 (inset) -->
+      <div class="output-card" id="output-card">
+        <div style="padding-right:72px;">
+          <div class="output-label" id="output-label">UTM 링크 만들기</div>
+          <div class="output-url" id="output-url">
+            <span class="output-empty">URL, source, medium을 입력하면 링크가 완성됩니다.</span>
+          </div>
+        </div>
+        <button class="copy-btn" id="copy-btn" onclick="copyUrl()" disabled>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span id="copy-label">복사</span>
+        </button>
+        <div class="params-preview" id="params-preview">
+          <span class="param-badge empty"><span class="dot"></span>source</span>
+          <span class="param-badge empty"><span class="dot"></span>medium</span>
+          <span class="param-badge empty"><span class="dot"></span>campaign</span>
+          <span class="param-badge empty"><span class="dot"></span>content</span>
+          <span class="param-badge empty"><span class="dot"></span>term</span>
+        </div>
+        <div id="dup-note" style="margin-top:10px;font-size:11px;font-weight:700;color:#B45309;" hidden></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="btn-copy-main" onclick="copyUrl()" disabled>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          링크 복사
+        </button>
+        <button class="btn-secondary" onclick="resetForm()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.2-3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          초기화
+        </button>
+      </div>
     </div>
 
-    <div class="actions">
-      <button class="btn-primary" id="btn-copy-main" onclick="copyUrl()" disabled>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        링크 복사
-      </button>
-      <button class="btn-secondary" onclick="resetForm()">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.2-3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        초기화
-      </button>
+    <!-- 생성 히스토리 (테이블) -->
+    <div class="card">
+      <div class="history-card-h">
+        <span class="card-h2" style="margin-bottom:0;">History</span>
+        <button class="history-export" id="history-clear" onclick="clearHistory()" title="전체 삭제" hidden>🗑</button>
+      </div>
+      <div id="history-list"></div>
     </div>
 
   </div>
 
-  <!-- ── 우패널: 출력 + 가이드 ── -->
+  <!-- ── 우패널: 프리셋 + 팁 ── -->
   <div class="right-panel">
-
-    <!-- 생성된 UTM 링크 -->
-    <div class="output-card" id="output-card">
-      <div style="padding-right:72px;">
-        <div class="output-label" id="output-label">UTM 링크 만들기</div>
-        <div class="output-url" id="output-url">
-          <span class="output-empty">URL, source, medium을 입력하면 링크가 완성됩니다.</span>
-        </div>
-      </div>
-      <button class="copy-btn" id="copy-btn" onclick="copyUrl()" disabled>
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <span id="copy-label">복사</span>
-      </button>
-      <div class="params-preview" id="params-preview">
-        <span class="param-badge empty"><span class="dot"></span>source</span>
-        <span class="param-badge empty"><span class="dot"></span>medium</span>
-        <span class="param-badge empty"><span class="dot"></span>campaign</span>
-        <span class="param-badge empty"><span class="dot"></span>content</span>
-        <span class="param-badge empty"><span class="dot"></span>term</span>
-      </div>
-      <div id="dup-note" style="margin-top:10px;font-size:11px;font-weight:700;color:#B45309;" hidden></div>
-    </div>
 
     <!-- 채널별 빠른 복사 프리셋 -->
     <div class="guide-card panel-secondary">
@@ -457,13 +465,6 @@ body {
           <button class="qc-tag" onclick="applyQuickCopy('google','cpc','','프론트개발자채용')"><span class="qc-ico">↳</span>Google 검색광고</button>
         </div>
       </div>
-    </div>
-
-    <!-- 최근 생성한 링크 -->
-    <div class="guide-card panel-secondary">
-      <div class="guide-card-title">최근 생성한 링크</div>
-      <div class="history-list" id="history-list"></div>
-      <button class="history-clear" id="history-clear" onclick="clearHistory()" hidden>전체 삭제</button>
     </div>
 
     <!-- Pro Tip -->
@@ -679,6 +680,22 @@ body {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {}
   }
+  const SOURCE_COLORS = {
+    linkedin: { bg: 'rgba(74,119,181,.12)', fg: '#4A77B5' },
+    blog: { bg: 'rgba(5,150,105,.12)', fg: '#059669' },
+    youtube: { bg: 'rgba(224,43,43,.12)', fg: '#C0281F' },
+    google: { bg: 'rgba(26,26,26,.08)', fg: '#4A4540' },
+    kakao: { bg: 'rgba(224,138,79,.16)', fg: '#B4611E' },
+    newsletter: { bg: 'rgba(124,58,237,.12)', fg: '#7C3AED' },
+  };
+  function sourceBadge(source) {
+    const c = SOURCE_COLORS[source] || { bg: 'var(--bg-gray)', fg: 'var(--text-3)' };
+    return `<span class="chan-badge" style="background:${c.bg};color:${c.fg}">${escHtml(source || '—')}</span>`;
+  }
+  function formatDate(t) {
+    const d = new Date(t);
+    return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+  }
   function renderHistory() {
     const list = loadHistory();
     const el = document.getElementById('history-list');
@@ -687,15 +704,34 @@ body {
       el.innerHTML = '<div class="history-empty">복사한 링크가 여기에 쌓입니다.</div>';
       return;
     }
-    el.innerHTML = list.map((h, i) => `
-      <div class="history-item">
-        <div class="h-main" onclick="loadHistoryItem(${i})" title="클릭하면 폼으로 불러옵니다&#10;${escHtml(h.u)}">
-          <div class="h-url">${escHtml(h.u.replace(/^https?:\/\//, ''))}</div>
-          <div class="h-meta">${relTime(h.t)}</div>
-        </div>
-        <button class="h-btn" onclick="copyHistoryItem(${i})" title="복사">⧉</button>
-        <button class="h-btn" onclick="removeHistory(${i})" title="삭제">×</button>
-      </div>`).join('');
+    const rows = list.map((h, i) => {
+      let source = '', campaign = '';
+      try {
+        const p = new URL(h.u).searchParams;
+        source = p.get('utm_source') || '';
+        campaign = p.get('utm_campaign') || '';
+      } catch {}
+      return `
+      <tr>
+        <td class="h-campaign" onclick="loadHistoryItem(${i})" title="클릭하면 폼으로 불러옵니다&#10;${escHtml(h.u)}">
+          <div class="h-campaign-name">${escHtml(campaign || '(캠페인 없음)')}</div>
+          <span class="h-url">${escHtml(h.u.replace(/^https?:\/\//, ''))}</span>
+        </td>
+        <td>${sourceBadge(source)}</td>
+        <td class="h-date">${formatDate(h.t)}</td>
+        <td>
+          <div class="h-actions">
+            <button class="h-btn" onclick="copyHistoryItem(${i})" title="복사">⧉</button>
+            <button class="h-btn" onclick="removeHistory(${i})" title="삭제">×</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `
+      <table class="history-table">
+        <thead><tr><th>캠페인</th><th>소스</th><th>날짜</th><th>작업</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
   }
 
   renderHistory();
