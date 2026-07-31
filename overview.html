@@ -138,8 +138,8 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 <div class="wrap">
   <div class="kpis" id="kpiTiles">
     <div class="kpi"><div class="kpi-top"><span class="kpi-label">LINKEDIN 팔로워</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><span class="cmp"></span></div>
-    <div class="kpi"><div class="kpi-top"><span class="kpi-label">LINKEDIN 노출</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><span class="cmp"></span></div>
-    <div class="kpi"><div class="kpi-top"><span class="kpi-label">블로그 조회</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><span class="cmp"></span></div>
+    <div class="kpi"><div class="kpi-top"><span class="kpi-label">LINKEDIN 노출</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><div class="kpi-sub">이번 달 합계</div><span class="cmp"></span></div>
+    <div class="kpi"><div class="kpi-top"><span class="kpi-label">블로그 조회</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><div class="kpi-sub">이번 달 합계</div><span class="cmp"></span></div>
   </div>
 
   <div class="ov-body">
@@ -198,6 +198,22 @@ function ymd(d){
   return `${y}-${m}-${dd}`;
 }
 
+/* dashboard.html의 dateToWeek()과 동일 알고리즘 — 같은 날짜가 항상 같은 ISO 주차(Firestore 문서 ID)로 매핑되게 함 */
+function dateToWeek(str){
+  const d = new Date(str);
+  if (!d || isNaN(d)) return null;
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dn = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - dn);
+  const ys = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return `${t.getUTCFullYear()}-W${String(Math.ceil((((t - ys) / 864e5) + 1) / 7)).padStart(2, '0')}`;
+}
+function monthWeekRange(monthOffset){
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + monthOffset + 1, 0);
+  return { start: dateToWeek(ymd(first)), end: dateToWeek(ymd(last)) };
+}
+
 function mondayOfThisWeek(){
   const now = new Date();
   const day = now.getDay(); // 0=일 ... 6=토
@@ -216,16 +232,21 @@ async function loadKpis(){
   snap.forEach(d => baked[d.id] = d.data());
 
   const weeks = Object.keys(baked).filter(k => /^\d{4}-W\d{2}$/.test(k)).sort();
-  const last4 = weeks.slice(-4);
-  const prev4 = weeks.slice(-8, -4);
   const spk8 = weeks.slice(-8);
+
+  // 노출·블로그는 이번 달 합계로 — 캘린더 월과 ISO 주차가 안 맞아떨어질 수 있어(월초/월말 주),
+  // dashboard.html의 "이번 달" 커스텀 범위와 동일하게 그 달에 걸치는 주차를 통째로 포함한다.
+  const thisMonth = monthWeekRange(0);
+  const lastMonth = monthWeekRange(-1);
+  const weeksThisMonth = weeks.filter(w => (!thisMonth.start || w >= thisMonth.start) && (!thisMonth.end || w <= thisMonth.end));
+  const weeksLastMonth = weeks.filter(w => (!lastMonth.start || w >= lastMonth.start) && (!lastMonth.end || w <= lastMonth.end));
 
   const latestFollowers = weeks.length ? (baked[weeks[weeks.length-1]].followers || 0) : 0;
   const prevFollowers = weeks.length > 4 ? (baked[weeks[weeks.length-5]].followers ?? null) : null;
-  const impSum = last4.reduce((a,w) => a + (baked[w].impressions || 0), 0);
-  const prevImpSum = prev4.length ? prev4.reduce((a,w) => a + (baked[w].impressions || 0), 0) : null;
-  const blogSum = last4.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0);
-  const prevBlogSum = prev4.length ? prev4.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0) : null;
+  const impSum = weeksThisMonth.reduce((a,w) => a + (baked[w].impressions || 0), 0);
+  const prevImpSum = weeksLastMonth.length ? weeksLastMonth.reduce((a,w) => a + (baked[w].impressions || 0), 0) : null;
+  const blogSum = weeksThisMonth.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0);
+  const prevBlogSum = weeksLastMonth.length ? weeksLastMonth.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0) : null;
 
   const tiles = [
     { val: latestFollowers, mom: mom(latestFollowers, prevFollowers), spk: spk8.map(w => baked[w].followers || 0) },
