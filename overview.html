@@ -75,8 +75,11 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .ov-cal{padding:12px 18px 18px;}
 .ov-cal-labels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px;}
 .ov-cal-labels span{text-align:center;font-size:10.5px;font-weight:800;letter-spacing:.04em;color:var(--text-4);text-transform:uppercase;}
+.ov-cal-weeks{display:flex;flex-direction:column;gap:14px;}
+.ov-cal-week-label{font-size:10.5px;font-weight:800;letter-spacing:.03em;color:var(--text-4);margin-bottom:6px;}
+.ov-cal-week.current .ov-cal-week-label{color:var(--accent);}
 .ov-cal-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
-.ov-cal-cell{background:var(--bg-soft);border-radius:9px;min-height:96px;padding:8px;display:flex;flex-direction:column;gap:5px;}
+.ov-cal-cell{background:var(--bg-soft);border-radius:9px;min-height:76px;padding:8px;display:flex;flex-direction:column;gap:5px;}
 .ov-cal-cell.today{background:var(--accent-light);outline:1.5px solid var(--accent);outline-offset:-1.5px;}
 .ov-cal-daynum{font-size:11px;font-weight:800;color:var(--text-4);}
 .ov-cal-cell.today .ov-cal-daynum{color:var(--accent);}
@@ -144,10 +147,10 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
   <div class="ov-body">
     <section class="card">
-      <div class="card-h"><span class="t">이번 주 콘텐츠 일정</span><span class="sub" id="ovCalSub"></span></div>
+      <div class="card-h"><span class="t">콘텐츠 일정</span><span class="sub" id="ovCalSub"></span></div>
       <div class="ov-cal">
         <div class="ov-cal-labels"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span></div>
-        <div class="ov-cal-grid" id="ovCalGrid"></div>
+        <div class="ov-cal-weeks" id="ovCalWeeks"></div>
       </div>
     </section>
 
@@ -278,45 +281,69 @@ async function loadWeekCalendar(){
   const channels = [...new Set([...Object.keys(PRESET_COLORS), ...events.map(e => e.channel).filter(Boolean)])];
   channels.forEach(ch => { channelColors[ch] = PRESET_COLORS[ch] || FALLBACK_PALETTE[paletteIdx++ % FALLBACK_PALETTE.length]; });
 
-  const monday = mondayOfThisWeek();
-  const days = [0,1,2,3,4].map(i => { const d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
+  const thisMonday = mondayOfThisWeek();
   const todayStr = ymd(new Date());
+  const weekOffsets = [-1, 0, 1];
+  const weekLabel = { '-1': '지난주', '0': '이번주', '1': '다음주' };
+
+  const weeksBox = document.getElementById('ovCalWeeks');
+  weeksBox.innerHTML = '';
+  let rangeStart = null, rangeEnd = null;
+
+  weekOffsets.forEach(offset => {
+    const monday = new Date(thisMonday);
+    monday.setDate(thisMonday.getDate() + offset * 7);
+    const days = [0,1,2,3,4].map(i => { const d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
+    if (!rangeStart) rangeStart = days[0];
+    rangeEnd = days[4];
+
+    const weekBlock = document.createElement('div');
+    weekBlock.className = 'ov-cal-week' + (offset === 0 ? ' current' : '');
+
+    const label = document.createElement('div');
+    label.className = 'ov-cal-week-label';
+    label.textContent = `${weekLabel[offset]} · ${days[0].getMonth()+1}/${days[0].getDate()} ~ ${days[4].getMonth()+1}/${days[4].getDate()}`;
+    weekBlock.appendChild(label);
+
+    const grid = document.createElement('div');
+    grid.className = 'ov-cal-grid';
+    days.forEach(d => {
+      const dateStr = ymd(d);
+      const dayEvents = events.filter(e => e.date === dateStr);
+      const cell = document.createElement('div');
+      cell.className = 'ov-cal-cell' + (dateStr === todayStr ? ' today' : '');
+
+      const daynum = document.createElement('span');
+      daynum.className = 'ov-cal-daynum';
+      daynum.textContent = d.getDate();
+      cell.appendChild(daynum);
+
+      dayEvents.slice(0, 2).forEach(ev => {
+        const color = channelColors[ev.channel] || '#888';
+        const chip = document.createElement('span');
+        chip.className = 'ov-cal-chip';
+        chip.style.background = color + '20';
+        chip.style.color = color;
+        chip.textContent = `${ev.channel || ''} · ${ev.title || ''}`;
+        chip.title = ev.title || '';
+        chip.addEventListener('click', () => navigateTo('calendar'));
+        cell.appendChild(chip);
+      });
+      if (dayEvents.length > 2) {
+        const more = document.createElement('span');
+        more.className = 'ov-cal-more';
+        more.textContent = `+${dayEvents.length - 2}건 더`;
+        cell.appendChild(more);
+      }
+      grid.appendChild(cell);
+    });
+
+    weekBlock.appendChild(grid);
+    weeksBox.appendChild(weekBlock);
+  });
 
   const sub = document.getElementById('ovCalSub');
-  sub.textContent = `${days[0].getMonth()+1}/${days[0].getDate()} ~ ${days[4].getMonth()+1}/${days[4].getDate()}`;
-
-  const grid = document.getElementById('ovCalGrid');
-  grid.innerHTML = '';
-  days.forEach(d => {
-    const dateStr = ymd(d);
-    const dayEvents = events.filter(e => e.date === dateStr);
-    const cell = document.createElement('div');
-    cell.className = 'ov-cal-cell' + (dateStr === todayStr ? ' today' : '');
-
-    const daynum = document.createElement('span');
-    daynum.className = 'ov-cal-daynum';
-    daynum.textContent = d.getDate();
-    cell.appendChild(daynum);
-
-    dayEvents.slice(0, 2).forEach(ev => {
-      const color = channelColors[ev.channel] || '#888';
-      const chip = document.createElement('span');
-      chip.className = 'ov-cal-chip';
-      chip.style.background = color + '20';
-      chip.style.color = color;
-      chip.textContent = `${ev.channel || ''} · ${ev.title || ''}`;
-      chip.title = ev.title || '';
-      chip.addEventListener('click', () => navigateTo('calendar'));
-      cell.appendChild(chip);
-    });
-    if (dayEvents.length > 2) {
-      const more = document.createElement('span');
-      more.className = 'ov-cal-more';
-      more.textContent = `+${dayEvents.length - 2}건 더`;
-      cell.appendChild(more);
-    }
-    grid.appendChild(cell);
-  });
+  sub.textContent = `${rangeStart.getMonth()+1}/${rangeStart.getDate()} ~ ${rangeEnd.getMonth()+1}/${rangeEnd.getDate()}`;
 }
 
 /* ════════ 최근 아이디어 ════════ */
