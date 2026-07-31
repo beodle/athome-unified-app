@@ -474,6 +474,12 @@ function lastFollowers(weeks){
   const past=all.filter(w=>w<=last);
   return DB[past.length?past[past.length-1]:all[0]].followers;
 }
+// 팔로워는 노출/조회수처럼 "선택 기간 동안의 실적"이 아니라 "지금 몇 명이냐"를 보는 지표라서
+// 기간 선택과 무관하게 항상 가장 최근에 수집된 값을 보여준다(진행 중인 이번 주 포함).
+function latestFollowersOverall(){
+  const all=Object.keys(DB).filter(k=>/^\d{4}-W\d{2}$/.test(k)&&DB[k]?.followers).sort();
+  return all.length?DB[all[all.length-1]].followers:0;
+}
 
 /* ── 성과 스코어카드 ── */
 function renderScorecard(R){
@@ -481,8 +487,8 @@ function renderScorecard(R){
   const spk=sortedWeeks().slice(-8);
   const pw=prevWeeks;
 
-  // 팔로워
-  const curF=lastFollowers(weeks);
+  // 팔로워 — 현재값은 항상 최신, 비교 기준(prevF)만 선택 기간에 따라 달라짐
+  const curF=latestFollowersOverall();
   const prevF=pw.length?(lastFollowers(pw)||null):null;
   const net=sum(weeks,'newFollowers');
 
