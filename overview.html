@@ -210,11 +210,33 @@ function dateToWeek(str){
   const ys = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
   return `${t.getUTCFullYear()}-W${String(Math.ceil((((t - ys) / 864e5) + 1) / 7)).padStart(2, '0')}`;
 }
-function monthWeekRange(monthOffset){
-  const now = new Date();
-  const first = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
-  const last = new Date(now.getFullYear(), now.getMonth() + monthOffset + 1, 0);
-  return { start: dateToWeek(ymd(first)), end: dateToWeek(ymd(last)) };
+/* '2026-W31' → 그 주의 월요일 UTC 자정 Date (dashboard.html의 weekMonday()와 동일 알고리즘) */
+function weekMonday(wid){
+  const m = wid.match(/^(\d{4})-W(\d{2})$/);
+  if (!m) return null;
+  const y = +m[1], w = +m[2];
+  const jan4 = new Date(Date.UTC(y, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7;
+  const monday = new Date(jan4);
+  monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (w - 1) * 7);
+  return monday;
+}
+
+/* 주 단위로만 쌓인 데이터를, 임의의 [start,end] 날짜 구간에 걸치는 만큼만 일수 비례로 환산해 합산.
+   "이번 달 진행분(1일~오늘)"을 "지난 달 같은 일수(1일~같은 날짜)"와 공정하게 비교하기 위함
+   — 전체 지난달과 비교하면 이번 달이 아직 안 끝났다는 이유만으로 항상 낮게 나오는 문제를 막는다. */
+function prorateSum(baked, weeks, field, start, end){
+  let total = 0;
+  weeks.forEach(w => {
+    const mon = weekMonday(w);
+    if (!mon) return;
+    const weekEnd = new Date(mon); weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    const overlapStart = mon > start ? mon : start;
+    const overlapEnd = weekEnd < end ? weekEnd : end;
+    const overlapDays = Math.floor((overlapEnd - overlapStart) / 864e5) + 1;
+    if (overlapDays > 0) total += (baked[w][field] || 0) * (overlapDays / 7);
+  });
+  return Math.round(total);
 }
 
 function mondayOfThisWeek(){
@@ -237,19 +259,23 @@ async function loadKpis(){
   const weeks = Object.keys(baked).filter(k => /^\d{4}-W\d{2}$/.test(k)).sort();
   const spk8 = weeks.slice(-8);
 
-  // 노출·블로그는 이번 달 합계로 — 캘린더 월과 ISO 주차가 안 맞아떨어질 수 있어(월초/월말 주),
-  // dashboard.html의 "이번 달" 커스텀 범위와 동일하게 그 달에 걸치는 주차를 통째로 포함한다.
-  const thisMonth = monthWeekRange(0);
-  const lastMonth = monthWeekRange(-1);
-  const weeksThisMonth = weeks.filter(w => (!thisMonth.start || w >= thisMonth.start) && (!thisMonth.end || w <= thisMonth.end));
-  const weeksLastMonth = weeks.filter(w => (!lastMonth.start || w >= lastMonth.start) && (!lastMonth.end || w <= lastMonth.end));
+  // 노출·블로그는 "이번 달 1일~오늘"과 "지난 달 1일~같은 날짜(동일 일수)"를 비교한다.
+  // 지난달 전체와 비교하면 이번 달이 아직 안 끝났다는 이유만으로 비율이 항상 낮게 나오므로,
+  // 주 단위 데이터를 날짜 구간에 걸치는 만큼 일수 비례로 환산해(prorateSum) 공정하게 맞춘다.
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+  const daysElapsed = Math.floor((todayUTC - monthStart) / 864e5) + 1;
+  const lastMonthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1, 1));
+  const lastMonthSameEnd = new Date(lastMonthStart);
+  lastMonthSameEnd.setUTCDate(lastMonthStart.getUTCDate() + daysElapsed - 1);
 
   const latestFollowers = weeks.length ? (baked[weeks[weeks.length-1]].followers || 0) : 0;
   const prevFollowers = weeks.length > 4 ? (baked[weeks[weeks.length-5]].followers ?? null) : null;
-  const impSum = weeksThisMonth.reduce((a,w) => a + (baked[w].impressions || 0), 0);
-  const prevImpSum = weeksLastMonth.length ? weeksLastMonth.reduce((a,w) => a + (baked[w].impressions || 0), 0) : null;
-  const blogSum = weeksThisMonth.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0);
-  const prevBlogSum = weeksLastMonth.length ? weeksLastMonth.reduce((a,w) => a + (baked[w].blog_pageviews || 0), 0) : null;
+  const impSum = prorateSum(baked, weeks, 'impressions', monthStart, todayUTC);
+  const prevImpSum = prorateSum(baked, weeks, 'impressions', lastMonthStart, lastMonthSameEnd) || null;
+  const blogSum = prorateSum(baked, weeks, 'blog_pageviews', monthStart, todayUTC);
+  const prevBlogSum = prorateSum(baked, weeks, 'blog_pageviews', lastMonthStart, lastMonthSameEnd) || null;
 
   const tiles = [
     { val: latestFollowers, mom: mom(latestFollowers, prevFollowers), spk: spk8.map(w => baked[w].followers || 0) },
@@ -262,6 +288,8 @@ async function loadKpis(){
     el.querySelector('.kpi-val').textContent = fmt(t.val);
     el.querySelector('.kpi-spark').innerHTML = spark(t.spk);
     el.querySelector('.cmp').outerHTML = badge(t.mom) || '<span class="cmp"></span>';
+    const subEl = el.querySelector('.kpi-sub');
+    if (subEl) subEl.textContent = `이번 달 1~${daysElapsed}일 합계`;
   });
 
   const summary = await db.collection('dashboardMeta').doc('summary').get();
