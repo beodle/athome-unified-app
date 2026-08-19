@@ -13,7 +13,8 @@
   # 새 refresh_token 추출 후
   gh secret set LINKEDIN_REFRESH_TOKEN --repo beodle/athome-unified-app < token_value.txt
   ```
-- **"로컬 access_token 만료 D-2" 같은 알림은 CI와 무관할 수 있다**: 로컬 `linkedin_token.json`의 `expires_at`(access_token, 60일)이 임박했다고 해서 CI가 끊기는 건 아니다 — CI는 `refresh_token`(365일)으로 매번 새 access_token을 받아 쓰기 때문. 다만 `refresh_token` 자체가 만료되면(1년 주기) 그때는 반드시 재발급 + Secret 갱신이 필요하다.
+- **대시보드의 "🔑 LinkedIn 토큰 만료 D-N" 배너는 실시간 체크가 아니라 하드코딩된 상수다**: `dashboard.html`의 `checkStale()`(약 723번 줄)이 `const __LI_TOKEN_EXPIRES__="..."`(약 722번 줄) 날짜와 오늘을 비교해서 D-14 이내면 배너를 띄운다. **토큰을 재발급하고 GitHub Secret을 갱신해도 이 상수는 자동으로 안 바뀐다** — 재발급할 때마다 새 `refresh_token`의 만료일(발급일 + 365일)로 이 값도 반드시 같이 고쳐야 배너가 사라진다. 안 고치면 실제로는 문제 없어도 계속 D-2로 떠 있는다(2026-08-19에 이걸 놓쳐서 실제로 겪은 문제).
+- **"로컬 access_token 만료" 자체는 CI와 무관하다**: 로컬 `linkedin_token.json`의 `expires_at`(access_token, 60일)이 임박했다고 해서 CI가 끊기는 건 아니다 — CI는 `refresh_token`(365일)으로 매번 새 access_token을 받아 쓰기 때문. 다만 `refresh_token` 자체가 만료되면(1년 주기) 그때는 반드시 재발급 + Secret 갱신 + 위 배너 상수 갱신까지 세 가지를 모두 해야 한다.
 
 ## dashboard.html vs overview.html — LinkedIn 팔로워 표시 방식이 다른 이유 (의도적)
 
