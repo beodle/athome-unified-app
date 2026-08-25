@@ -161,8 +161,8 @@ const PROJECTS = [
   { key: 'PR', color: '#2563EB' },
   { key: '채용-콘텐츠', color: '#059669' },
   { key: '오프라인', color: '#7C3AED' },
-  { key: '채용-브랜딩', color: '#DB2777' },
-  { key: '팀-블로그', color: '#0891B2' },
+  { key: '채용브랜딩', color: '#DB2777' },
+  { key: '팀블로그', color: '#0891B2' },
   { key: '채용-사이트', color: '#B45309' },
   { key: '채용-인프라', color: '#475569' },
 ];
@@ -184,16 +184,16 @@ const SEED_TASKS = [
   { project: '오프라인', status: 'todo', title: '팀 참관 후기 취합' },
   { project: '오프라인', status: 'todo', title: '브랜드콘 성료 소식 자체 채널 홍보' },
 
-  { project: '채용-브랜딩', status: 'doing', title: '앳홈그라운드 슬로건 최종 확정 — 팀 컨펌 필요' },
-  { project: '채용-브랜딩', status: 'doing', title: '정호님 홈레코딩 특집 출연 일정 요청' },
-  { project: '채용-브랜딩', status: 'doing', title: 'BAT 세션 일정·구성 기획' },
-  { project: '채용-브랜딩', status: 'todo', title: '채용공고 언어 가이드 실제 JD 적용' },
-  { project: '채용-브랜딩', status: 'todo', title: 'IEP 인물 사례 콘텐츠화 (황지홍/송지수)' },
+  { project: '채용브랜딩', status: 'doing', title: '앳홈그라운드 슬로건 최종 확정 — 팀 컨펌 필요' },
+  { project: '채용브랜딩', status: 'doing', title: '정호님 홈레코딩 특집 출연 일정 요청' },
+  { project: '채용브랜딩', status: 'doing', title: 'BAT 세션 일정·구성 기획' },
+  { project: '채용브랜딩', status: 'todo', title: '채용공고 언어 가이드 실제 JD 적용' },
+  { project: '채용브랜딩', status: 'todo', title: 'IEP 인물 사례 콘텐츠화 (황지홍/송지수)' },
 
-  { project: '팀-블로그', status: 'todo', title: '홈그라운드 브랜딩 히어로 캐러셀 — 웹 에디터 적용·검증' },
-  { project: '팀-블로그', status: 'todo', title: '본문 타이포 코드 수집 (폰트 탭)' },
-  { project: '팀-블로그', status: 'todo', title: 'FAQ 포스트 + FAQPage JSON-LD' },
-  { project: '팀-블로그', status: 'todo', title: 'GA4 블로그 property 서비스 계정 권한 추가' },
+  { project: '팀블로그', status: 'todo', title: '홈그라운드 브랜딩 히어로 캐러셀 — 웹 에디터 적용·검증' },
+  { project: '팀블로그', status: 'todo', title: '본문 타이포 코드 수집 (폰트 탭)' },
+  { project: '팀블로그', status: 'todo', title: 'FAQ 포스트 + FAQPage JSON-LD' },
+  { project: '팀블로그', status: 'todo', title: 'GA4 블로그 property 서비스 계정 권한 추가' },
 
   { project: '채용-사이트', status: 'doing', title: '채용 페이지 리디자인 (히어로 외 나머지 섹션) — 기획 중' },
   { project: '채용-사이트', status: 'todo', title: '채용 페이지 IA 개선 로드맵 수립' },
@@ -448,6 +448,23 @@ async function ensureSeeded(){
   await batch.commit();
 }
 
+// 프로젝트 이름에서 하이픈 뺀 새 표기(채용-브랜딩→채용브랜딩, 팀-블로그→팀블로그)로
+// 이미 시딩된 기존 문서들을 1회 이관. 새로 시딩되는 환경은 SEED_TASKS가 이미 새 이름이라 해당 없음.
+const RENAME_MAP = { '채용-브랜딩': '채용브랜딩', '팀-블로그': '팀블로그' };
+async function ensureRenamed(){
+  const metaRef = db.collection('trackerMeta').doc('renameV1');
+  const metaDoc = await metaRef.get();
+  if (metaDoc.exists) return;
+  const snap = await db.collection('trackerTasks').get();
+  const batch = db.batch();
+  snap.docs.forEach(d => {
+    const newName = RENAME_MAP[d.data().project];
+    if (newName) batch.update(d.ref, { project: newName });
+  });
+  batch.set(metaRef, { renamedAt: Date.now() });
+  await batch.commit();
+}
+
 async function init(){
   db = window.__athomeDb__;
   renderLegend();
@@ -455,8 +472,9 @@ async function init(){
   bindAddForms();
   try {
     await ensureSeeded();
+    await ensureRenamed();
   } catch (e) {
-    console.error('[tracker] seed failed', e);
+    console.error('[tracker] seed/rename failed', e);
   }
   db.collection('trackerTasks').onSnapshot(snap => {
     tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));

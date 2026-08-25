@@ -68,6 +68,16 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
 .ov-body{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-top:16px;align-items:start;}
 @media (max-width:860px){.ov-body{grid-template-columns:1fr;}}
+.ov-side{display:flex;flex-direction:column;gap:16px;}
+
+/* ── 다음 할 일 ── */
+.ov-todo-list{display:flex;flex-direction:column;gap:8px;padding:12px 16px 16px;}
+.ov-todo-item{display:flex;align-items:center;gap:9px;background:var(--bg-soft);border-radius:9px;padding:9px 11px;cursor:pointer;transition:background .12s;}
+.ov-todo-item:hover{background:var(--bg-gray);}
+.ov-todo-badge{flex-shrink:0;width:7px;height:7px;border-radius:50%;}
+.ov-todo-title{font-size:12.5px;font-weight:600;color:var(--text-2);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ov-todo-more{font-size:11.5px;font-weight:700;color:var(--text-4);text-align:center;padding-top:2px;cursor:pointer;}
+.ov-todo-more:hover{color:var(--accent);}
 .ov-add-btn{margin-left:auto;background:none;border:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;padding:2px 0;}
 .ov-add-btn:hover{text-decoration:underline;}
 
@@ -154,15 +164,26 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
       </div>
     </section>
 
-    <aside class="card">
-      <div class="card-h"><span class="t">최근 아이디어</span><button class="ov-add-btn" onclick="navigateTo('ideas')">+ 아이디어 추가</button></div>
-      <div class="ov-ideas-board" id="ovIdeasBoard"></div>
-    </aside>
+    <div class="ov-side">
+      <aside class="card">
+        <div class="card-h"><span class="t">최근 아이디어</span><button class="ov-add-btn" onclick="navigateTo('ideas')">+ 아이디어 추가</button></div>
+        <div class="ov-ideas-board" id="ovIdeasBoard"></div>
+      </aside>
+
+      <aside class="card">
+        <div class="card-h"><span class="t">다음 할 일</span><span class="sub" id="ovTodoSub"></span></div>
+        <div class="ov-todo-list" id="ovTodoList"></div>
+      </aside>
+    </div>
   </div>
 </div>
 
 <script>
 const PRESET_COLORS = { '링크드인': '#4A77B5', '블로그': '#059669', '팟캐스트': '#E08A4F', '보도자료': '#1A1A1A', '기타': '#6B7280' };
+const TRACKER_PROJECT_COLOR = {
+  'PR': '#2563EB', '채용-콘텐츠': '#059669', '오프라인': '#7C3AED',
+  '채용브랜딩': '#DB2777', '팀블로그': '#0891B2', '채용-사이트': '#B45309', '채용-인프라': '#475569',
+};
 const FALLBACK_PALETTE = ['#2563EB','#059669','#7C3AED','#B45309','#DB2777','#0891B2'];
 
 function fmt(n){ return (n||0).toLocaleString('ko-KR'); }
@@ -400,9 +421,46 @@ async function loadLatestIdeas(){
   });
 }
 
+/* ════════ 다음 할 일 (업무 트래커 trackerTasks 연동) ════════ */
+async function loadNextTasks(){
+  const db = window.__athomeDb__;
+  const snap = await db.collection('trackerTasks').where('status', '==', 'todo').get();
+  const todos = snap.docs.map(doc => doc.data())
+    .sort((a,b) => (a.order||0) - (b.order||0));
+
+  const sub = document.getElementById('ovTodoSub');
+  sub.textContent = todos.length ? `${todos.length}건` : '';
+
+  const list = document.getElementById('ovTodoList');
+  list.innerHTML = '';
+  if (!todos.length) {
+    list.innerHTML = '<div class="ov-empty">다음 할 일이 없습니다</div>';
+    return;
+  }
+  const SHOW = 6;
+  todos.slice(0, SHOW).forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'ov-todo-item';
+    const color = TRACKER_PROJECT_COLOR[t.project] || '#6B6660';
+    item.innerHTML = `<span class="ov-todo-badge" style="background:${color}"></span><span class="ov-todo-title" title="${escHtmlOv(t.title)}">${escHtmlOv(t.title)}</span>`;
+    item.addEventListener('click', () => navigateTo('tracker'));
+    list.appendChild(item);
+  });
+  if (todos.length > SHOW) {
+    const more = document.createElement('div');
+    more.className = 'ov-todo-more';
+    more.textContent = `+${todos.length - SHOW}건 더 보기`;
+    more.addEventListener('click', () => navigateTo('tracker'));
+    list.appendChild(more);
+  }
+}
+function escHtmlOv(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 async function init(){
   try {
-    await Promise.all([loadKpis(), loadWeekCalendar(), loadLatestIdeas()]);
+    await Promise.all([loadKpis(), loadWeekCalendar(), loadLatestIdeas(), loadNextTasks()]);
   } catch (e) {
     console.error('[overview] load failed', e);
   }
