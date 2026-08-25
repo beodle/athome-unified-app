@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://accounts.google.com">
   <script src="./auth.js"></script>
+  <script>window.__athomeNeedsFirestore__ = true;</script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
@@ -20,9 +23,6 @@
   --text-1:#1A1714; --text-2:#4A4540; --text-3:#6B6660; --text-4:#A8A29A;
   --bg-page:#F5F4F1; --bg-card:#FFFFFF; --bg-soft:#F0EEE9; --bg-gray:#E9E6E0;
   --border:#ECEAE5; --border-2:#DAD6CF;
-  --green:#16A34A; --green-bg:rgba(22,163,74,.1);
-  --yellow:#B45309; --yellow-bg:rgba(217,119,6,.12);
-  --red:#DC2626; --red-bg:rgba(220,38,38,.1);
   --radius:12px;
   --shadow:0 1px 2px rgba(40,30,20,.03),0 3px 14px rgba(40,30,20,.035);
   --font:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
@@ -44,37 +44,47 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .spacer{flex:1;}
 .last-upd{font-size:11.5px;color:var(--text-4);white-space:nowrap;}
 
-/* ── SUMMARY BAR ── */
-.summary{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
-.summary-chip{display:flex;align-items:center;gap:7px;background:var(--bg-card);border-radius:10px;box-shadow:var(--shadow);padding:10px 16px;font-size:13px;font-weight:700;color:var(--text-2);}
-.summary-chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.summary-chip .n{font-size:15px;font-weight:800;color:var(--text-1);}
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.legend-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border-radius:20px;box-shadow:var(--shadow);padding:6px 12px 6px 8px;font-size:12px;font-weight:700;color:var(--text-2);}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
-/* ── PROJECT GRID ── */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;}
-.card{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;display:flex;flex-direction:column;gap:12px;}
-.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
-.card-name{font-size:16px;font-weight:800;letter-spacing:-.02em;}
-.card-path{font-size:10.5px;color:var(--text-4);font-family:ui-monospace,'SF Mono',monospace;margin-top:3px;}
-.badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
-.badge.green{background:var(--green-bg);color:var(--green);}
-.badge.yellow{background:var(--yellow-bg);color:var(--yellow);}
-.badge.red{background:var(--red-bg);color:var(--red);}
-.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+/* ── BOARD ── */
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start;}
+@media (max-width:920px){.board{grid-template-columns:1fr;}}
+.col{background:var(--bg-soft);border-radius:14px;padding:14px;min-height:120px;transition:background .12s;}
+.col.drag-over{background:var(--accent-light);}
+.col-h{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:0 2px;}
+.col-h .t{font-size:13.5px;font-weight:800;}
+.col-h .n{font-size:11.5px;font-weight:700;color:var(--text-4);background:var(--bg-gray);border-radius:20px;padding:2px 8px;}
 
-.card-summary{font-size:13px;color:var(--text-2);line-height:1.55;}
+.cardlist{display:flex;flex-direction:column;gap:9px;min-height:8px;}
+.tcard{background:var(--bg-card);border-radius:10px;box-shadow:var(--shadow);padding:12px 13px;cursor:grab;position:relative;}
+.tcard:active{cursor:grabbing;}
+.tcard.dragging{opacity:.4;}
+.tcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.proj-badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.proj-badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.tcard-del{background:none;border:none;color:var(--text-4);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;border-radius:5px;opacity:0;transition:opacity .12s;flex-shrink:0;}
+.tcard:hover .tcard-del{opacity:1;}
+.tcard-del:hover{background:var(--bg-gray);color:var(--text-1);}
+.tcard-title{font-size:13px;color:var(--text-1);line-height:1.5;font-weight:600;}
 
-.card-sec{margin-top:2px;}
-.card-sec-h{font-size:10.5px;font-weight:800;letter-spacing:.04em;color:var(--text-4);text-transform:uppercase;margin-bottom:6px;}
-.card-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
-.card-list li{font-size:12.5px;color:var(--text-2);padding-left:14px;position:relative;line-height:1.5;}
-.card-list li::before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--border-2);}
+/* ── ADD FORM ── */
+.add-row{margin-top:10px;}
+.add-toggle{width:100%;text-align:left;background:none;border:none;font-size:12.5px;font-weight:700;color:var(--text-4);cursor:pointer;padding:8px 2px;border-radius:8px;}
+.add-toggle:hover{background:var(--bg-gray);color:var(--text-2);}
+.add-form{display:none;flex-direction:column;gap:6px;background:var(--bg-card);border-radius:10px;padding:10px;box-shadow:var(--shadow);}
+.add-form.open{display:flex;}
+.add-form select,.add-form textarea{width:100%;border:1px solid var(--border-2);border-radius:7px;padding:7px 9px;font-family:inherit;font-size:12.5px;color:var(--text-1);background:#fff;outline:none;resize:none;}
+.add-form select:focus,.add-form textarea:focus{border-color:var(--accent);}
+.add-form-actions{display:flex;gap:6px;justify-content:flex-end;}
+.add-form-actions button{border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-save{background:var(--accent);color:#fff;}
+.btn-cancel{background:var(--bg-gray);color:var(--text-2);}
 
-.card-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-4);display:flex;justify-content:space-between;align-items:center;}
-.card-foot .stale{color:var(--yellow);font-weight:700;}
-
-.empty-note{font-size:12px;color:var(--text-4);}
-.footer-note{margin-top:28px;font-size:11.5px;color:var(--text-4);text-align:center;}
+.empty-hint{font-size:12px;color:var(--text-4);text-align:center;padding:10px 0;}
+.footer-note{margin-top:24px;font-size:11.5px;color:var(--text-4);text-align:center;}
 
 @media (prefers-color-scheme: dark){
   :root{
@@ -110,98 +120,236 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
       <b>채용 콘텐츠</b><div class="sep"></div><span>업무 트래커</span>
     </div>
     <div class="spacer"></div>
-    <span id="genAt" class="last-upd"></span>
+    <span id="taskCount" class="last-upd"></span>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="summary" id="summary"></div>
-  <div class="grid" id="grid"></div>
-  <div class="footer-note">project-status.md 8개를 수동으로 요약한 스냅샷입니다 · 최신화하려면 "업무 트래커 새로고침해줘"라고 요청하세요</div>
+  <div class="legend" id="legend"></div>
+
+  <div class="board">
+    <section class="col" data-status="todo">
+      <div class="col-h"><span class="t">다음 할 일</span><span class="n" id="cnt-todo">0</span></div>
+      <div class="cardlist" id="list-todo"></div>
+      <div class="add-row" id="addrow-todo"></div>
+    </section>
+    <section class="col" data-status="doing">
+      <div class="col-h"><span class="t">진행 중</span><span class="n" id="cnt-doing">0</span></div>
+      <div class="cardlist" id="list-doing"></div>
+      <div class="add-row" id="addrow-doing"></div>
+    </section>
+    <section class="col" data-status="done">
+      <div class="col-h"><span class="t">완료</span><span class="n" id="cnt-done">0</span></div>
+      <div class="cardlist" id="list-done"></div>
+      <div class="add-row" id="addrow-done"></div>
+    </section>
+  </div>
+
+  <div class="footer-note">카드를 드래그해서 컬럼 사이로 옮기면 상태가 바로 저장돼요 · project-status.md와는 별개로 관리되는 작업 리스트입니다</div>
 </div>
 
 <script>
-const STATUS_META = {
-  green:  { label: '#16A34A', dot: '#16A34A' },
-  yellow: { label: '#B45309', dot: '#D97706' },
-  red:    { label: '#DC2626', dot: '#DC2626' },
-};
+const PROJECTS = [
+  { key: 'PR', color: '#2563EB' },
+  { key: '채용-콘텐츠', color: '#059669' },
+  { key: '오프라인', color: '#7C3AED' },
+  { key: '채용-브랜딩', color: '#DB2777' },
+  { key: '팀-블로그', color: '#0891B2' },
+  { key: '채용-사이트', color: '#B45309' },
+  { key: '채용-인프라', color: '#475569' },
+];
+const PROJECT_COLOR = Object.fromEntries(PROJECTS.map(p => [p.key, p.color]));
+const STATUSES = ['todo', 'doing', 'done'];
 
-function daysAgo(dateStr){
-  const d = new Date(dateStr + 'T00:00:00');
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  return Math.round((today - d) / 864e5);
-}
+// 최초 1회 시딩용 시드 데이터 — tracker-content.json의 진행 중/다음 할 일을 개별 카드로 변환.
+// 이후로는 이 배열을 다시 안 쓰고 Firestore(trackerTasks)가 유일한 데이터 소스가 된다.
+const SEED_TASKS = [
+  { project: 'PR', status: 'doing', title: 'HR Insight 9월호 — 8/20 최종 마감' },
+  { project: 'PR', status: 'doing', title: 'PR 요청 접수 Slack 워크플로 — 김은경님 초안 공유 대기' },
+  { project: 'PR', status: 'todo', title: '매일경제 칼럼 연재 가능성 검토' },
+
+  { project: '채용-콘텐츠', status: 'doing', title: '홈레코딩 4화 녹음 대기 중' },
+  { project: '채용-콘텐츠', status: 'todo', title: '홈레코딩 1~3화 편집 → Spotify/Apple Podcasts 배포' },
+  { project: '채용-콘텐츠', status: 'todo', title: '카드뉴스 매주 자동 실행 세팅' },
+
+  { project: '오프라인', status: 'doing', title: '브랜드콘 현장 촬영본 편집 검토 및 활용 방향 확정' },
+  { project: '오프라인', status: 'todo', title: '팀 참관 후기 취합' },
+  { project: '오프라인', status: 'todo', title: '브랜드콘 성료 소식 자체 채널 홍보' },
+
+  { project: '채용-브랜딩', status: 'doing', title: '앳홈그라운드 슬로건 최종 확정 — 팀 컨펌 필요' },
+  { project: '채용-브랜딩', status: 'doing', title: '정호님 홈레코딩 특집 출연 일정 요청' },
+  { project: '채용-브랜딩', status: 'doing', title: 'BAT 세션 일정·구성 기획' },
+  { project: '채용-브랜딩', status: 'todo', title: '채용공고 언어 가이드 실제 JD 적용' },
+  { project: '채용-브랜딩', status: 'todo', title: 'IEP 인물 사례 콘텐츠화 (황지홍/송지수)' },
+
+  { project: '팀-블로그', status: 'todo', title: '홈그라운드 브랜딩 히어로 캐러셀 — 웹 에디터 적용·검증' },
+  { project: '팀-블로그', status: 'todo', title: '본문 타이포 코드 수집 (폰트 탭)' },
+  { project: '팀-블로그', status: 'todo', title: 'FAQ 포스트 + FAQPage JSON-LD' },
+  { project: '팀-블로그', status: 'todo', title: 'GA4 블로그 property 서비스 계정 권한 추가' },
+
+  { project: '채용-사이트', status: 'doing', title: '채용 페이지 리디자인 (히어로 외 나머지 섹션) — 기획 중' },
+  { project: '채용-사이트', status: 'todo', title: '채용 페이지 IA 개선 로드맵 수립' },
+  { project: '채용-사이트', status: 'todo', title: '6/30 월말 데이터로 개편 효과 재검정' },
+
+  { project: '채용-인프라', status: 'doing', title: '데이터 해석 프레임 정착 (퍼널 전환율 중심으로 읽기)' },
+  { project: '채용-인프라', status: 'todo', title: '팔로워 직무·산업 분해 지표 추가' },
+  { project: '채용-인프라', status: 'todo', title: '팟캐스트 시청 지속률 연동 (채널 소유권 확보 후)' },
+];
+
+let db = null;
+let tasks = [];
+let draggingId = null;
 
 function escHtml(s){
-  return String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function renderList(items){
-  if (!items || !items.length) return '<div class="empty-note">없음</div>';
-  return '<ul class="card-list">' + items.map(i => `<li>${escHtml(i)}</li>`).join('') + '</ul>';
+function renderLegend(){
+  document.getElementById('legend').innerHTML = PROJECTS.map(p => `
+    <span class="legend-chip"><span class="legend-dot" style="background:${p.color}"></span>${escHtml(p.key)}</span>
+  `).join('');
 }
 
-function renderCard(p){
-  const da = daysAgo(p.lastUpdate);
-  const staleTag = da >= 14 ? `<span class="stale">⚠ ${da}일 전</span>` : `<span>${da}일 전</span>`;
+function projBadge(project){
+  const color = PROJECT_COLOR[project] || '#6B6660';
+  return `<span class="proj-badge" style="background:${color}1A;color:${color}"><span class="dot"></span>${escHtml(project)}</span>`;
+}
+
+function renderCard(t){
   return `
-    <div class="card">
-      <div class="card-top">
-        <div>
-          <div class="card-name">${escHtml(p.name)}</div>
-          <div class="card-path">${escHtml(p.path)}</div>
-        </div>
-        <span class="badge ${p.status}"><span class="dot"></span>${escHtml(p.statusLabel)}</span>
+    <div class="tcard" draggable="true" data-id="${t.id}">
+      <div class="tcard-top">
+        ${projBadge(t.project)}
+        <button class="tcard-del" data-id="${t.id}" title="삭제">×</button>
       </div>
-      <div class="card-summary">${escHtml(p.summary)}</div>
-      <div class="card-sec">
-        <div class="card-sec-h">진행 중</div>
-        ${renderList(p.inProgress)}
-      </div>
-      <div class="card-sec">
-        <div class="card-sec-h">다음 할 일</div>
-        ${renderList(p.nextUp)}
-      </div>
-      <div class="card-foot">
-        <span>마지막 업데이트 ${escHtml(p.lastUpdate)}</span>
-        ${staleTag}
-      </div>
+      <div class="tcard-title">${escHtml(t.title)}</div>
     </div>
   `;
 }
 
-function renderSummary(projects){
-  const counts = { green: 0, yellow: 0, red: 0 };
-  projects.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1; });
-  const chips = [
-    { key: 'red', label: '정체' },
-    { key: 'yellow', label: '의사결정/후속 대기' },
-    { key: 'green', label: '정상 진행' },
-  ];
-  document.getElementById('summary').innerHTML = chips.map(c => `
-    <div class="summary-chip">
-      <span class="dot" style="background:${STATUS_META[c.key].dot}"></span>
-      <span class="n">${counts[c.key] || 0}</span>${c.label}
-    </div>
-  `).join('');
+function render(){
+  STATUSES.forEach(st => {
+    const list = tasks.filter(t => t.status === st).sort((a,b) => (a.order||0) - (b.order||0));
+    document.getElementById('cnt-' + st).textContent = list.length;
+    const el = document.getElementById('list-' + st);
+    el.innerHTML = list.length ? list.map(renderCard).join('') : '<div class="empty-hint">없음</div>';
+  });
+  document.getElementById('taskCount').textContent = `전체 ${tasks.length}건`;
+  bindCardEvents();
+}
+
+function bindCardEvents(){
+  document.querySelectorAll('.tcard').forEach(card => {
+    card.addEventListener('dragstart', () => {
+      draggingId = card.dataset.id;
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      draggingId = null;
+    });
+  });
+  document.querySelectorAll('.tcard-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('이 작업을 삭제할까요?')) return;
+      db.collection('trackerTasks').doc(btn.dataset.id).delete();
+    });
+  });
+}
+
+function bindColumnDrop(){
+  document.querySelectorAll('.col').forEach(col => {
+    col.addEventListener('dragover', e => {
+      e.preventDefault();
+      col.classList.add('drag-over');
+    });
+    col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      if (!draggingId) return;
+      const newStatus = col.dataset.status;
+      const task = tasks.find(t => t.id === draggingId);
+      if (!task || task.status === newStatus) return;
+      db.collection('trackerTasks').doc(draggingId).update({ status: newStatus });
+    });
+  });
+}
+
+function bindAddForms(){
+  STATUSES.forEach(st => {
+    const row = document.getElementById('addrow-' + st);
+    row.innerHTML = `
+      <button class="add-toggle" type="button">+ 작업 추가</button>
+      <div class="add-form">
+        <select class="f-proj">${PROJECTS.map(p => `<option value="${escHtml(p.key)}">${escHtml(p.key)}</option>`).join('')}</select>
+        <textarea class="f-title" rows="2" placeholder="작업 내용"></textarea>
+        <div class="add-form-actions">
+          <button type="button" class="btn-cancel">취소</button>
+          <button type="button" class="btn-save">추가</button>
+        </div>
+      </div>
+    `;
+    const toggle = row.querySelector('.add-toggle');
+    const form = row.querySelector('.add-form');
+    const titleEl = row.querySelector('.f-title');
+    const projEl = row.querySelector('.f-proj');
+
+    toggle.addEventListener('click', () => {
+      form.classList.add('open');
+      toggle.hidden = true;
+      titleEl.focus();
+    });
+    row.querySelector('.btn-cancel').addEventListener('click', () => {
+      form.classList.remove('open');
+      toggle.hidden = false;
+      titleEl.value = '';
+    });
+    row.querySelector('.btn-save').addEventListener('click', () => {
+      const title = titleEl.value.trim();
+      if (!title) return;
+      const maxOrder = Math.max(0, ...tasks.filter(t => t.status === st).map(t => t.order || 0));
+      db.collection('trackerTasks').add({
+        project: projEl.value,
+        title,
+        status: st,
+        order: maxOrder + 1,
+        createdAt: Date.now(),
+      });
+      titleEl.value = '';
+      form.classList.remove('open');
+      toggle.hidden = false;
+    });
+  });
+}
+
+async function ensureSeeded(){
+  const metaRef = db.collection('trackerMeta').doc('seed');
+  const metaDoc = await metaRef.get();
+  if (metaDoc.exists) return;
+  const batch = db.batch();
+  SEED_TASKS.forEach((t, i) => {
+    const ref = db.collection('trackerTasks').doc();
+    batch.set(ref, { ...t, order: i, createdAt: Date.now() });
+  });
+  batch.set(metaRef, { seededAt: Date.now() });
+  await batch.commit();
 }
 
 async function init(){
-  const res = await fetch('./tracker-content.json?_=' + Date.now());
-  const data = await res.json();
-  const order = { red: 0, yellow: 1, green: 2 };
-  const projects = [...data.projects].sort((a, b) => {
-    const byStatus = order[a.status] - order[b.status];
-    if (byStatus !== 0) return byStatus;
-    return new Date(b.lastUpdate) - new Date(a.lastUpdate);
-  });
-
-  renderSummary(projects);
-  document.getElementById('grid').innerHTML = projects.map(renderCard).join('');
-  document.getElementById('genAt').textContent = '스냅샷 생성: ' + data.generatedAt;
+  db = window.__athomeDb__;
+  renderLegend();
+  bindColumnDrop();
+  bindAddForms();
+  try {
+    await ensureSeeded();
+  } catch (e) {
+    console.error('[tracker] seed failed', e);
+  }
+  db.collection('trackerTasks').onSnapshot(snap => {
+    tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  }, err => console.error('[tracker] snapshot error', err));
 }
 
 if (window.__athomeUser__) init();
