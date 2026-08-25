@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <script src="./auth.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>앳홈 업무 트래커</title>
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1') {
+      document.documentElement.classList.add('shell-mode');
+    }
+  </script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231A1A1A'/><rect x='12' y='55' width='18' height='33' rx='4' fill='%23FF5D00'/><rect x='41' y='35' width='18' height='53' rx='4' fill='%23FF5D00'/><rect x='70' y='18' width='18' height='70' rx='4' fill='%23FF5D00'/></svg>">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --accent:#FF5D00; --accent-light:rgba(255,93,0,.08);
+  --text-1:#1A1714; --text-2:#4A4540; --text-3:#6B6660; --text-4:#A8A29A;
+  --bg-page:#F5F4F1; --bg-card:#FFFFFF; --bg-soft:#F0EEE9; --bg-gray:#E9E6E0;
+  --border:#ECEAE5; --border-2:#DAD6CF;
+  --green:#16A34A; --green-bg:rgba(22,163,74,.1);
+  --yellow:#B45309; --yellow-bg:rgba(217,119,6,.12);
+  --red:#DC2626; --red-bg:rgba(220,38,38,.1);
+  --radius:12px;
+  --shadow:0 1px 2px rgba(40,30,20,.03),0 3px 14px rgba(40,30,20,.035);
+  --font:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(--bg-page);-webkit-font-smoothing:antialiased;letter-spacing:-.006em;line-height:1.6;}
+.wrap{max-width:1360px;margin:0 auto;padding:24px 24px 64px;}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:60;background:rgba(245,244,241,.85);backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border);}
+.topbar-in{max-width:1360px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px;}
+.shell-mode .topbar .brand{display:none!important;}
+.shell-mode .topbar-in{max-width:none;padding-left:24px;padding-right:24px;}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.brand img{height:15px;display:block;}
+.brand b{font-size:15px;font-weight:800;letter-spacing:-.02em;}
+.brand .sep{width:1px;height:16px;background:var(--border-2);}
+.brand span{font-size:13px;font-weight:700;color:var(--text-3);}
+.spacer{flex:1;}
+.last-upd{font-size:11.5px;color:var(--text-4);white-space:nowrap;}
+
+/* ── SUMMARY BAR ── */
+.summary{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
+.summary-chip{display:flex;align-items:center;gap:7px;background:var(--bg-card);border-radius:10px;box-shadow:var(--shadow);padding:10px 16px;font-size:13px;font-weight:700;color:var(--text-2);}
+.summary-chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.summary-chip .n{font-size:15px;font-weight:800;color:var(--text-1);}
+
+/* ── PROJECT GRID ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;}
+.card{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;display:flex;flex-direction:column;gap:12px;}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.card-name{font-size:16px;font-weight:800;letter-spacing:-.02em;}
+.card-path{font-size:10.5px;color:var(--text-4);font-family:ui-monospace,'SF Mono',monospace;margin-top:3px;}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.badge.green{background:var(--green-bg);color:var(--green);}
+.badge.yellow{background:var(--yellow-bg);color:var(--yellow);}
+.badge.red{background:var(--red-bg);color:var(--red);}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+.card-summary{font-size:13px;color:var(--text-2);line-height:1.55;}
+
+.card-sec{margin-top:2px;}
+.card-sec-h{font-size:10.5px;font-weight:800;letter-spacing:.04em;color:var(--text-4);text-transform:uppercase;margin-bottom:6px;}
+.card-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.card-list li{font-size:12.5px;color:var(--text-2);padding-left:14px;position:relative;line-height:1.5;}
+.card-list li::before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--border-2);}
+
+.card-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-4);display:flex;justify-content:space-between;align-items:center;}
+.card-foot .stale{color:var(--yellow);font-weight:700;}
+
+.empty-note{font-size:12px;color:var(--text-4);}
+.footer-note{margin-top:28px;font-size:11.5px;color:var(--text-4);text-align:center;}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    --text-1:#F2EEE6; --text-2:#CFC9BC; --text-3:#9C968A; --text-4:#726C61;
+    --bg-page:#18160F; --bg-card:#242019; --bg-soft:#2C2820; --bg-gray:#332D22;
+    --border:#3A352B; --border-2:#453F33;
+    --accent:#FF7A33; --accent-light:rgba(255,122,51,.14);
+    --shadow:0 1px 2px rgba(0,0,0,.2),0 3px 14px rgba(0,0,0,.22);
+  }
+}
+:root[data-theme="dark"]{
+  --text-1:#F2EEE6; --text-2:#CFC9BC; --text-3:#9C968A; --text-4:#726C61;
+  --bg-page:#18160F; --bg-card:#242019; --bg-soft:#2C2820; --bg-gray:#332D22;
+  --border:#3A352B; --border-2:#453F33;
+  --accent:#FF7A33; --accent-light:rgba(255,122,51,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.2),0 3px 14px rgba(0,0,0,.22);
+}
+:root[data-theme="light"]{
+  --text-1:#1A1714; --text-2:#4A4540; --text-3:#6B6660; --text-4:#A8A29A;
+  --bg-page:#F5F4F1; --bg-card:#FFFFFF; --bg-soft:#F0EEE9; --bg-gray:#E9E6E0;
+  --border:#ECEAE5; --border-2:#DAD6CF;
+  --accent:#FF5D00; --accent-light:rgba(255,93,0,.08);
+  --shadow:0 1px 2px rgba(40,30,20,.03),0 3px 14px rgba(40,30,20,.035);
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <img src="https://raw.githubusercontent.com/beodle/athome-assets/main/ATHOME_CI_screen.svg" alt="ATHOME" style="filter:none">
+      <b>채용 콘텐츠</b><div class="sep"></div><span>업무 트래커</span>
+    </div>
+    <div class="spacer"></div>
+    <span id="genAt" class="last-upd"></span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="summary" id="summary"></div>
+  <div class="grid" id="grid"></div>
+  <div class="footer-note">project-status.md 8개를 수동으로 요약한 스냅샷입니다 · 최신화하려면 "업무 트래커 새로고침해줘"라고 요청하세요</div>
+</div>
+
+<script>
+const STATUS_META = {
+  green:  { label: '#16A34A', dot: '#16A34A' },
+  yellow: { label: '#B45309', dot: '#D97706' },
+  red:    { label: '#DC2626', dot: '#DC2626' },
+};
+
+function daysAgo(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return Math.round((today - d) / 864e5);
+}
+
+function escHtml(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderList(items){
+  if (!items || !items.length) return '<div class="empty-note">없음</div>';
+  return '<ul class="card-list">' + items.map(i => `<li>${escHtml(i)}</li>`).join('') + '</ul>';
+}
+
+function renderCard(p){
+  const da = daysAgo(p.lastUpdate);
+  const staleTag = da >= 14 ? `<span class="stale">⚠ ${da}일 전</span>` : `<span>${da}일 전</span>`;
+  return `
+    <div class="card">
+      <div class="card-top">
+        <div>
+          <div class="card-name">${escHtml(p.name)}</div>
+          <div class="card-path">${escHtml(p.path)}</div>
+        </div>
+        <span class="badge ${p.status}"><span class="dot"></span>${escHtml(p.statusLabel)}</span>
+      </div>
+      <div class="card-summary">${escHtml(p.summary)}</div>
+      <div class="card-sec">
+        <div class="card-sec-h">진행 중</div>
+        ${renderList(p.inProgress)}
+      </div>
+      <div class="card-sec">
+        <div class="card-sec-h">다음 할 일</div>
+        ${renderList(p.nextUp)}
+      </div>
+      <div class="card-foot">
+        <span>마지막 업데이트 ${escHtml(p.lastUpdate)}</span>
+        ${staleTag}
+      </div>
+    </div>
+  `;
+}
+
+function renderSummary(projects){
+  const counts = { green: 0, yellow: 0, red: 0 };
+  projects.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1; });
+  const chips = [
+    { key: 'red', label: '정체' },
+    { key: 'yellow', label: '의사결정/후속 대기' },
+    { key: 'green', label: '정상 진행' },
+  ];
+  document.getElementById('summary').innerHTML = chips.map(c => `
+    <div class="summary-chip">
+      <span class="dot" style="background:${STATUS_META[c.key].dot}"></span>
+      <span class="n">${counts[c.key] || 0}</span>${c.label}
+    </div>
+  `).join('');
+}
+
+async function init(){
+  const res = await fetch('./tracker-content.json?_=' + Date.now());
+  const data = await res.json();
+  const order = { red: 0, yellow: 1, green: 2 };
+  const projects = [...data.projects].sort((a, b) => {
+    const byStatus = order[a.status] - order[b.status];
+    if (byStatus !== 0) return byStatus;
+    return new Date(b.lastUpdate) - new Date(a.lastUpdate);
+  });
+
+  renderSummary(projects);
+  document.getElementById('grid').innerHTML = projects.map(renderCard).join('');
+  document.getElementById('genAt').textContent = '스냅샷 생성: ' + data.generatedAt;
+}
+
+if (window.__athomeUser__) init();
+document.addEventListener('athome-auth-ready', init);
+</script>
+</body>
+</html>
