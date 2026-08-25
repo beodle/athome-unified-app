@@ -46,7 +46,10 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
 /* ── LEGEND ── */
 .legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
-.legend-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border-radius:20px;box-shadow:var(--shadow);padding:6px 12px 6px 8px;font-size:12px;font-weight:700;color:var(--text-2);}
+.legend-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border:1.5px solid transparent;border-radius:20px;box-shadow:var(--shadow);padding:6px 12px 6px 8px;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;transition:border-color .12s,opacity .12s;}
+.legend-chip:hover{opacity:.85;}
+.legend-chip.active{border-color:currentColor;}
+.legend.filtering .legend-chip:not(.active){opacity:.4;}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
 /* ── BOARD ── */
@@ -62,13 +65,18 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .tcard{background:var(--bg-card);border-radius:10px;box-shadow:var(--shadow);padding:12px 13px;cursor:grab;position:relative;}
 .tcard:active{cursor:grabbing;}
 .tcard.dragging{opacity:.4;}
+.tcard.drop-before{box-shadow:0 -3px 0 var(--accent),var(--shadow);}
+.tcard.drop-after{box-shadow:0 3px 0 var(--accent),var(--shadow);}
+.tcard.hidden-by-filter{display:none;}
 .tcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;}
 .proj-badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;}
 .proj-badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
-.tcard-del{background:none;border:none;color:var(--text-4);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;border-radius:5px;opacity:0;transition:opacity .12s;flex-shrink:0;}
-.tcard:hover .tcard-del{opacity:1;}
-.tcard-del:hover{background:var(--bg-gray);color:var(--text-1);}
+.tcard-actions{display:flex;gap:2px;flex-shrink:0;}
+.tcard-edit,.tcard-del{background:none;border:none;color:var(--text-4);cursor:pointer;font-size:13px;line-height:1;padding:3px 5px;border-radius:5px;opacity:0;transition:opacity .12s;}
+.tcard:hover .tcard-edit,.tcard:hover .tcard-del{opacity:1;}
+.tcard-edit:hover,.tcard-del:hover{background:var(--bg-gray);color:var(--text-1);}
 .tcard-title{font-size:13px;color:var(--text-1);line-height:1.5;font-weight:600;}
+.tcard.editing{cursor:default;display:flex;flex-direction:column;gap:6px;}
 
 /* ── ADD FORM ── */
 .add-row{margin-top:10px;}
@@ -76,8 +84,8 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .add-toggle:hover{background:var(--bg-gray);color:var(--text-2);}
 .add-form{display:none;flex-direction:column;gap:6px;background:var(--bg-card);border-radius:10px;padding:10px;box-shadow:var(--shadow);}
 .add-form.open{display:flex;}
-.add-form select,.add-form textarea{width:100%;border:1px solid var(--border-2);border-radius:7px;padding:7px 9px;font-family:inherit;font-size:12.5px;color:var(--text-1);background:#fff;outline:none;resize:none;}
-.add-form select:focus,.add-form textarea:focus{border-color:var(--accent);}
+.add-form select,.add-form textarea,.tcard.editing select,.tcard.editing textarea{width:100%;border:1px solid var(--border-2);border-radius:7px;padding:7px 9px;font-family:inherit;font-size:12.5px;color:var(--text-1);background:#fff;outline:none;resize:none;}
+.add-form select:focus,.add-form textarea:focus,.tcard.editing select:focus,.tcard.editing textarea:focus{border-color:var(--accent);}
 .add-form-actions{display:flex;gap:6px;justify-content:flex-end;}
 .add-form-actions button{border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;}
 .btn-save{background:var(--accent);color:#fff;}
@@ -199,15 +207,37 @@ const SEED_TASKS = [
 let db = null;
 let tasks = [];
 let draggingId = null;
+let dropTarget = null; // { id, before }
+let editingIds = new Set();
+let activeFilter = null; // project key, or null = 전체
 
 function escHtml(s){
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function renderLegend(){
-  document.getElementById('legend').innerHTML = PROJECTS.map(p => `
-    <span class="legend-chip"><span class="legend-dot" style="background:${p.color}"></span>${escHtml(p.key)}</span>
+  const el = document.getElementById('legend');
+  el.innerHTML = PROJECTS.map(p => `
+    <span class="legend-chip" data-project="${escHtml(p.key)}" style="color:${p.color}">
+      <span class="legend-dot" style="background:${p.color}"></span>${escHtml(p.key)}
+    </span>
   `).join('');
+  el.querySelectorAll('.legend-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const key = chip.dataset.project;
+      activeFilter = activeFilter === key ? null : key;
+      applyFilterUI();
+      render();
+    });
+  });
+}
+
+function applyFilterUI(){
+  const el = document.getElementById('legend');
+  el.classList.toggle('filtering', !!activeFilter);
+  el.querySelectorAll('.legend-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.project === activeFilter);
+  });
 }
 
 function projBadge(project){
@@ -216,11 +246,26 @@ function projBadge(project){
 }
 
 function renderCard(t){
+  if (editingIds.has(t.id)) {
+    return `
+      <div class="tcard editing" data-id="${t.id}">
+        <select class="e-proj">${PROJECTS.map(p => `<option value="${escHtml(p.key)}" ${p.key === t.project ? 'selected' : ''}>${escHtml(p.key)}</option>`).join('')}</select>
+        <textarea class="e-title" rows="2">${escHtml(t.title)}</textarea>
+        <div class="add-form-actions">
+          <button type="button" class="btn-cancel e-cancel" data-id="${t.id}">취소</button>
+          <button type="button" class="btn-save e-save" data-id="${t.id}">저장</button>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div class="tcard" draggable="true" data-id="${t.id}">
       <div class="tcard-top">
         ${projBadge(t.project)}
-        <button class="tcard-del" data-id="${t.id}" title="삭제">×</button>
+        <div class="tcard-actions">
+          <button class="tcard-edit" data-id="${t.id}" title="수정">✎</button>
+          <button class="tcard-del" data-id="${t.id}" title="삭제">×</button>
+        </div>
       </div>
       <div class="tcard-title">${escHtml(t.title)}</div>
     </div>
@@ -230,23 +275,44 @@ function renderCard(t){
 function render(){
   STATUSES.forEach(st => {
     const list = tasks.filter(t => t.status === st).sort((a,b) => (a.order||0) - (b.order||0));
-    document.getElementById('cnt-' + st).textContent = list.length;
+    const visible = activeFilter ? list.filter(t => t.project === activeFilter) : list;
+    document.getElementById('cnt-' + st).textContent = `${visible.length}${activeFilter ? ' / ' + list.length : ''}`;
     const el = document.getElementById('list-' + st);
-    el.innerHTML = list.length ? list.map(renderCard).join('') : '<div class="empty-hint">없음</div>';
+    el.innerHTML = visible.length ? visible.map(renderCard).join('') : '<div class="empty-hint">없음</div>';
   });
-  document.getElementById('taskCount').textContent = `전체 ${tasks.length}건`;
+  const shown = activeFilter ? tasks.filter(t => t.project === activeFilter).length : tasks.length;
+  document.getElementById('taskCount').textContent = activeFilter ? `${shown} / ${tasks.length}건 표시` : `전체 ${tasks.length}건`;
   bindCardEvents();
 }
 
+function clearDropIndicators(){
+  document.querySelectorAll('.tcard.drop-before,.tcard.drop-after').forEach(el => {
+    el.classList.remove('drop-before', 'drop-after');
+  });
+}
+
 function bindCardEvents(){
-  document.querySelectorAll('.tcard').forEach(card => {
+  document.querySelectorAll('.tcard[draggable="true"]').forEach(card => {
     card.addEventListener('dragstart', () => {
       draggingId = card.dataset.id;
+      dropTarget = null;
       card.classList.add('dragging');
     });
     card.addEventListener('dragend', () => {
       card.classList.remove('dragging');
+      clearDropIndicators();
       draggingId = null;
+      dropTarget = null;
+    });
+    card.addEventListener('dragover', e => {
+      if (!draggingId || draggingId === card.dataset.id) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = card.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      clearDropIndicators();
+      card.classList.add(before ? 'drop-before' : 'drop-after');
+      dropTarget = { id: card.dataset.id, before };
     });
   });
   document.querySelectorAll('.tcard-del').forEach(btn => {
@@ -255,6 +321,50 @@ function bindCardEvents(){
       db.collection('trackerTasks').doc(btn.dataset.id).delete();
     });
   });
+  document.querySelectorAll('.tcard-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingIds.add(btn.dataset.id);
+      render();
+    });
+  });
+  document.querySelectorAll('.e-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingIds.delete(btn.dataset.id);
+      render();
+    });
+  });
+  document.querySelectorAll('.e-save').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const card = btn.closest('.tcard');
+      const title = card.querySelector('.e-title').value.trim();
+      const project = card.querySelector('.e-proj').value;
+      if (!title) return;
+      editingIds.delete(id);
+      db.collection('trackerTasks').doc(id).update({ title, project });
+    });
+  });
+}
+
+// 드롭된 컬럼의 최종 순서를 계산해 그 컬럼 전체의 order를 다시 매긴다.
+// dropTarget이 있으면 그 카드 기준 위/아래에 끼워 넣고, 없으면(컬럼 빈 공간에 드롭) 맨 뒤에 붙인다.
+function reorderColumn(status, draggedId, target){
+  const list = tasks.filter(t => t.status === status && t.id !== draggedId).sort((a,b) => (a.order||0) - (b.order||0));
+  const draggedTask = tasks.find(t => t.id === draggedId);
+  let insertAt = list.length;
+  if (target) {
+    const idx = list.findIndex(t => t.id === target.id);
+    if (idx !== -1) insertAt = target.before ? idx : idx + 1;
+  }
+  list.splice(insertAt, 0, draggedTask);
+
+  const batch = db.batch();
+  list.forEach((t, i) => {
+    const patch = { order: i };
+    if (t.id === draggedId && t.status !== status) patch.status = status;
+    batch.update(db.collection('trackerTasks').doc(t.id), patch);
+  });
+  batch.commit();
 }
 
 function bindColumnDrop(){
@@ -267,11 +377,13 @@ function bindColumnDrop(){
     col.addEventListener('drop', e => {
       e.preventDefault();
       col.classList.remove('drag-over');
+      clearDropIndicators();
       if (!draggingId) return;
       const newStatus = col.dataset.status;
-      const task = tasks.find(t => t.id === draggingId);
-      if (!task || task.status === newStatus) return;
-      db.collection('trackerTasks').doc(draggingId).update({ status: newStatus });
+      const target = dropTarget && tasks.find(t => t.id === dropTarget.id && t.status === newStatus) ? dropTarget : null;
+      reorderColumn(newStatus, draggingId, target);
+      draggingId = null;
+      dropTarget = null;
     });
   });
 }
