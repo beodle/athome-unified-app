@@ -770,7 +770,7 @@
 
       // 컬럼 문자 계산 (0→A, 1→B, …)
       const col   = indexToColLetter(dateColIndex);
-      const range = `${sheetName}!${col}${event._rowIndex}`;
+      const range = `${quoteSheetName(sheetName)}!${col}${event._rowIndex}`;
 
       const res = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
@@ -787,6 +787,13 @@
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error?.message || `HTTP ${res.status}`);
       }
+    }
+
+    // A1 표기법에서 시트명에 공백·특수문자가 있으면 반드시 작은따옴표로 감싸야 한다
+    // (안에 작은따옴표가 있으면 ''로 이스케이프). 안 감싸면 "Unable to parse range" 오류 발생 —
+    // 실제로 시트 탭 이름에 공백이 들어있는데 안 감싸서 터진 적 있음.
+    function quoteSheetName(name) {
+      return `'${String(name).replace(/'/g, "''")}'`;
     }
 
     function indexToColLetter(idx) {
@@ -822,7 +829,7 @@
       if (!accessToken) throw new Error('로그인 필요');
       if (!sheetName)   throw new Error('시트명 불명');
 
-      const range = encodeURIComponent(`${sheetName}!A:Z`);
+      const range = encodeURIComponent(`${quoteSheetName(sheetName)}!A:Z`);
       const res = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
         {
@@ -857,7 +864,7 @@
 
       const cols    = (headerFields && headerFields.length) ? headerFields : DEFAULT_COLUMNS;
       const lastCol = indexToColLetter(cols.length - 1);
-      const range   = `${sheetName}!A${rowIndex}:${lastCol}${rowIndex}`;
+      const range   = `${quoteSheetName(sheetName)}!A${rowIndex}:${lastCol}${rowIndex}`;
 
       const res = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
