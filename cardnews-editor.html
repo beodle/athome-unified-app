@@ -345,8 +345,12 @@ function hasImageClass(c) {
 function cardImagePadding(c) {
   const meta = imageZoneMeta(c);
   if (!meta) return '';
-  const side = meta.pos === 'top' ? 'padding-top' : 'padding-bottom';
-  return `${side}:${meta.height + 48}px;`;
+  // 이미지 반대쪽에 기본 padding(120px)을 그대로 두면 그쪽으로 치우쳐 보이므로,
+  // 양쪽 다 명시적으로 지정해 남은 공간 [0, cardHeight-zoneHeight] 안에서 진짜 중앙이 되게 함.
+  const GAP = 48;
+  return meta.pos === 'top'
+    ? `padding-top:${meta.height + GAP}px;padding-bottom:${GAP}px;`
+    : `padding-top:${GAP}px;padding-bottom:${meta.height + GAP}px;`;
 }
 function renderImageZone(c) {
   const meta = imageZoneMeta(c);
