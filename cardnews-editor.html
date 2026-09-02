@@ -432,11 +432,11 @@ function readImageFile(file, maxDim = 1350, quality = 0.85) {
   });
 }
 
-function imageField(c, label = '사진 (선택)') {
+function imageField(c, label = '사진 (선택)', showPosToggle = true) {
   const inputId = 'img_' + Math.random().toString(36).slice(2, 8);
   const preview = c.image_url
     ? `<div class="img-field-preview"><img src="${escapeHtml(c.image_url)}"><button type="button" class="ed-btn" data-remove-image>사진 제거</button></div>` : '';
-  const posToggle = c.image_url ? `<div class="img-pos-toggle">
+  const posToggle = (c.image_url && showPosToggle) ? `<div class="img-pos-toggle">
     <button type="button" class="ed-btn${c.image_pos === 'top' ? '' : ' primary'}" data-pos="bottom">▼ 아래</button>
     <button type="button" class="ed-btn${c.image_pos === 'top' ? ' primary' : ''}" data-pos="top">▲ 위</button>
   </div>` : '';
@@ -503,7 +503,7 @@ function renderEditor() {
       fields += field('kicker', c.kicker, v => { c.kicker = v; renderPreview(); });
       fields += field('title_lines (한 줄에 하나씩)', (c.title_lines || []).join('\n'),
         v => { c.title_lines = v.split('\n').filter(Boolean); renderPreview(); }, { textarea: true, rows: 3 });
-      fields += imageField(c, '커버 사진 (선택 — 비우면 컬러 그라데이션)');
+      fields += imageField(c, '커버 사진 (선택 — 비우면 컬러 그라데이션)', false);
       fields += field('image_overlay (gradient | dark | light | none)', c.image_overlay || 'gradient', v => { c.image_overlay = v; renderPreview(); });
       fields += field('accent_color (이미지 없을 때 사용)', c.accent_color || '#FF5D00', v => { c.accent_color = v; renderPreview(); });
     } else if (c.type === 'quote') {
