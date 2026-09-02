@@ -329,11 +329,11 @@ function renderCover(c, m) {
 }
 // 사진 비율에 맞춰 이미지 영역 높이를 계산 (카드 너비 1080px 고정 기준).
 // 비율 정보가 없는 옛 카드는 예전 고정값(1080/620)으로 폴백.
-// 텍스트 영역이 완전히 사라지지 않도록 250~1150px로 clamp.
+// 텍스트 영역이 항상 카드의 절반 이상 확보되도록 250~675px(카드 높이 1350의 절반)로 clamp.
 function imageZoneMeta(c) {
   if (!c.image_url) return null;
   const ratio = c.image_ratio || (1080 / 620);
-  const height = Math.min(Math.max(Math.round(1080 / ratio), 250), 1150);
+  const height = Math.min(Math.max(Math.round(1080 / ratio), 250), 675);
   const pos = c.image_pos === 'top' ? 'top' : 'bottom';
   return { height, pos };
 }
