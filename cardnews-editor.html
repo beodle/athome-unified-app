@@ -17,7 +17,6 @@
   --fs-kicker: 28px; --fs-cover-title: 84px; --fs-quote: 52px;
   --fs-insight-headline: 56px; --fs-insight-body: 42px; --fs-outro-title: 56px;
   --fs-cta: 38px; --fs-footer: 22px; --pad-x: 120px; --pad-y: 120px;
-  --image-zone-height: 620px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif; background: #555; color: var(--dark); -webkit-font-smoothing: antialiased; }
@@ -48,10 +47,10 @@ u { text-decoration: none; border-bottom: 3px solid currentColor; padding-bottom
 .card--insight .body { font-size: var(--fs-insight-body); font-weight: 500; line-height: 1.55; letter-spacing: -0.015em; white-space: pre-line; }
 .card--outro { background: var(--bg-light); color: var(--dark); justify-content: flex-start; }
 .card--outro .body { font-size: var(--fs-insight-body); font-weight: 500; line-height: 1.55; letter-spacing: -0.015em; white-space: pre-line; }
-.has-image { justify-content: flex-start !important; padding-bottom: calc(var(--image-zone-height) + 48px) !important; }
-.image-zone { position: absolute; left: 0; right: 0; bottom: 0; overflow: hidden; height: var(--image-zone-height); }
+.has-image-top, .has-image-bottom { justify-content: flex-start !important; }
+.image-zone { position: absolute; left: 0; right: 0; overflow: hidden; }
 .image-zone img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.has-image .footer, .has-image .page-num { color: var(--white); opacity: 0.92; text-shadow: 0 1px 8px rgba(0,0,0,0.4); z-index: 1; }
+.has-image-bottom .footer, .has-image-bottom .page-num { color: var(--white); opacity: 0.92; text-shadow: 0 1px 8px rgba(0,0,0,0.4); z-index: 1; }
 .footer { position: absolute; left: var(--pad-x); bottom: 100px; color: var(--dark); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; opacity: 0.6; max-width: 720px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .page-num { position: absolute; right: var(--pad-x); bottom: 100px; font-size: 20px; font-weight: 600; color: var(--dark); opacity: 0.5; }
 .card--cover .page-num { display: none; }
@@ -95,6 +94,7 @@ u { text-decoration: none; border-bottom: 3px solid currentColor; padding-bottom
   .ed-btn.secondary:hover { background: #0d0d0d; color: white; }
   .ed-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
   .ed-btn-file { position: relative; }
+  .img-pos-toggle { display: flex; gap: 6px; margin: 6px 0; }
   .ed-btn-file input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
 
   /* ---- 카드 섹션 ---- */
@@ -327,12 +327,35 @@ function renderCover(c, m) {
     <h1 class="title">${lines}</h1>
   </section>`;
 }
+// 사진 비율에 맞춰 이미지 영역 높이를 계산 (카드 너비 1080px 고정 기준).
+// 비율 정보가 없는 옛 카드는 예전 고정값(1080/620)으로 폴백.
+// 텍스트 영역이 완전히 사라지지 않도록 250~1150px로 clamp.
+function imageZoneMeta(c) {
+  if (!c.image_url) return null;
+  const ratio = c.image_ratio || (1080 / 620);
+  const height = Math.min(Math.max(Math.round(1080 / ratio), 250), 1150);
+  const pos = c.image_pos === 'top' ? 'top' : 'bottom';
+  return { height, pos };
+}
+function hasImageClass(c) {
+  const meta = imageZoneMeta(c);
+  if (!meta) return '';
+  return meta.pos === 'top' ? ' has-image-top' : ' has-image-bottom';
+}
+function cardImagePadding(c) {
+  const meta = imageZoneMeta(c);
+  if (!meta) return '';
+  const side = meta.pos === 'top' ? 'padding-top' : 'padding-bottom';
+  return `${side}:${meta.height + 48}px;`;
+}
 function renderImageZone(c) {
-  if (!c.image_url) return '';
-  return `<div class="image-zone"><img src="${c.image_url.replace(/"/g, '&quot;')}" alt=""></div>`;
+  const meta = imageZoneMeta(c);
+  if (!meta) return '';
+  const posStyle = meta.pos === 'top' ? 'top:0;bottom:auto;' : 'bottom:0;top:auto;';
+  return `<div class="image-zone" style="height:${meta.height}px;${posStyle}"><img src="${c.image_url.replace(/"/g, '&quot;')}" alt=""></div>`;
 }
 function renderQuote(c, m, i, n) {
-  return `<section class="card card--quote${c.image_url ? ' has-image' : ''}">
+  return `<section class="card card--quote${hasImageClass(c)}" style="${cardImagePadding(c)}">
     <p class="body">${richText(c.body || '')}</p>
     ${renderImageZone(c)}
     <div class="footer">${escapeHtml(m.title || '')}</div>
@@ -340,7 +363,7 @@ function renderQuote(c, m, i, n) {
   </section>`;
 }
 function renderInsight(c, m, i, n) {
-  return `<section class="card card--insight${c.image_url ? ' has-image' : ''}">
+  return `<section class="card card--insight${hasImageClass(c)}" style="${cardImagePadding(c)}">
     ${c.headline ? `<h2 class="headline">${applyInline(escapeHtml(c.headline))}</h2>` : ''}
     <p class="body">${richText(c.body || '')}</p>
     ${renderImageZone(c)}
@@ -350,7 +373,7 @@ function renderInsight(c, m, i, n) {
 }
 function renderOutro(c, m, i, n) {
   const bodyText = c.body || c.title || '';
-  return `<section class="card card--outro${c.image_url ? ' has-image' : ''}">
+  return `<section class="card card--outro${hasImageClass(c)}" style="${cardImagePadding(c)}">
     ${bodyText ? `<p class="body">${richText(bodyText)}</p>` : ''}
     ${renderImageZone(c)}
     <div class="footer">${escapeHtml(m.title || '')}</div>
@@ -382,12 +405,15 @@ function field(label, value, oninput, opts = {}) {
   return `<div class="field"><label>${label}</label>${tag}</div>`;
 }
 
+// dataUrl과 함께 원본 가로/세로 비율(ratio = width/height)도 돌려줌 —
+// 이미지 영역 높이를 사진 비율에 맞게 가변으로 잡는 데 씀.
 function readImageFile(file, maxDim = 1350, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
+        const ratio = img.width / img.height;
         let { width, height } = img;
         if (width > maxDim || height > maxDim) {
           const scale = maxDim / Math.max(width, height);
@@ -396,7 +422,7 @@ function readImageFile(file, maxDim = 1350, quality = 0.85) {
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', quality), ratio });
       };
       img.onerror = reject;
       img.src = reader.result;
@@ -410,6 +436,10 @@ function imageField(c, label = '사진 (선택)') {
   const inputId = 'img_' + Math.random().toString(36).slice(2, 8);
   const preview = c.image_url
     ? `<div class="img-field-preview"><img src="${escapeHtml(c.image_url)}"><button type="button" class="ed-btn" data-remove-image>사진 제거</button></div>` : '';
+  const posToggle = c.image_url ? `<div class="img-pos-toggle">
+    <button type="button" class="ed-btn${c.image_pos === 'top' ? '' : ' primary'}" data-pos="bottom">▼ 아래</button>
+    <button type="button" class="ed-btn${c.image_pos === 'top' ? ' primary' : ''}" data-pos="top">▲ 위</button>
+  </div>` : '';
   setTimeout(() => {
     const wrap = document.getElementById(inputId)?.closest('.field');
     wrap?.querySelector('input[type=file]')?.addEventListener('change', async (e) => {
@@ -417,8 +447,10 @@ function imageField(c, label = '사진 (선택)') {
       if (!file) return;
       if (!file.type.startsWith('image/')) { alert('이미지 파일만 가능합니다'); return; }
       pushUndo();
-      const dataUrl = await readImageFile(file);
+      const { dataUrl, ratio } = await readImageFile(file);
       c.image_url = dataUrl;
+      c.image_ratio = ratio;
+      if (!c.image_pos) c.image_pos = 'bottom';
       renderAll();
       const kb = Math.round(dataUrl.length / 1024);
       showToast(kb > 900 ? `사진 추가됨 (${kb}KB, 큰 편)` : `사진 추가됨 (${kb}KB)`);
@@ -426,11 +458,21 @@ function imageField(c, label = '사진 (선택)') {
     wrap?.querySelector('[data-remove-image]')?.addEventListener('click', () => {
       pushUndo();
       delete c.image_url;
+      delete c.image_ratio;
+      delete c.image_pos;
       renderAll();
       showToast('사진 제거됨');
     });
+    wrap?.querySelectorAll('[data-pos]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (c.image_pos === btn.dataset.pos) return;
+        pushUndo();
+        c.image_pos = btn.dataset.pos;
+        renderAll();
+      });
+    });
   }, 0);
-  return `<div class="field"><label>${label}</label>${preview}
+  return `<div class="field"><label>${label}</label>${preview}${posToggle}
     <label class="ed-btn ed-btn-file" style="display:inline-block;">${c.image_url ? '사진 교체' : '사진 추가'}<input type="file" id="${inputId}" accept="image/*"></label>
   </div>`;
 }
