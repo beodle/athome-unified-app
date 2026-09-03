@@ -328,7 +328,7 @@ function imageZoneMeta(c) {
   if (!c.image_url) return null;
   const ratio = c.image_ratio || (1080 / 620);
   const height = Math.min(Math.max(Math.round(1080 / ratio), 250), 675);
-  const pos = c.image_pos === 'top' ? 'top' : 'bottom';
+  const pos = c.image_pos === 'bottom' ? 'bottom' : 'top';
   return { height, pos };
 }
 function hasImageClass(c) {
@@ -429,8 +429,8 @@ function imageField(c, label = '사진 (선택)', showPosToggle = true) {
   const preview = c.image_url
     ? `<div class="img-field-preview"><img src="${escapeHtml(c.image_url)}"><button type="button" class="ed-btn" data-remove-image>사진 제거</button></div>` : '';
   const posToggle = (c.image_url && showPosToggle) ? `<div class="img-pos-toggle">
-    <button type="button" class="ed-btn${c.image_pos === 'top' ? '' : ' primary'}" data-pos="bottom">▼ 아래</button>
-    <button type="button" class="ed-btn${c.image_pos === 'top' ? ' primary' : ''}" data-pos="top">▲ 위</button>
+    <button type="button" class="ed-btn${c.image_pos === 'bottom' ? ' primary' : ''}" data-pos="bottom">▼ 아래</button>
+    <button type="button" class="ed-btn${c.image_pos === 'bottom' ? '' : ' primary'}" data-pos="top">▲ 위</button>
   </div>` : '';
   setTimeout(() => {
     const wrap = document.getElementById(inputId)?.closest('.field');
@@ -442,7 +442,7 @@ function imageField(c, label = '사진 (선택)', showPosToggle = true) {
       const { dataUrl, ratio } = await readImageFile(file);
       c.image_url = dataUrl;
       c.image_ratio = ratio;
-      if (!c.image_pos) c.image_pos = 'bottom';
+      if (!c.image_pos) c.image_pos = 'top';
       renderAll();
       const kb = Math.round(dataUrl.length / 1024);
       showToast(kb > 900 ? `사진 추가됨 (${kb}KB, 큰 편)` : `사진 추가됨 (${kb}KB)`);
