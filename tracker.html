@@ -361,7 +361,13 @@ function reorderColumn(status, draggedId, target){
   const batch = db.batch();
   list.forEach((t, i) => {
     const patch = { order: i };
-    if (t.id === draggedId && t.status !== status) patch.status = status;
+    if (t.id === draggedId && t.status !== status) {
+      patch.status = status;
+      // 완료로 옮겨지면 완료 시각을 찍어 7일 뒤 자동 삭제(cleanupOldDone) 대상이 되게 하고,
+      // 완료에서 다시 다른 컬럼으로 옮기면 스탬프를 지워 삭제 대상에서 빠지게 함.
+      if (status === 'done') patch.completedAt = Date.now();
+      else if (t.status === 'done') patch.completedAt = null;
+    }
     batch.update(db.collection('trackerTasks').doc(t.id), patch);
   });
   batch.commit();
@@ -427,6 +433,7 @@ function bindAddForms(){
         status: st,
         order: maxOrder + 1,
         createdAt: Date.now(),
+        ...(st === 'done' ? { completedAt: Date.now() } : {}),
       });
       titleEl.value = '';
       form.classList.remove('open');
@@ -465,6 +472,23 @@ async function ensureRenamed(){
   await batch.commit();
 }
 
+// 완료된 지 7일 지난 카드는 자동으로 지움 — project-status.md처럼 기록용이 아니라
+// "지금 할 일"만 보여주는 트래커라, 완료 항목이 계속 쌓이지 않게 함.
+// completedAt이 없는(이 기능 이전에 완료된) 카드는 언제 완료됐는지 알 수 없어 건드리지 않음.
+const ARCHIVE_AFTER_DAYS = 7;
+async function cleanupOldDone(){
+  const cutoff = Date.now() - ARCHIVE_AFTER_DAYS * 864e5;
+  const snap = await db.collection('trackerTasks').get();
+  const stale = snap.docs.filter(d => {
+    const t = d.data();
+    return t.status === 'done' && t.completedAt && t.completedAt < cutoff;
+  });
+  if (!stale.length) return;
+  const batch = db.batch();
+  stale.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+}
+
 async function init(){
   db = window.__athomeDb__;
   renderLegend();
@@ -473,8 +497,9 @@ async function init(){
   try {
     await ensureSeeded();
     await ensureRenamed();
+    await cleanupOldDone();
   } catch (e) {
-    console.error('[tracker] seed/rename failed', e);
+    console.error('[tracker] seed/rename/cleanup failed', e);
   }
   db.collection('trackerTasks').onSnapshot(snap => {
     tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
