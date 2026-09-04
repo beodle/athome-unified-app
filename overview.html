@@ -52,6 +52,13 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .card-h{display:flex;align-items:baseline;gap:8px;padding:16px 18px 12px;border-bottom:1px solid var(--border);}
 .card-h .t{font-size:14.5px;font-weight:800;}
 .card-h .sub{font-size:11.5px;color:var(--text-4);margin-left:auto;}
+button:focus-visible,
+.quick-link:focus-visible,
+.ov-todo-item:focus-visible,
+.ov-note:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
 
 /* ── KPI ── */
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
@@ -65,6 +72,15 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .kpi-sub{margin-top:6px;font-size:12px;font-weight:600;color:var(--text-4);}
 .cmp{display:inline-flex;align-items:center;gap:3px;margin-top:7px;font-size:11px;font-weight:700;}
 .cmp.up{color:var(--up);} .cmp.down{color:var(--down);} .cmp.flat{color:var(--text-4);}
+.quick-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
+.quick-link{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);box-shadow:var(--shadow);color:var(--text-2);text-decoration:none;transition:transform .14s,border-color .14s,color .14s;}
+.quick-link:hover{transform:translateY(-1px);border-color:var(--border-2);color:var(--text-1);}
+.quick-icon{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--accent-light);color:var(--accent);font-size:13px;font-weight:900;flex-shrink:0;}
+.quick-copy{min-width:0;}
+.quick-copy b{display:block;font-size:12.5px;line-height:1.35;color:var(--text-1);}
+.quick-copy span{display:block;font-size:11px;font-weight:600;color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media(max-width:900px){.quick-strip{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:520px){.quick-strip{grid-template-columns:1fr;}}
 
 .ov-body{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-top:16px;align-items:start;}
 @media (max-width:860px){.ov-body{grid-template-columns:1fr;}}
@@ -160,10 +176,25 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
     <div class="kpi"><div class="kpi-top"><span class="kpi-label">블로그 조회</span><span class="kpi-spark"></span></div><div class="kpi-val">—</div><div class="kpi-sub">이번 달 합계</div><span class="cmp"></span></div>
   </div>
 
+  <nav class="quick-strip" aria-label="채용 콘텐츠 제작 바로가기">
+    <a class="quick-link" href="#/tracker" onclick="navigateTo('tracker'); return false;">
+      <span class="quick-icon">1</span><span class="quick-copy"><b>오늘 할 일 정리</b><span>칸반에서 우선순위 잡기</span></span>
+    </a>
+    <a class="quick-link" href="#/calendar" onclick="navigateTo('calendar'); return false;">
+      <span class="quick-icon">2</span><span class="quick-copy"><b>발행 일정 확인</b><span>이번 3주 콘텐츠 흐름 보기</span></span>
+    </a>
+    <a class="quick-link" href="#/utm" onclick="navigateTo('utm'); return false;">
+      <span class="quick-icon">3</span><span class="quick-copy"><b>추적 링크 만들기</b><span>채널별 UTM 문법 적용</span></span>
+    </a>
+    <a class="quick-link" href="#/cardnews" onclick="navigateTo('cardnews'); return false;">
+      <span class="quick-icon">4</span><span class="quick-copy"><b>카드뉴스 제작</b><span>PNG/PDF로 바로 내보내기</span></span>
+    </a>
+  </nav>
+
   <div class="ov-body">
     <div class="ov-main">
       <section class="card">
-        <div class="card-h"><span class="t">콘텐츠 일정</span><span class="sub" id="ovCalSub"></span></div>
+        <div class="card-h"><span class="t">이번 3주 발행 흐름</span><span class="sub" id="ovCalSub"></span></div>
         <div class="ov-cal">
           <div class="ov-cal-labels"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span></div>
           <div class="ov-cal-weeks" id="ovCalWeeks"></div>
@@ -171,7 +202,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
       </section>
 
       <section class="card">
-        <div class="card-h"><span class="t">업무 트래커</span><button class="ov-add-btn" onclick="navigateTo('tracker')">전체 보기 →</button></div>
+        <div class="card-h"><span class="t">오늘 움직일 작업</span><button class="ov-add-btn" onclick="navigateTo('tracker')">전체 보기 →</button></div>
         <div class="ov-task-cols">
           <div class="ov-task-col">
             <div class="ov-task-col-h">다음 할 일 <span id="ovTodoCount"></span></div>
@@ -187,7 +218,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
     <div class="ov-side">
       <aside class="card">
-        <div class="card-h"><span class="t">최근 아이디어</span><button class="ov-add-btn" onclick="navigateTo('ideas')">+ 아이디어 추가</button></div>
+        <div class="card-h"><span class="t">콘텐츠 씨앗</span><button class="ov-add-btn" onclick="navigateTo('ideas')">+ 아이디어 추가</button></div>
         <div class="ov-ideas-board" id="ovIdeasBoard"></div>
       </aside>
     </div>

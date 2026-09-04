@@ -51,6 +51,14 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .legend-chip.active{border-color:currentColor;}
 .legend.filtering .legend-chip:not(.active){opacity:.4;}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.legend-chip:focus-visible,
+.tcard:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
 
 /* ── BOARD ── */
 .board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start;}
@@ -64,6 +72,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .cardlist{display:flex;flex-direction:column;gap:9px;min-height:8px;}
 .tcard{background:var(--bg-card);border-radius:10px;box-shadow:var(--shadow);padding:12px 13px;cursor:grab;position:relative;}
 .tcard:active{cursor:grabbing;}
+.tcard:focus-within{box-shadow:0 0 0 2px var(--accent-light),var(--shadow);}
 .tcard.dragging{opacity:.4;}
 .tcard.drop-before{box-shadow:0 -3px 0 var(--accent),var(--shadow);}
 .tcard.drop-after{box-shadow:0 3px 0 var(--accent),var(--shadow);}
@@ -72,8 +81,8 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .proj-badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;}
 .proj-badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
 .tcard-actions{display:flex;gap:2px;flex-shrink:0;}
-.tcard-edit,.tcard-del{background:none;border:none;color:var(--text-4);cursor:pointer;font-size:13px;line-height:1;padding:3px 5px;border-radius:5px;opacity:0;transition:opacity .12s;}
-.tcard:hover .tcard-edit,.tcard:hover .tcard-del{opacity:1;}
+.tcard-edit,.tcard-del{background:none;border:none;color:var(--text-4);cursor:pointer;font-size:13px;line-height:1;min-width:28px;min-height:28px;padding:3px 5px;border-radius:7px;opacity:0;transition:opacity .12s,background .12s,color .12s;}
+.tcard:hover .tcard-edit,.tcard:hover .tcard-del,.tcard:focus-within .tcard-edit,.tcard:focus-within .tcard-del{opacity:1;}
 .tcard-edit:hover,.tcard-del:hover{background:var(--bg-gray);color:var(--text-1);}
 .tcard-title{font-size:13px;color:var(--text-1);line-height:1.5;font-weight:600;}
 .tcard.editing{cursor:default;display:flex;flex-direction:column;gap:6px;}
@@ -93,6 +102,14 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 
 .empty-hint{font-size:12px;color:var(--text-4);text-align:center;padding:10px 0;}
 .footer-note{margin-top:24px;font-size:11.5px;color:var(--text-4);text-align:center;}
+.toast{position:fixed;left:50%;bottom:24px;z-index:2000;display:flex;align-items:center;gap:12px;max-width:min(520px,calc(100vw - 32px));padding:10px 12px 10px 15px;border-radius:10px;background:var(--text-1);color:var(--bg-card);box-shadow:0 12px 34px rgba(40,30,20,.18);font-size:12.5px;font-weight:700;opacity:0;pointer-events:none;transform:translate(-50%,8px);transition:opacity .16s,transform .16s;}
+.toast.show{opacity:1;pointer-events:auto;transform:translate(-50%,0);}
+.toast button{border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(255,255,255,.08);color:inherit;font:800 12px/1 var(--font);padding:7px 9px;cursor:pointer;}
+.toast button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+@media (pointer:coarse){
+  .tcard-edit,.tcard-del{opacity:1;}
+}
 
 @media (prefers-color-scheme: dark){
   :root{
@@ -156,6 +173,8 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
   <div class="footer-note">카드를 드래그해서 컬럼 사이로 옮기면 상태가 바로 저장돼요 · project-status.md와는 별개로 관리되는 작업 리스트입니다</div>
 </div>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <script>
 const PROJECTS = [
   { key: 'PR', color: '#2563EB' },
@@ -210,9 +229,11 @@ let draggingId = null;
 let dropTarget = null; // { id, before }
 let editingIds = new Set();
 let activeFilter = null; // project key, or null = 전체
+let undoDeleteTimer = null;
+let lastDeletedTask = null;
 
 function escHtml(s){
-  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function renderLegend(){
@@ -259,12 +280,12 @@ function renderCard(t){
     `;
   }
   return `
-    <div class="tcard" draggable="true" data-id="${t.id}">
+    <div class="tcard" draggable="true" data-id="${t.id}" tabindex="0">
       <div class="tcard-top">
         ${projBadge(t.project)}
         <div class="tcard-actions">
-          <button class="tcard-edit" data-id="${t.id}" title="수정">✎</button>
-          <button class="tcard-del" data-id="${t.id}" title="삭제">×</button>
+          <button class="tcard-edit" type="button" data-id="${t.id}" title="수정" aria-label="${escHtml(t.title)} 수정">✎</button>
+          <button class="tcard-del" type="button" data-id="${t.id}" title="삭제" aria-label="${escHtml(t.title)} 삭제">×</button>
         </div>
       </div>
       <div class="tcard-title">${escHtml(t.title)}</div>
@@ -317,8 +338,7 @@ function bindCardEvents(){
   });
   document.querySelectorAll('.tcard-del').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (!confirm('이 작업을 삭제할까요?')) return;
-      db.collection('trackerTasks').doc(btn.dataset.id).delete();
+      deleteTaskWithUndo(btn.dataset.id);
     });
   });
   document.querySelectorAll('.tcard-edit').forEach(btn => {
@@ -343,6 +363,42 @@ function bindCardEvents(){
       editingIds.delete(id);
       db.collection('trackerTasks').doc(id).update({ title, project });
     });
+  });
+}
+
+function showToast(message, actionLabel, action){
+  const el = document.getElementById('toast');
+  el.innerHTML = `${escHtml(message)}${actionLabel ? ` <button type="button">${escHtml(actionLabel)}</button>` : ''}`;
+  const btn = el.querySelector('button');
+  if (btn && action) btn.addEventListener('click', action, { once:true });
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.remove('show'), 4200);
+}
+
+function deleteTaskWithUndo(id){
+  const task = tasks.find(t => t.id === id);
+  if (!task || !db) return;
+  lastDeletedTask = { ...task };
+  tasks = tasks.filter(t => t.id !== id);
+  render();
+  db.collection('trackerTasks').doc(id).delete().catch(err => {
+    console.error('[tracker] delete failed', err);
+    showToast('삭제에 실패했어요. 네트워크를 확인해주세요.');
+  });
+  clearTimeout(undoDeleteTimer);
+  undoDeleteTimer = setTimeout(() => { lastDeletedTask = null; }, 4200);
+  showToast('작업을 삭제했어요', '되돌리기', () => {
+    if (!lastDeletedTask) return;
+    const restore = { ...lastDeletedTask };
+    delete restore.id;
+    db.collection('trackerTasks').doc(lastDeletedTask.id).set(restore).catch(err => {
+      console.error('[tracker] restore failed', err);
+      showToast('되돌리기에 실패했어요.');
+    });
+    lastDeletedTask = null;
+    clearTimeout(undoDeleteTimer);
+    document.getElementById('toast').classList.remove('show');
   });
 }
 
@@ -398,7 +454,7 @@ function bindAddForms(){
   STATUSES.forEach(st => {
     const row = document.getElementById('addrow-' + st);
     row.innerHTML = `
-      <button class="add-toggle" type="button">+ 작업 추가</button>
+      <button class="add-toggle" type="button" aria-expanded="false">+ 작업 추가</button>
       <div class="add-form">
         <select class="f-proj">${PROJECTS.map(p => `<option value="${escHtml(p.key)}">${escHtml(p.key)}</option>`).join('')}</select>
         <textarea class="f-title" rows="2" placeholder="작업 내용"></textarea>
@@ -416,11 +472,13 @@ function bindAddForms(){
     toggle.addEventListener('click', () => {
       form.classList.add('open');
       toggle.hidden = true;
+      toggle.setAttribute('aria-expanded', 'true');
       titleEl.focus();
     });
     row.querySelector('.btn-cancel').addEventListener('click', () => {
       form.classList.remove('open');
       toggle.hidden = false;
+      toggle.setAttribute('aria-expanded', 'false');
       titleEl.value = '';
     });
     row.querySelector('.btn-save').addEventListener('click', () => {
@@ -438,6 +496,7 @@ function bindAddForms(){
       titleEl.value = '';
       form.classList.remove('open');
       toggle.hidden = false;
+      toggle.setAttribute('aria-expanded', 'false');
     });
   });
 }

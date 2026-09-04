@@ -34,6 +34,7 @@
 
     * { box-sizing: border-box; }
     html, body { min-height: 100%; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       background: var(--shell-page);
@@ -42,6 +43,23 @@
       -webkit-font-smoothing: antialiased;
       letter-spacing: 0;
     }
+
+    .skip-link {
+      position: fixed;
+      left: 16px;
+      top: 12px;
+      z-index: 1000;
+      transform: translateY(-140%);
+      border-radius: 8px;
+      background: var(--shell-ink);
+      color: var(--shell-panel);
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: transform .15s;
+    }
+    .skip-link:focus-visible { transform: translateY(0); outline: 2px solid var(--shell-accent); outline-offset: 2px; }
 
     .app-shell {
       min-height: 100vh;
@@ -178,6 +196,18 @@
     .shell-refresh:hover { color: var(--shell-ink); border-color: var(--shell-faint); }
     .shell-refresh:disabled { opacity: .45; cursor: not-allowed; }
 
+    .shell-brand:focus-visible,
+    .shell-add:focus-visible,
+    .shell-login:focus-visible,
+    .shell-sheet-link:focus-visible,
+    .shell-refresh:focus-visible,
+    .auth-logout:focus-visible,
+    .nav-link:focus-visible,
+    .nav-channel:focus-visible {
+      outline: 2px solid var(--shell-accent);
+      outline-offset: 2px;
+    }
+
     .shell-main {
       display: grid;
       grid-template-columns: 212px minmax(0, 1fr);
@@ -271,6 +301,12 @@
       border-color: var(--shell-line);
       box-shadow: var(--shell-shadow);
     }
+    .nav-link .nav-hint {
+      margin-left: auto;
+      color: var(--shell-faint);
+      font-size: 10.5px;
+      font-weight: 800;
+    }
     .nav-link.active .nav-icon {
       color: var(--shell-accent);
       background: var(--shell-accent-soft);
@@ -348,9 +384,76 @@
       color: #B42318;
       background: #FFF7F5;
     }
+
+    @media (max-width: 920px) {
+      .app-shell { grid-template-rows: auto 1fr; }
+      .shell-header {
+        min-height: 58px;
+        padding: 0 16px;
+      }
+      .shell-brand { min-width: 0; }
+      .brand-text strong { display: none; }
+      .shell-title { display: none; }
+      .cal-header-actions {
+        margin-left: auto;
+        gap: 6px;
+      }
+      .shell-sheet-link { display: none; }
+      .shell-main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+      .shell-sidebar {
+        position: sticky;
+        top: 58px;
+        z-index: 120;
+        height: auto;
+        padding: 10px 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--shell-line);
+        overflow-x: auto;
+        flex-direction: row;
+        gap: 8px;
+        background: rgba(245, 244, 241, .96);
+        scrollbar-width: none;
+      }
+      .shell-sidebar::-webkit-scrollbar { display: none; }
+      .side-label,
+      .side-divider,
+      .nav-channel,
+      .auth-widget { display: none !important; }
+      .nav-link {
+        flex: 0 0 auto;
+        min-height: 38px;
+        margin: 0;
+        padding: 0 12px 0 9px;
+        background: rgba(255,255,255,.55);
+        border-color: var(--shell-line);
+      }
+      .nav-link.active { background: var(--shell-panel); }
+      .view-frame,
+      #view-container,
+      .view-loading,
+      .view-error {
+        min-height: calc(100dvh - 111px);
+        height: calc(100dvh - 111px);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shell-header { gap: 8px; }
+      .brand-text em { font-size: 12px; }
+      .shell-add,
+      .shell-login {
+        padding-left: 9px;
+        padding-right: 9px;
+      }
+      .nav-link span:last-child { font-size: 12px; }
+    }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#view-container">본문으로 건너뛰기</a>
   <div class="app-shell">
     <header class="shell-header">
       <a class="shell-brand" href="#/overview" aria-label="ATHOME 채용 콘텐츠 워크스페이스">
@@ -361,12 +464,12 @@
       <div class="shell-title" id="shell-title">홈</div>
       <!-- 캘린더 전용 액션 (캘린더 뷰에서만 노출) -->
       <div class="cal-header-actions" id="cal-header-actions" hidden>
-        <button class="shell-add" id="shell-add" type="button" hidden>＋ 일정 추가</button>
+        <button class="shell-add" id="shell-add" type="button" hidden aria-label="콘텐츠 일정 추가">＋ 일정 추가</button>
         <button class="shell-login" id="shell-login" type="button">✎ 편집 로그인</button>
         <a class="shell-sheet-link" id="shell-sheet-link"
            href="https://docs.google.com/spreadsheets/d/1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak/edit?gid=658998951#gid=658998951"
            target="_blank">시트 열기 ↗</a>
-        <button class="shell-refresh" id="shell-refresh" title="캘린더 새로고침">↻</button>
+        <button class="shell-refresh" id="shell-refresh" title="캘린더 새로고침" aria-label="캘린더 새로고침">↻</button>
       </div>
     </header>
 
@@ -435,7 +538,7 @@
       tracker: { path: './tracker.html?shell=1', title: '업무 트래커' },
       dashboard: { path: './dashboard.html?shell=1', title: '대시보드' },
       calendar: { path: './calendar.html?shell=1', title: '콘텐츠 캘린더' },
-      utm: { path: './utm.html', title: 'UTM 빌더' },
+      utm: { path: './utm.html?shell=1', title: 'UTM 빌더' },
       cardnews: { path: './cardnews-editor.html', title: '카드뉴스 에디터' },
       ideas: { path: './ideas.html?shell=1', title: '아이디어 노트' }
     };
@@ -513,7 +616,10 @@
 
     function setActive(route) {
       document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.toggle('active', link.dataset.route === route);
+        const active = link.dataset.route === route;
+        link.classList.toggle('active', active);
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
       });
       shellTitle.textContent = routes[route].title;
       const isCalendar = route === 'calendar';

@@ -9,6 +9,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UTM 빌더</title>
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1') {
+      document.documentElement.classList.add('shell-mode');
+    }
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <style>
 :root {
@@ -45,11 +50,12 @@ body {
 .layout {
   display: grid;
   grid-template-columns: 1fr 420px;
-  height: calc(100vh - 58px);
+  height: 100vh;
   overflow: hidden;
   max-width: 1400px;
   margin: 0 auto;
 }
+.shell-mode .layout { height: 100dvh; }
 .left-panel {
   overflow-y: auto;
   padding: 32px 32px 64px;
@@ -68,6 +74,17 @@ body {
 .page-header { margin-bottom: 36px; }
 .page-title { font-size: 26px; font-weight: 800; letter-spacing: -.03em; color: var(--text-1); line-height: 1.2; margin-bottom: 8px; }
 .page-desc { font-size: 13.5px; color: var(--text-3); line-height: 1.6; }
+.intent-strip {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 18px;
+}
+.intent-chip {
+  border: 1px solid var(--border-2); background: var(--bg-card); color: var(--text-2);
+  border-radius: 999px; padding: 7px 12px; font-family: var(--font);
+  font-size: 12.5px; font-weight: 700; cursor: pointer;
+  transition: border-color .14s, background .14s, color .14s;
+}
+.intent-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
 /* ── 카드 ── */
 .card {
@@ -103,6 +120,11 @@ body {
 }
 .field input::placeholder { color: var(--text-4); }
 .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 /* ── 생성된 URL (생성기 카드 내부 inset) ── */
 .generated-box {
@@ -188,6 +210,7 @@ body {
 .history-card-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
 .history-empty { font-size: 12.5px; color: var(--text-4); font-style: italic; padding: 8px 0; }
 .history-table { width: 100%; border-collapse: collapse; }
+.history-scroll { overflow-x: auto; }
 .history-table th {
   text-align: left; font-size: 10.5px; font-weight: 700; color: var(--text-4);
   letter-spacing: .05em; text-transform: uppercase; padding: 0 10px 10px 0;
@@ -256,6 +279,8 @@ body {
 @media (max-width: 600px) {
   .left-panel { padding: 24px 16px 48px; }
   .right-panel { padding: 20px 16px; }
+  .card { border-radius: 10px; padding: 20px 18px; }
+  .generated-head { align-items: flex-start; flex-direction: column; }
 }
 </style>
 </head>
@@ -268,7 +293,12 @@ body {
 
     <div class="page-header">
       <h1 class="page-title">UTM 링크 빌더</h1>
-      <p class="page-desc">채용 공고·콘텐츠 URL에 UTM 파라미터를 붙여 유입 경로를 정확하게 추적하세요.</p>
+      <p class="page-desc">채용 공고·인터뷰·블로그·영상 링크를 채널별 문법에 맞춰 바로 기록합니다.</p>
+      <div class="intent-strip" aria-label="자주 쓰는 채용 콘텐츠 목적">
+        <button class="intent-chip" type="button" onclick="applyIntent('job')">채용공고 공유</button>
+        <button class="intent-chip" type="button" onclick="applyIntent('interview')">인터뷰 콘텐츠</button>
+        <button class="intent-chip" type="button" onclick="applyIntent('podcast')">홈레코딩</button>
+      </div>
     </div>
 
     <!-- Campaign Link Generator (통합 카드) -->
@@ -279,7 +309,7 @@ body {
         <div class="form-grid">
           <label class="field">
             <span class="field-label">웹사이트 URL <span class="required">필수</span></span>
-            <input type="url" id="f-url" placeholder="https://career.athomecorp.com/jobs" oninput="generate()" autocomplete="off" spellcheck="false">
+            <input type="url" id="f-url" placeholder="https://career.athomecorp.com/jobs" oninput="generate()" autocomplete="off" spellcheck="false" inputmode="url">
           </label>
           <label class="field">
             <span class="field-label">캠페인명</span>
@@ -407,19 +437,34 @@ body {
       return;
     }
 
-    const sep = raw.includes('?') ? '&' : '?';
     const params = [['utm_source', source], ['utm_medium', medium]];
     if (campaign) params.push(['utm_campaign', campaign]);
     if (content) params.push(['utm_content', content]);
 
-    generatedUrl = raw + sep + params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    let url;
+    try {
+      url = new URL(raw);
+    } catch {
+      outputEl.innerHTML = '<span class="output-empty">올바른 URL을 입력하면 링크가 완성됩니다.</span>';
+      generatedUrl = '';
+      copyBtn.disabled = true;
+      saveBtn.disabled = true;
+      return;
+    }
+    params.forEach(([k, v]) => url.searchParams.set(k, v));
+    generatedUrl = url.toString();
+    const displayUrl = new URL(raw);
+    ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k => displayUrl.searchParams.delete(k));
+    const baseWithoutHash = displayUrl.origin + displayUrl.pathname;
+    const baseQuery = displayUrl.searchParams.toString();
+    const sep = baseQuery ? '&' : '?';
 
     const paramHtml = params.map(([k, v], i) => {
       const prefix = i === 0 ? '' : '&amp;';
       return `${prefix}<span class="param-key">${k}</span>=<span class="param-val">${encodeURIComponent(v)}</span>`;
     }).join('');
 
-    outputEl.innerHTML = `<span class="base">${escHtml(raw)}${sep}</span>${paramHtml}`;
+    outputEl.innerHTML = `<span class="base">${escHtml(baseWithoutHash)}${baseQuery ? '?' + escHtml(baseQuery) : ''}${sep}</span>${paramHtml}`;
     copyBtn.disabled = false;
     saveBtn.disabled = false;
     copyBtn.classList.remove('copied');
@@ -474,6 +519,24 @@ body {
     document.getElementById('f-source').value = source;
     mediumTouched = false;
     autofillMedium();
+    generate();
+    document.getElementById('f-url').focus();
+  }
+
+  function applyIntent(intent) {
+    const presets = {
+      job: { campaign: 'recruiting_2026', content: 'job_post' },
+      interview: { campaign: 'people_interview', content: 'interview_post' },
+      podcast: { source: 'youtube', campaign: 'homerecording', content: 'episode' },
+    };
+    const p = presets[intent] || {};
+    if (p.source) {
+      document.getElementById('f-source').value = p.source;
+      mediumTouched = false;
+      autofillMedium();
+    }
+    if (p.campaign) document.getElementById('f-campaign').value = p.campaign;
+    if (p.content) document.getElementById('f-content').value = p.content;
     generate();
     document.getElementById('f-url').focus();
   }
@@ -590,10 +653,10 @@ body {
       </tr>`;
     }).join('');
     el.innerHTML = `
-      <table class="history-table">
+      <div class="history-scroll"><table class="history-table">
         <thead><tr><th>캠페인</th><th>소스</th><th>날짜</th><th>작업</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>`;
+      </table></div>`;
   }
 
   renderHistory();
