@@ -47,6 +47,23 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .status-bar .sb-right{display:flex;align-items:baseline;gap:10px;font-size:12.5px;color:var(--text-3);}
 .status-bar .sb-count{font-size:16px;font-weight:800;color:var(--text-1);letter-spacing:-.02em;}
 
+/* ── DECISION BRIEF ── */
+.brief{margin-top:18px;background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.brief-main{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:18px;padding:22px 24px;border-bottom:1px solid var(--border);}
+.brief-kicker{font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:7px;}
+.brief-title{font-size:21px;font-weight:850;letter-spacing:-.035em;line-height:1.28;color:var(--text-1);max-width:760px;}
+.brief-copy{margin-top:9px;font-size:13px;font-weight:600;color:var(--text-3);line-height:1.65;}
+.brief-actions{background:var(--bg-soft);border-radius:10px;padding:14px 16px;}
+.brief-actions h3{font-size:12px;font-weight:850;color:var(--text-1);margin-bottom:9px;}
+.brief-actions ol{margin:0;padding-left:18px;color:var(--text-2);}
+.brief-actions li{padding-left:2px;margin:6px 0;font-size:12.5px;font-weight:650;line-height:1.55;}
+.brief-signals{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);}
+.signal{background:var(--bg-card);padding:14px 16px;}
+.signal-label{font-size:10.5px;font-weight:800;color:var(--text-4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;}
+.signal-value{display:flex;align-items:baseline;gap:6px;font-size:18px;font-weight:850;color:var(--text-1);}
+.signal-value .up{color:var(--up)}.signal-value .down{color:var(--down)}.signal-value .flat{color:var(--text-4)}
+.signal-note{margin-top:3px;font-size:11.5px;font-weight:600;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
 /* ── TOPBAR ── */
 .topbar{position:sticky;top:0;z-index:60;background:rgba(245,244,241,.85);backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border);}
 .topbar-in{max-width:1120px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px;}
@@ -197,6 +214,8 @@ tbody tr:hover td{background:var(--bg-soft);}
 @media(max-width:820px){
   .kpis{grid-template-columns:repeat(2,1fr);} .grid2{grid-template-columns:1fr;}
   .topbar-in{flex-wrap:wrap;} .brand span{display:none;} .last-upd{display:none;} .seg-group button{padding:6px 9px;}
+  .brief-main{grid-template-columns:1fr;}
+  .brief-signals{grid-template-columns:1fr;}
 }
 @media print{ .topbar,.btn,.acc-btn{display:none;} .card,.kpi{box-shadow:none;break-inside:avoid;} body{background:#fff;} }
 </style>
@@ -256,6 +275,24 @@ tbody tr:hover td{background:var(--bg-soft);}
       <span>↗</span>
     </span>
   </a>
+
+  <!-- 이번 기간 해석 — AI 없이 기존 지표 변화 규칙으로 생성 -->
+  <section class="brief" id="decisionBrief" aria-labelledby="briefTitle">
+    <div class="brief-main">
+      <div>
+        <div class="brief-kicker">이번 기간 진단</div>
+        <h1 class="brief-title" id="briefTitle">데이터를 불러오는 중입니다</h1>
+        <p class="brief-copy" id="briefCopy">선택한 기간의 도달, 관심, 채용사이트 연결 신호를 묶어 운영 판단을 만듭니다.</p>
+      </div>
+      <div class="brief-actions">
+        <h3>다음 액션</h3>
+        <ol id="briefActions">
+          <li>데이터가 준비되면 추천 작업이 표시됩니다.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="brief-signals" id="briefSignals"></div>
+  </section>
 
   <!-- 성과 스코어카드 -->
   <section class="sec" id="secScore" style="margin-top:24px">
@@ -442,7 +479,7 @@ function render(){
   const fixed=range.mode==='all'||range.mode==='custom';
   $('#prevBtn').disabled=fixed||fi<=0; $('#nextBtn').disabled=fixed||li>=ws.length-1;
   document.querySelectorAll('[data-range]').forEach(b=>b.classList.toggle('on',b.dataset.range===range.mode));
-  renderScorecard(R); renderAwareness(R); renderContribution(R); renderConversion(R);
+  renderDecisionBrief(R); renderScorecard(R); renderAwareness(R); renderContribution(R); renderConversion(R);
 }
 
 /* ── 공통 빌더 ── */
@@ -473,6 +510,133 @@ function lastFollowers(weeks){
   const last=weeks[weeks.length-1];
   const past=all.filter(w=>w<=last);
   return DB[past.length?past[past.length-1]:all[0]].followers;
+}
+
+/* ── 이번 기간 해석 ── */
+function pctChange(cur,prev){return prev>0?(cur-prev)/prev*100:null;}
+function dirClass(pct){return pct==null?'flat':pct>=5?'up':pct<=-5?'down':'flat';}
+function pctText(pct){return pct==null?'비교 없음':`${pct>=0?'+':''}${pct.toFixed(1)}%`;}
+function metricSnapshot(R){
+  const weeks=R.weeks, prev=R.prevWeeks;
+  const curBlogUsers=sum(weeks,'blog_users'), prevBlogUsers=sum(prev,'blog_users');
+  const curAvg=curBlogUsers?sum(weeks,'blog_engTime')/curBlogUsers:0;
+  const prevAvg=prevBlogUsers?sum(prev,'blog_engTime')/prevBlogUsers:null;
+  return {
+    imp:{cur:sum(weeks,'impressions'),prev:prev.length?sum(prev,'impressions'):null},
+    visit:{cur:sum(weeks,'users'),prev:prev.length?sum(prev,'users'):null},
+    blog:{cur:sum(weeks,'blog_pageviews'),prev:prev.length?sum(prev,'blog_pageviews'):null},
+    avg:{cur:curAvg,prev:prevAvg},
+    apply:{cur:sum(weeks,'apply_pv'),prev:prev.length?sum(prev,'apply_pv'):null},
+    pubs:publishedInWeeks(weeks),
+    top:topContentSignals(weeks)
+  };
+}
+function publishedInWeeks(weeks){
+  const cal=DB['__calendar__']||[];
+  const set=new Set(weeks);
+  return cal.filter(e=>e.date&&set.has(dateToWeek(e.date)));
+}
+function topContentSignals(weeks){
+  const blogMap={};
+  const normT=t=>String(t||'').replace(/\s*[-–]\s*앳홈 블로그\s*$/,'').trim();
+  weeks.forEach(w=>(DB[w]?.blog_posts||[]).forEach(p=>{
+    if(isNavPage(p))return;
+    const title=normT(p.title), key=title.toLowerCase()||p.path;
+    if(!key)return;
+    if(!blogMap[key])blogMap[key]={title:title||p.path,value:0};
+    blogMap[key].value+=p.pageviews||0;
+  }));
+  const blog=Object.values(blogMap).sort((a,b)=>b.value-a.value)[0]||null;
+  const liRows=[];
+  const li=DB['__li_posts__'];
+  if(li&&li.length)li.filter(p=>weeks.includes(dateToWeek(p.date))).forEach(p=>liRows.push({title:p.title,value:p.impressions||0}));
+  else weeks.forEach(w=>(DB[w]?.posts||[]).forEach(p=>liRows.push({title:p.title,value:p.impressions||0})));
+  liRows.sort((a,b)=>b.value-a.value);
+  return { blog, linkedin: liRows[0]||null };
+}
+function renderSignal(label,cur,prev,note,formatter){
+  const pct=pctChange(cur,prev);
+  const cls=dirClass(pct);
+  const mark=cls==='up'?'▲':cls==='down'?'▼':'―';
+  return `<div class="signal"><div class="signal-label">${label}</div><div class="signal-value"><span>${formatter?formatter(cur):fmt(cur)}</span><span class="${cls}">${mark} ${pctText(pct)}</span></div><div class="signal-note">${esc(note)}</div></div>`;
+}
+function buildBrief(R){
+  const m=metricSnapshot(R);
+  const impPct=pctChange(m.imp.cur,m.imp.prev);
+  const visitPct=pctChange(m.visit.cur,m.visit.prev);
+  const blogPct=pctChange(m.blog.cur,m.blog.prev);
+  const avgPct=pctChange(m.avg.cur,m.avg.prev);
+  const applyPct=pctChange(m.apply.cur,m.apply.prev);
+  const impUp=impPct!=null&&impPct>=10, impDown=impPct!=null&&impPct<=-10;
+  const visitUp=visitPct!=null&&visitPct>=8, visitDown=visitPct!=null&&visitPct<=-8;
+  const blogUp=blogPct!=null&&blogPct>=8, blogDown=blogPct!=null&&blogPct<=-8;
+  const avgUp=avgPct!=null&&avgPct>=8, avgDown=avgPct!=null&&avgPct<=-8;
+  const applyUp=applyPct!=null&&applyPct>=8;
+  const noPrev=m.imp.prev==null&&m.visit.prev==null&&m.blog.prev==null;
+
+  let title='이번 기간은 안정적으로 관찰 중입니다';
+  let copy='큰 방향 전환 신호는 아직 약합니다. 상위 콘텐츠와 유입 출처를 함께 보면서 다음 발행의 소재와 CTA를 점검하세요.';
+  const actions=[];
+
+  if(!R.weeks.length){
+    title='아직 해석할 데이터가 없습니다';
+    copy='Firestore에 주차별 지표가 쌓이면 도달, 관심, 채용사이트 연결을 기준으로 진단이 표시됩니다.';
+    actions.push('대시보드 자동 갱신 워크플로우가 정상 실행됐는지 확인');
+    actions.push('캘린더와 발행 채널 데이터가 같은 기간에 잡히는지 확인');
+  }else if(noPrev){
+    title='비교 기준을 쌓는 중입니다';
+    copy='현재 기간의 절대값은 볼 수 있지만, 직전 기간 대비 방향성은 아직 판단하기 어렵습니다.';
+    actions.push('같은 기간 길이로 한 번 더 데이터가 쌓인 뒤 변화율 기준으로 판단');
+    actions.push('이번 기간 상위 콘텐츠를 다음 발행 소재 후보로 표시');
+  }else if(impUp&&visitDown){
+    title='도달은 늘었지만 채용사이트 연결이 약해졌습니다';
+    copy='콘텐츠가 더 많이 보였는데 방문이 줄었습니다. 후킹은 작동했지만 CTA, 링크 위치, 채용 맥락 연결이 약했을 가능성이 큽니다.';
+    actions.push('LinkedIn 상위 게시물의 첫 문단과 댓글/본문 CTA를 채용사이트 링크 중심으로 점검');
+    actions.push('같은 소재를 블로그나 카드뉴스로 재가공할 때 UTM 링크를 더 앞쪽에 배치');
+  }else if((blogUp||avgUp)&&!visitUp){
+    title='콘텐츠 관심은 생겼지만 채용 탐색으로 덜 이어졌습니다';
+    copy='블로그 조회나 체류는 좋아졌지만 채용페이지 방문 상승은 제한적입니다. 읽은 뒤 다음 행동을 만드는 장치가 필요합니다.';
+    actions.push('상위 블로그 글 본문 중간과 말미에 관련 포지션 CTA를 추가');
+    actions.push('성과가 좋은 글을 LinkedIn 카드뉴스로 짧게 재배포해 채용사이트 링크를 테스트');
+  }else if(visitUp&&(applyUp||m.apply.cur>0)){
+    title='채용 탐색까지 이어진 좋은 흐름입니다';
+    copy='방문 지표가 좋아졌고 지원도달 신호도 함께 움직였습니다. 이번 기간의 소재와 채널 조합을 반복할 만합니다.';
+    actions.push('상위 유입 출처와 상위 콘텐츠를 다음 캘린더에 1건 이상 반복 배치');
+    actions.push('성과가 난 UTM 조합을 저장해 다음 채용공고 공유 기본값으로 사용');
+  }else if(impDown&&blogDown&&visitDown){
+    title='도달과 관심이 동시에 쉬어간 기간입니다';
+    copy='노출, 블로그 조회, 방문이 함께 낮아졌습니다. 성과 문제가 아니라 발행량 또는 배포 공백의 영향일 수 있습니다.';
+    actions.push('콘텐츠 캘린더에서 이번 기간 발행 공백과 채널 편중을 먼저 확인');
+    actions.push('가벼운 재배포용 콘텐츠 1건을 만들어 LinkedIn과 블로그에 나눠 발행');
+  }else if(avgDown&&blogUp){
+    title='조회는 늘었지만 깊이는 얕아졌습니다';
+    copy='블로그 유입은 커졌지만 평균 체류가 낮아졌습니다. 제목/썸네일의 기대와 본문 내용이 어긋났는지 확인해볼 구간입니다.';
+    actions.push('조회 상위 글의 제목, 도입부, 실제 본문 약속이 맞는지 점검');
+    actions.push('짧은 정보형 유입과 깊은 인터뷰형 유입을 분리해서 다음 콘텐츠 목표를 잡기');
+  }else if(impUp||blogUp||visitUp){
+    title='한쪽 신호가 살아난 기간입니다';
+    copy='모든 지표가 같이 움직이진 않았지만, 적어도 하나의 성장 신호가 있습니다. 어떤 콘텐츠가 그 변화를 만들었는지 아래 랭킹에서 확인하세요.';
+    actions.push('상승한 지표와 연결된 상위 콘텐츠 1개를 다음 주 재활용 후보로 지정');
+    actions.push('방문으로 이어진 채널의 UTM 규칙을 히스토리에 저장');
+  }
+
+  if(m.pubs.length===0)actions.push('발행 공백 가능성이 있으니 콘텐츠 캘린더에 다음 발행 1건을 먼저 배치');
+  if(m.top.linkedin)actions.push(`LinkedIn 상위: “${m.top.linkedin.title}” 소재를 후속 콘텐츠로 검토`);
+  if(m.top.blog)actions.push(`Blog 상위: “${m.top.blog.title}”에 채용 CTA 연결 확인`);
+  if(!actions.length)actions.push('아래 콘텐츠 랭킹과 유입 출처에서 다음 발행에 반복할 소재를 1개 고르기');
+  return {title,copy,actions:[...new Set(actions)].slice(0,3),m};
+}
+function renderDecisionBrief(R){
+  const b=buildBrief(R);
+  $('#briefTitle').textContent=b.title;
+  $('#briefCopy').textContent=b.copy;
+  $('#briefActions').innerHTML=b.actions.map(a=>`<li>${esc(a)}</li>`).join('');
+  const minSec=v=>v?`${Math.floor(v/60)}:${String(Math.round(v%60)).padStart(2,'0')}`:'—';
+  $('#briefSignals').innerHTML=[
+    renderSignal('도달',b.m.imp.cur,b.m.imp.prev,'LinkedIn 노출',fmt),
+    renderSignal('관심',b.m.blog.cur,b.m.blog.prev,`블로그 평균 체류 ${minSec(b.m.avg.cur)}`,fmt),
+    renderSignal('연결',b.m.visit.cur,b.m.visit.prev,`지원도달 ${fmt(b.m.apply.cur)}`,fmt)
+  ].join('');
 }
 
 /* ── 성과 스코어카드 ── */
