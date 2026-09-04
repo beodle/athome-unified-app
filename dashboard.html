@@ -48,21 +48,22 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .status-bar .sb-count{font-size:16px;font-weight:800;color:var(--text-1);letter-spacing:-.02em;}
 
 /* ── DECISION BRIEF ── */
-.brief{margin-top:18px;background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-.brief-main{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:18px;padding:22px 24px;border-bottom:1px solid var(--border);}
+.brief{margin-top:18px;border-top:2px solid var(--text-1);border-bottom:1px solid var(--border-2);padding:20px 0 18px;}
+.brief-main{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:24px;align-items:start;}
 .brief-kicker{font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:7px;}
-.brief-title{font-size:21px;font-weight:850;letter-spacing:-.035em;line-height:1.28;color:var(--text-1);max-width:760px;}
+.brief-title{font-size:23px;font-weight:850;letter-spacing:-.035em;line-height:1.28;color:var(--text-1);max-width:760px;}
 .brief-copy{margin-top:9px;font-size:13px;font-weight:600;color:var(--text-3);line-height:1.65;}
-.brief-actions{background:var(--bg-soft);border-radius:10px;padding:14px 16px;}
+.brief-evidence{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+.brief-evidence span{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;background:var(--bg-soft);padding:4px 9px;font-size:11.5px;font-weight:750;color:var(--text-2);}
+.brief-evidence .up{color:var(--up)}.brief-evidence .down{color:var(--down)}.brief-evidence .flat{color:var(--text-4)}
+.brief-actions{background:transparent;border-left:1px solid var(--border-2);padding:2px 0 2px 18px;}
 .brief-actions h3{font-size:12px;font-weight:850;color:var(--text-1);margin-bottom:9px;}
 .brief-actions ol{margin:0;padding-left:18px;color:var(--text-2);}
 .brief-actions li{padding-left:2px;margin:6px 0;font-size:12.5px;font-weight:650;line-height:1.55;}
-.brief-signals{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);}
-.signal{background:var(--bg-card);padding:14px 16px;}
-.signal-label{font-size:10.5px;font-weight:800;color:var(--text-4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;}
-.signal-value{display:flex;align-items:baseline;gap:6px;font-size:18px;font-weight:850;color:var(--text-1);}
-.signal-value .up{color:var(--up)}.signal-value .down{color:var(--down)}.signal-value .flat{color:var(--text-4)}
-.signal-note{margin-top:3px;font-size:11.5px;font-weight:600;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.flow-note{margin-top:14px;border-top:1px solid var(--border);padding-top:12px;font-size:12.5px;font-weight:650;color:var(--text-3);line-height:1.6;}
+.flow-note b{color:var(--text-1);}
+.action-cell{font-size:12px;font-weight:700;color:var(--text-2);line-height:1.45;white-space:normal!important;}
+.action-cell span{display:inline-block;border-radius:6px;background:var(--bg-soft);padding:3px 7px;}
 
 /* ── TOPBAR ── */
 .topbar{position:sticky;top:0;z-index:60;background:rgba(245,244,241,.85);backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border);}
@@ -156,7 +157,9 @@ tbody tr:hover td{background:var(--bg-soft);}
 /* ② 콘텐츠 기여 3카드: 좁아져도 숫자가 카드 밖으로 안 나가게 고정 레이아웃 */
 .roi-grid table{table-layout:fixed;width:100%;}
 .roi-grid th,.roi-grid td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.roi-grid th:not(:first-child),.roi-grid td:not(:first-child){width:84px;}
+.roi-grid th:first-child,.roi-grid td:first-child{width:46%;}
+.roi-grid th:nth-child(2),.roi-grid td:nth-child(2){width:34%;}
+.roi-grid th:last-child,.roi-grid td:last-child{width:74px;}
 .roi-grid td.ell{cursor:default;}
 .roi-tip{position:fixed;display:none;z-index:300;background:#1A1A1A;color:#fff;padding:7px 11px;border-radius:7px;font-size:12px;line-height:1.45;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.22);pointer-events:none;}
 
@@ -215,7 +218,7 @@ tbody tr:hover td{background:var(--bg-soft);}
   .kpis{grid-template-columns:repeat(2,1fr);} .grid2{grid-template-columns:1fr;}
   .topbar-in{flex-wrap:wrap;} .brand span{display:none;} .last-upd{display:none;} .seg-group button{padding:6px 9px;}
   .brief-main{grid-template-columns:1fr;}
-  .brief-signals{grid-template-columns:1fr;}
+  .brief-actions{border-left:0;border-top:1px solid var(--border);padding:14px 0 0;}
 }
 @media print{ .topbar,.btn,.acc-btn{display:none;} .card,.kpi{box-shadow:none;break-inside:avoid;} body{background:#fff;} }
 </style>
@@ -283,6 +286,7 @@ tbody tr:hover td{background:var(--bg-soft);}
         <div class="brief-kicker">이번 기간 진단</div>
         <h1 class="brief-title" id="briefTitle">데이터를 불러오는 중입니다</h1>
         <p class="brief-copy" id="briefCopy">선택한 기간의 도달, 관심, 채용사이트 연결 신호를 묶어 운영 판단을 만듭니다.</p>
+        <div class="brief-evidence" id="briefEvidence"></div>
       </div>
       <div class="brief-actions">
         <h3>다음 액션</h3>
@@ -291,22 +295,22 @@ tbody tr:hover td{background:var(--bg-soft);}
         </ol>
       </div>
     </div>
-    <div class="brief-signals" id="briefSignals"></div>
   </section>
 
   <!-- 성과 스코어카드 -->
   <section class="sec" id="secScore" style="margin-top:24px">
     <div class="kpis kpis--5" id="scoreTiles"></div>
-    <div id="scoreInsight" style="margin-top:12px;font-size:13px;color:var(--text-2);line-height:1.6"></div>
+    <div id="scoreInsight" hidden></div>
   </section>
 
   <!-- ① 인지 -->
   <section class="sec" id="secAwareness">
-    <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">인지</span><span class="sec-desc">채용 브랜딩이 자라고 있나</span></div>
+    <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">흐름 진단</span><span class="sec-desc">노출이 관심과 방문으로 이어졌나</span></div>
     <div class="card pad">
-      <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">인지 성장 추세 — 노출 · 블로그 조회 · 팔로워</span></div>
+      <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">도달 → 관심 → 방문 흐름</span></div>
       <div class="chart-box" id="awChartBox"><canvas id="awChart"></canvas></div>
       <div class="empty" id="awEmpty" style="display:none">이 기간에 데이터가 없습니다</div>
+      <div class="flow-note" id="awReadout"></div>
       <div class="acc" id="accAware">
         <button class="acc-btn" onclick="toggleAcc('accAware')"><span class="ar">▶</span> 채널별 주차 상세</button>
         <div class="acc-body" id="awDetail"></div>
@@ -316,26 +320,26 @@ tbody tr:hover td{background:var(--bg-soft);}
 
   <!-- ② 콘텐츠 기여 -->
   <section class="sec">
-    <div class="sec-head"><span class="sec-no">02</span><span class="sec-title">콘텐츠 기여</span><span class="sec-desc">무엇이 먹혔나 → 다음 액션</span><span class="sec-pub" id="pubCount"></span></div>
+    <div class="sec-head"><span class="sec-no">02</span><span class="sec-title">콘텐츠 결정</span><span class="sec-desc">무엇을 반복하고 무엇을 손볼지</span><span class="sec-pub" id="pubCount"></span></div>
     <div class="roi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
       <div class="card pad">
-        <div class="card-h"><div class="dot" style="background:var(--blog)"></div><span class="t">Blog 성과 TOP</span><span class="sub" id="roiBlogSub"></span></div>
+        <div class="card-h"><div class="dot" style="background:var(--blog)"></div><span class="t">Blog 다음 행동</span><span class="sub" id="roiBlogSub"></span></div>
         <table>
-          <thead><tr><th>콘텐츠</th><th style="text-align:right">조회</th><th style="text-align:right">평균 참여</th></tr></thead>
+          <thead><tr><th>콘텐츠</th><th>추천</th><th style="text-align:right">조회</th></tr></thead>
           <tbody id="roiBlogBody"></tbody>
         </table>
       </div>
       <div class="card pad">
-        <div class="card-h"><div class="dot" style="background:var(--li)"></div><span class="t">LinkedIn 성과 TOP</span><span class="sub" id="roiLiSub"></span></div>
+        <div class="card-h"><div class="dot" style="background:var(--li)"></div><span class="t">LinkedIn 다음 행동</span><span class="sub" id="roiLiSub"></span></div>
         <table>
-          <thead><tr><th>콘텐츠</th><th style="text-align:right">노출</th><th style="text-align:right">반응</th></tr></thead>
+          <thead><tr><th>콘텐츠</th><th>추천</th><th style="text-align:right">노출</th></tr></thead>
           <tbody id="roiLiBody"></tbody>
         </table>
       </div>
       <div class="card pad">
-        <div class="card-h"><div class="dot" style="background:#FF0000"></div><span class="t">팟캐스트 〈홈레코딩〉 TOP</span><span class="sub" id="roiYtSub"></span></div>
+        <div class="card-h"><div class="dot" style="background:#FF0000"></div><span class="t">홈레코딩 활용 후보</span><span class="sub" id="roiYtSub"></span></div>
         <table>
-          <thead><tr><th>영상</th><th style="text-align:right">조회</th><th style="text-align:right">좋아요·댓글</th></tr></thead>
+          <thead><tr><th>영상</th><th>추천</th><th style="text-align:right">조회</th></tr></thead>
           <tbody id="roiYtBody"></tbody>
         </table>
       </div>
@@ -560,6 +564,11 @@ function renderSignal(label,cur,prev,note,formatter){
   const mark=cls==='up'?'▲':cls==='down'?'▼':'―';
   return `<div class="signal"><div class="signal-label">${label}</div><div class="signal-value"><span>${formatter?formatter(cur):fmt(cur)}</span><span class="${cls}">${mark} ${pctText(pct)}</span></div><div class="signal-note">${esc(note)}</div></div>`;
 }
+function evidenceChip(label,cur,prev,unit){
+  const pct=pctChange(cur,prev);
+  const cls=dirClass(pct), mark=cls==='up'?'▲':cls==='down'?'▼':'―';
+  return `<span><b>${esc(label)}</b> <em class="${cls}" style="font-style:normal">${mark} ${pctText(pct)}</em>${unit?` · ${esc(unit)}`:''}</span>`;
+}
 function buildBrief(R){
   const m=metricSnapshot(R);
   const impPct=pctChange(m.imp.cur,m.imp.prev);
@@ -632,10 +641,10 @@ function renderDecisionBrief(R){
   $('#briefCopy').textContent=b.copy;
   $('#briefActions').innerHTML=b.actions.map(a=>`<li>${esc(a)}</li>`).join('');
   const minSec=v=>v?`${Math.floor(v/60)}:${String(Math.round(v%60)).padStart(2,'0')}`:'—';
-  $('#briefSignals').innerHTML=[
-    renderSignal('도달',b.m.imp.cur,b.m.imp.prev,'LinkedIn 노출',fmt),
-    renderSignal('관심',b.m.blog.cur,b.m.blog.prev,`블로그 평균 체류 ${minSec(b.m.avg.cur)}`,fmt),
-    renderSignal('연결',b.m.visit.cur,b.m.visit.prev,`지원도달 ${fmt(b.m.apply.cur)}`,fmt)
+  $('#briefEvidence').innerHTML=[
+    evidenceChip('노출',b.m.imp.cur,b.m.imp.prev,fmt(b.m.imp.cur)),
+    evidenceChip('블로그',b.m.blog.cur,b.m.blog.prev,`${fmt(b.m.blog.cur)} · 체류 ${minSec(b.m.avg.cur)}`),
+    evidenceChip('방문',b.m.visit.cur,b.m.visit.prev,`${fmt(b.m.visit.cur)} · 지원도달 ${fmt(b.m.apply.cur)}`)
   ].join('');
 }
 
@@ -732,9 +741,24 @@ function renderAwareness(R){
         scales:{x:{grid:{color:'#F1F0ED'},ticks:TICK},y:{position:'left',grid:{color:'#F1F0ED'},ticks:{...TICK,callback:v=>fmt(v)}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{...TICK,callback:v=>fmt(v)}}}}
     });
   }
+  renderAwarenessReadout(weeks);
   // 아코디언: 채널 주차 테이블
   if($('#accAware').classList.contains('open')||$('#awDetail').innerHTML==='')renderAwareDetail(weeks);
   else renderAwareDetail(weeks);
+}
+function renderAwarenessReadout(weeks){
+  const el=$('#awReadout');
+  if(!el)return;
+  if(!weeks.length){el.textContent='선택한 기간에 읽을 흐름이 없습니다.';return;}
+  const imp=sum(weeks,'impressions'), visit=sum(weeks,'users'), blog=sum(weeks,'blog_pageviews');
+  const apply=sum(weeks,'apply_pv'), liRx=sum(weeks,'likes')+sum(weeks,'comments')+sum(weeks,'shares');
+  const visitPerImp=imp?visit/imp*100:0;
+  const applyPerVisit=visit?apply/visit*100:0;
+  let lead='노출 이후의 방문 전환을 같이 봐야 하는 구간입니다.';
+  if(imp&&visitPerImp<35)lead='노출 대비 채용페이지 방문 연결이 약합니다.';
+  if(visit&&applyPerVisit>=25)lead='방문 이후 지원도달까지 이어지는 힘이 있습니다.';
+  if(blog>visit)lead='블로그 관심이 채용페이지 방문보다 앞서고 있습니다.';
+  el.innerHTML=`<b>${lead}</b> 노출 대비 방문 ${visitPerImp.toFixed(1)}%, 방문 대비 지원도달 ${applyPerVisit.toFixed(1)}%, LinkedIn 반응 ${fmt(liRx)}건입니다.`;
 }
 function renderAwareDetail(weeks){
   const rows=w=>{const d=DB[w]||{};const rx=(d.likes||0)+(d.comments||0)+(d.shares||0);return `<tr><td><span class="wbadge">${weekLabel(w)}</span></td><td style="text-align:right">${fmt(d.impressions||0)}</td><td style="text-align:right">${fmt(rx)}</td><td style="text-align:right">${fmt(d.users||0)}</td><td style="text-align:right">${fmt(d.apply_pv||0)}</td><td style="text-align:right">${fmt(d.blog_pageviews||0)}</td></tr>`;};
@@ -770,6 +794,26 @@ function renderContribution(R){
   renderRoi(weeks);
 }
 function engStr(sec,pv){if(!pv||!sec)return'—';const a=Math.round(sec/pv),m=Math.floor(a/60),s=a%60;return `${m}:${String(s).padStart(2,'0')}`;}
+function blogAction(row){
+  const avg=row.pv?row.eng/row.pv:0;
+  if(avg>=90)return '깊게 읽힘 · JD CTA 연결';
+  if(row.pv>=500)return '재배포 후보 · 카드뉴스화';
+  return '소재 보관 · 제목 실험';
+}
+function liAction(row){
+  const rxText=String(row.sub||'0').replace(/[^0-9]/g,'');
+  const rx=Number(rxText||0);
+  const rate=row.imp?rx/row.imp*100:0;
+  if(rate>=3)return '반응 좋음 · 후속 글';
+  if(row.imp>=1000)return '도달 좋음 · CTA 보강';
+  return '소재 테스트 유지';
+}
+function ytAction(v){
+  const rx=(v.likes||0)+(v.comments||0);
+  if(rx>=10)return '클립/카드뉴스 재가공';
+  if((v.views||0)>=200)return '요약 포스트 후보';
+  return '시리즈 누적 관찰';
+}
 function renderRoi(weeks){
   // 캘린더 제목 매칭(매칭률 0) 대신 실제 성과 데이터를 직접 사용 — 랭킹과 동일 소스, 채널별 2카드
   // ── Blog: blog_posts를 제목별 집계 (같은 글이 /slug·/ 두 경로로 잡히는 중복 병합), 조회수 상위 ──
@@ -779,7 +823,7 @@ function renderRoi(weeks){
   const blog=Object.values(bmap).sort((a,b)=>(b.pv||0)-(a.pv||0));
   $('#roiBlogSub').textContent=blog.length?`${blog.length}개 중 상위 ${Math.min(8,blog.length)}`:'';
   $('#roiBlogBody').innerHTML=blog.length
-    ?blog.slice(0,8).map(b=>`<tr><td style="font-weight:600" class="ell" title="${esc(b.title)}">${esc(b.title)}</td><td style="text-align:right;font-weight:700">${fmt(b.pv)}</td><td style="text-align:right;color:var(--text-3)">${engStr(b.eng,b.pv)}</td></tr>`).join('')
+    ?blog.slice(0,8).map(b=>`<tr><td style="font-weight:600" class="ell" title="${esc(b.title)}">${esc(b.title)}<div style="font-size:11px;color:var(--text-4);font-weight:600;margin-top:2px">평균 참여 ${engStr(b.eng,b.pv)}</div></td><td class="action-cell"><span>${esc(blogAction(b))}</span></td><td style="text-align:right;font-weight:700">${fmt(b.pv)}</td></tr>`).join('')
     :'<tr><td colspan="3" class="empty">이 기간 블로그 게시물 데이터 없음</td></tr>';
   // ── LinkedIn: 게시물별 노출 상위 (전체 게시물 XLS 우선, 없으면 주차 posts) ──
   const lrows=[];
@@ -789,7 +833,7 @@ function renderRoi(weeks){
   lrows.sort((a,b)=>(b.imp||0)-(a.imp||0));
   $('#roiLiSub').textContent=lrows.length?`${lrows.length}개 중 상위 ${Math.min(8,lrows.length)}`:'';
   $('#roiLiBody').innerHTML=lrows.length
-    ?lrows.slice(0,8).map(r=>`<tr><td style="font-weight:600" class="ell" title="${esc(r.title)}">${esc(r.title)}</td><td style="text-align:right;font-weight:700">${fmt(r.imp)}</td><td style="text-align:right;color:var(--text-3)">${r.sub}</td></tr>`).join('')
+    ?lrows.slice(0,8).map(r=>`<tr><td style="font-weight:600" class="ell" title="${esc(r.title)}">${esc(r.title)}<div style="font-size:11px;color:var(--text-4);font-weight:600;margin-top:2px">${esc(r.sub)}</div></td><td class="action-cell"><span>${esc(liAction(r))}</span></td><td style="text-align:right;font-weight:700">${fmt(r.imp)}</td></tr>`).join('')
     :'<tr><td colspan="3" class="empty">이 기간 LinkedIn 게시물 데이터 없음 — 전체 게시물 XLS 업로드 필요</td></tr>';
   // ── 팟캐스트(홈레코딩): 영상 적고 누적 조회라 기간 필터 없이 전체 시리즈 조회순 ──
   const yt=DB['__yt_videos__']||[], subs=DB['__yt_subscribers__'];
@@ -803,7 +847,7 @@ function renderRoi(weeks){
   }
   if($('#roiYtSub'))$('#roiYtSub').textContent=subs?`구독자 ${fmt(subs)}${ytDelta||' · 전체 시리즈'}`:'';
   if($('#roiYtBody'))$('#roiYtBody').innerHTML=yt.length
-    ?yt.slice(0,8).map(v=>`<tr><td style="font-weight:600" class="ell" title="${esc(v.title)}">${esc(v.title)}</td><td style="text-align:right;font-weight:700">${fmt(v.views)}</td><td style="text-align:right;color:var(--text-3)">${fmt(v.likes)}·${fmt(v.comments)}</td></tr>`).join('')
+    ?yt.slice(0,8).map(v=>`<tr><td style="font-weight:600" class="ell" title="${esc(v.title)}">${esc(v.title)}<div style="font-size:11px;color:var(--text-4);font-weight:600;margin-top:2px">좋아요·댓글 ${fmt(v.likes)}·${fmt(v.comments)}</div></td><td class="action-cell"><span>${esc(ytAction(v))}</span></td><td style="text-align:right;font-weight:700">${fmt(v.views)}</td></tr>`).join('')
     :'<tr><td colspan="3" class="empty">홈레코딩 영상 데이터 없음</td></tr>';
 }
 
