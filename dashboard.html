@@ -154,13 +154,27 @@ tbody tr:hover td{background:var(--bg-soft);}
 .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;background:var(--bg-soft);color:var(--text-3);}
 .up-i{color:var(--up);font-size:10px;font-weight:700;margin-left:3px;} .down-i{color:var(--down);font-size:10px;font-weight:700;margin-left:3px;}
 .ell{max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* ② 콘텐츠 기여 3카드: 좁아져도 숫자가 카드 밖으로 안 나가게 고정 레이아웃 */
-.roi-grid table{table-layout:fixed;width:100%;}
-.roi-grid th,.roi-grid td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.roi-grid th:first-child,.roi-grid td:first-child{width:46%;}
-.roi-grid th:nth-child(2),.roi-grid td:nth-child(2){width:34%;}
-.roi-grid th:last-child,.roi-grid td:last-child{width:74px;}
-.roi-grid td.ell{cursor:default;}
+/* ② 콘텐츠 결정: 후보와 메모가 좁아져도 숫자와 액션이 밀리지 않게 고정 */
+table{table-layout:fixed;width:100%;}
+th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.content-decision{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:14px;}
+.pick-list{display:flex;flex-direction:column;gap:2px;}
+.pick-row{display:grid;grid-template-columns:74px minmax(0,1fr) 118px;gap:12px;align-items:start;padding:13px 0;border-bottom:1px solid var(--border);}
+.pick-row:last-child{border-bottom:0;}
+.pick-channel{display:inline-flex;align-items:center;justify-content:center;height:24px;border-radius:7px;background:var(--bg-soft);font-size:11px;font-weight:850;color:var(--text-2);}
+.pick-title{font-size:13px;font-weight:800;color:var(--text-1);line-height:1.38;}
+.pick-meta{font-size:11.5px;font-weight:650;color:var(--text-4);margin-top:4px;line-height:1.45;}
+.pick-action{justify-self:end;text-align:right;font-size:12px;font-weight:800;color:var(--text-2);line-height:1.35;}
+.pick-action span{display:inline-block;background:var(--bg-soft);border-radius:7px;padding:5px 8px;}
+.channel-note{display:flex;flex-direction:column;gap:11px;}
+.channel-note-row{padding-bottom:11px;border-bottom:1px solid var(--border);}
+.channel-note-row:last-child{border-bottom:0;padding-bottom:0;}
+.channel-note-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+.channel-name{font-size:12px;font-weight:900;color:var(--text-1);}
+.channel-num{font-size:11px;font-weight:800;color:var(--text-4);}
+.channel-copy{font-size:12.5px;font-weight:650;color:var(--text-2);line-height:1.55;}
+.channel-copy b{color:var(--text-1);}
+.source-table td.ell,.pick-title{cursor:default;}
 .roi-tip{position:fixed;display:none;z-index:300;background:#1A1A1A;color:#fff;padding:7px 11px;border-radius:7px;font-size:12px;line-height:1.45;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.22);pointer-events:none;}
 
 /* ── ACCORDION ── */
@@ -183,19 +197,25 @@ tbody tr:hover td{background:var(--bg-soft);}
 .funnel-count{font-size:15px;font-weight:800;margin-left:auto;}
 .funnel-unit{font-size:11px;font-weight:400;color:var(--text-4);}
 
-/* ── DOUGHNUT ── */
-.dough-wrap{display:flex;align-items:center;gap:18px;}
-.dough-c{width:130px;height:130px;flex-shrink:0;}
-.dough-legend{flex:1;min-width:0;}
-.dough-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;gap:8px;}
-.dough-row:last-child{border-bottom:none;}
-.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-
 /* ── QUALITY ── */
-.q-big{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;}
 .chip{display:inline-block;background:var(--bg-soft);color:var(--text-2);font-size:12px;font-weight:600;padding:4px 11px;border-radius:14px;margin:0 6px 6px 0;}
 .sa-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .subt{font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em;margin-bottom:8px;}
+.quality-layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:14px;}
+.quality-hero{display:flex;flex-direction:column;gap:16px;}
+.quality-verdict{font-size:18px;font-weight:850;letter-spacing:-.02em;line-height:1.35;color:var(--text-1);}
+.quality-desc{font-size:12.5px;font-weight:600;color:var(--text-3);line-height:1.65;}
+.path-list{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
+.path-row{display:grid;grid-template-columns:76px minmax(0,1fr) 74px;gap:10px;align-items:center;}
+.path-label{font-size:11.5px;font-weight:800;color:var(--text-3);}
+.path-bar{height:9px;background:var(--bg-soft);border-radius:999px;overflow:hidden;}
+.path-fill{height:100%;border-radius:999px;background:var(--text-1);}
+.path-val{text-align:right;font-size:12px;font-weight:850;color:var(--text-1);}
+.source-table th:nth-child(1),.source-table td:nth-child(1){width:44%;}
+.source-table th:nth-child(2),.source-table td:nth-child(2){width:76px;text-align:right;}
+.source-table th:nth-child(3),.source-table td:nth-child(3){width:34%;}
+.source-advice{white-space:normal!important;font-size:12px;font-weight:700;color:var(--text-2);line-height:1.45;}
+.source-advice span{display:inline-block;background:var(--bg-soft);border-radius:6px;padding:3px 7px;}
 
 /* ── MODAL ── */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:200;padding:16px;}
@@ -219,6 +239,10 @@ tbody tr:hover td{background:var(--bg-soft);}
   .topbar-in{flex-wrap:wrap;} .brand span{display:none;} .last-upd{display:none;} .seg-group button{padding:6px 9px;}
   .brief-main{grid-template-columns:1fr;}
   .brief-actions{border-left:0;border-top:1px solid var(--border);padding:14px 0 0;}
+  .content-decision{grid-template-columns:1fr;}
+  .pick-row{grid-template-columns:64px minmax(0,1fr);}
+  .pick-action{grid-column:2;justify-self:start;text-align:left;}
+  .quality-layout{grid-template-columns:1fr;}
 }
 @media print{ .topbar,.btn,.acc-btn{display:none;} .card,.kpi{box-shadow:none;break-inside:avoid;} body{background:#fff;} }
 </style>
@@ -321,44 +345,36 @@ tbody tr:hover td{background:var(--bg-soft);}
   <!-- ② 콘텐츠 기여 -->
   <section class="sec">
     <div class="sec-head"><span class="sec-no">02</span><span class="sec-title">콘텐츠 결정</span><span class="sec-desc">무엇을 반복하고 무엇을 손볼지</span><span class="sec-pub" id="pubCount"></span></div>
-    <div class="roi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
+    <div class="content-decision">
       <div class="card pad">
-        <div class="card-h"><div class="dot" style="background:var(--blog)"></div><span class="t">Blog 다음 행동</span><span class="sub" id="roiBlogSub"></span></div>
-        <table>
-          <thead><tr><th>콘텐츠</th><th>추천</th><th style="text-align:right">조회</th></tr></thead>
-          <tbody id="roiBlogBody"></tbody>
-        </table>
+        <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">이번 기간 재활용 후보</span><span class="sub" id="contentPickSub"></span></div>
+        <div class="pick-list" id="contentPicks"></div>
       </div>
       <div class="card pad">
-        <div class="card-h"><div class="dot" style="background:var(--li)"></div><span class="t">LinkedIn 다음 행동</span><span class="sub" id="roiLiSub"></span></div>
-        <table>
-          <thead><tr><th>콘텐츠</th><th>추천</th><th style="text-align:right">노출</th></tr></thead>
-          <tbody id="roiLiBody"></tbody>
-        </table>
-      </div>
-      <div class="card pad">
-        <div class="card-h"><div class="dot" style="background:#FF0000"></div><span class="t">홈레코딩 활용 후보</span><span class="sub" id="roiYtSub"></span></div>
-        <table>
-          <thead><tr><th>영상</th><th>추천</th><th style="text-align:right">조회</th></tr></thead>
-          <tbody id="roiYtBody"></tbody>
-        </table>
+        <div class="card-h"><div class="dot" style="background:var(--text-1)"></div><span class="t">채널별 운영 메모</span><span class="sub" id="channelMemoSub"></span></div>
+        <div class="channel-note" id="channelMemo"></div>
       </div>
     </div>
   </section>
 
   <!-- ③ 전환·품질 -->
   <section class="sec">
-    <div class="sec-head"><span class="sec-no">03</span><span class="sec-title">품질 · 유입</span><span class="sec-desc">트래픽의 결과 유입처</span></div>
-    <div class="card pad mb">
-      <div class="card-h"><div class="dot" style="background:var(--up)"></div><span class="t">유입 품질 — 블로그 평균 체류</span></div>
-      <div id="quality"></div>
-    </div>
-    <div class="card pad">
-      <div class="card-h"><div class="dot" style="background:var(--ga4)"></div><span class="t">유입 출처</span><span class="sub" id="srcSub">채용 페이지 · 전체 기간</span></div>
-      <div class="dough-wrap"><div class="dough-c"><canvas id="srcChart"></canvas></div><div class="dough-legend" id="srcLegend"></div></div>
-      <div class="acc" id="accSrc">
-        <button class="acc-btn" onclick="toggleAcc('accSrc')"><span class="ar">▶</span> 전체 유입 출처</button>
-        <div class="acc-body" id="srcDetail"></div>
+    <div class="sec-head"><span class="sec-no">03</span><span class="sec-title">유입 판정</span><span class="sec-desc">어디서 온 방문이 채용 행동으로 이어졌나</span></div>
+    <div class="quality-layout">
+      <div class="card pad quality-hero">
+        <div class="card-h"><div class="dot" style="background:var(--up)"></div><span class="t">채용 행동 흐름</span><span class="sub">블로그 관심 → 지원 의도</span></div>
+        <div>
+          <div class="quality-verdict" id="qualityVerdict">데이터를 불러오는 중입니다</div>
+          <div class="quality-desc" id="qualityDesc"></div>
+        </div>
+        <div class="path-list" id="qualityPath"></div>
+      </div>
+      <div class="card pad">
+        <div class="card-h"><div class="dot" style="background:var(--ga4)"></div><span class="t">유입 채널 판단</span><span class="sub" id="srcSub">채용 페이지 · 선택 기간</span></div>
+        <table class="source-table">
+          <thead><tr><th>출처/매체</th><th style="text-align:right">방문</th><th>운영 판단</th></tr></thead>
+          <tbody id="sourceAdviceBody"></tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -483,7 +499,7 @@ function render(){
   const fixed=range.mode==='all'||range.mode==='custom';
   $('#prevBtn').disabled=fixed||fi<=0; $('#nextBtn').disabled=fixed||li>=ws.length-1;
   document.querySelectorAll('[data-range]').forEach(b=>b.classList.toggle('on',b.dataset.range===range.mode));
-  renderDecisionBrief(R); renderScorecard(R); renderAwareness(R); renderContribution(R); renderConversion(R);
+  renderDecisionBrief(R); renderScorecard(R); renderAwareness(R); renderContribution(R); renderConversionDecision(R);
 }
 
 /* ── 공통 빌더 ── */
@@ -790,8 +806,7 @@ function renderContribution(R){
     const ptN=calCur.filter(e=>e.channel==='podcast').length;
     pubEl.innerHTML=curPub?`이번 기간 발행 ${curPub}건 · LI ${liN} · Blog ${blN} · 팟캐스트 ${ptN}`:'이번 기간 발행 없음';
   }
-  // 게시물 성과: Blog/LinkedIn 2카드 (통합 랭킹과 중복되어 통합 랭킹 제거)
-  renderRoi(weeks);
+  renderContentDecision(weeks);
 }
 function engStr(sec,pv){if(!pv||!sec)return'—';const a=Math.round(sec/pv),m=Math.floor(a/60),s=a%60;return `${m}:${String(s).padStart(2,'0')}`;}
 function blogAction(row){
@@ -814,30 +829,19 @@ function ytAction(v){
   if((v.views||0)>=200)return '요약 포스트 후보';
   return '시리즈 누적 관찰';
 }
-function renderRoi(weeks){
-  // 캘린더 제목 매칭(매칭률 0) 대신 실제 성과 데이터를 직접 사용 — 랭킹과 동일 소스, 채널별 2카드
-  // ── Blog: blog_posts를 제목별 집계 (같은 글이 /slug·/ 두 경로로 잡히는 중복 병합), 조회수 상위 ──
+function collectContentSignals(weeks){
   const bmap={};
   const normT=t=>String(t||'').replace(/\s*[-–]\s*앳홈 블로그\s*$/,'').trim();
   weeks.forEach(w=>(DB[w]?.blog_posts||[]).forEach(p=>{if(isNavPage(p))return;const title=normT(p.title);const k=title.toLowerCase()||p.path;if(!k)return;if(!bmap[k])bmap[k]={title:title||p.path,pv:0,eng:0};bmap[k].pv+=p.pageviews||0;bmap[k].eng+=p.engTime||0;}));
   const blog=Object.values(bmap).sort((a,b)=>(b.pv||0)-(a.pv||0));
-  $('#roiBlogSub').textContent=blog.length?`${blog.length}개 중 상위 ${Math.min(8,blog.length)}`:'';
-  $('#roiBlogBody').innerHTML=blog.length
-    ?blog.slice(0,8).map(b=>`<tr><td style="font-weight:600" class="ell" title="${esc(b.title)}">${esc(b.title)}<div style="font-size:11px;color:var(--text-4);font-weight:600;margin-top:2px">평균 참여 ${engStr(b.eng,b.pv)}</div></td><td class="action-cell"><span>${esc(blogAction(b))}</span></td><td style="text-align:right;font-weight:700">${fmt(b.pv)}</td></tr>`).join('')
-    :'<tr><td colspan="3" class="empty">이 기간 블로그 게시물 데이터 없음</td></tr>';
-  // ── LinkedIn: 게시물별 노출 상위 (전체 게시물 XLS 우선, 없으면 주차 posts) ──
+
   const lrows=[];
   const li=DB['__li_posts__'];
   if(li&&li.length)li.filter(p=>weeks.includes(dateToWeek(p.date))).forEach(p=>lrows.push({title:p.title,imp:p.impressions||0,sub:`${fmt(p.reactions||0)} 반응`}));
   else weeks.forEach(w=>(DB[w]?.posts||[]).forEach(p=>lrows.push({title:p.title,imp:p.impressions||0,sub:`${fmt((p.likes||0)+(p.comments||0)+(p.shares||0))} 반응`})));
   lrows.sort((a,b)=>(b.imp||0)-(a.imp||0));
-  $('#roiLiSub').textContent=lrows.length?`${lrows.length}개 중 상위 ${Math.min(8,lrows.length)}`:'';
-  $('#roiLiBody').innerHTML=lrows.length
-    ?lrows.slice(0,8).map(r=>`<tr><td style="font-weight:600" class="ell" title="${esc(r.title)}">${esc(r.title)}<div style="font-size:11px;color:var(--text-4);font-weight:600;margin-top:2px">${esc(r.sub)}</div></td><td class="action-cell"><span>${esc(liAction(r))}</span></td><td style="text-align:right;font-weight:700">${fmt(r.imp)}</td></tr>`).join('')
-    :'<tr><td colspan="3" class="empty">이 기간 LinkedIn 게시물 데이터 없음 — 전체 게시물 XLS 업로드 필요</td></tr>';
-  // ── 팟캐스트(홈레코딩): 영상 적고 누적 조회라 기간 필터 없이 전체 시리즈 조회순 ──
+
   const yt=DB['__yt_videos__']||[], subs=DB['__yt_subscribers__'];
-  // 주차별 스냅샷(yt_views/yt_likes/yt_subs)이 2개 이상 쌓이면 최근 두 스냅샷 간 증감 표시
   const ytWeeks=Object.keys(DB).filter(k=>/^\d{4}-W\d{2}$/.test(k)&&DB[k].yt_views!=null).sort();
   let ytDelta='';
   if(ytWeeks.length>=2){
@@ -845,45 +849,114 @@ function renderRoi(weeks){
     const dv=b.yt_views-a.yt_views,ds=(b.yt_subs||0)-(a.yt_subs||0);
     ytDelta=` · 주간 조회 ${dv>=0?'+':''}${fmt(dv)}${ds?` · 구독 ${ds>0?'+':''}${fmt(ds)}`:''}`;
   }
-  if($('#roiYtSub'))$('#roiYtSub').textContent=subs?`구독자 ${fmt(subs)}${ytDelta||' · 전체 시리즈'}`:'';
-  if($('#roiYtBody'))$('#roiYtBody').innerHTML=yt.length
-    ?yt.slice(0,8).map(v=>`<tr><td style="font-weight:600" class="ell" title="${esc(v.title)}">${esc(v.title)}<div style="font-size:11px;color:var(--text-4);font-weight:600;margin-top:2px">좋아요·댓글 ${fmt(v.likes)}·${fmt(v.comments)}</div></td><td class="action-cell"><span>${esc(ytAction(v))}</span></td><td style="text-align:right;font-weight:700">${fmt(v.views)}</td></tr>`).join('')
-    :'<tr><td colspan="3" class="empty">홈레코딩 영상 데이터 없음</td></tr>';
+  return{blog,lrows,yt,subs,ytDelta};
+}
+function pickChannelColor(ch){return ch==='Blog'?'var(--blog)':ch==='LinkedIn'?'var(--li)':ch==='Home Rec'?'#FF0000':'var(--text-2)';}
+function renderContentDecision(weeks){
+  const {blog,lrows,yt,subs,ytDelta}=collectContentSignals(weeks);
+  const picks=[
+    ...blog.slice(0,3).map(b=>({channel:'Blog',title:b.title,metric:`조회 ${fmt(b.pv)} · 평균 참여 ${engStr(b.eng,b.pv)}`,action:blogAction(b),score:b.pv+(b.eng/(b.pv||1))*4})),
+    ...lrows.slice(0,3).map(r=>({channel:'LinkedIn',title:r.title,metric:`노출 ${fmt(r.imp)} · ${r.sub}`,action:liAction(r),score:r.imp*.45})),
+    ...yt.slice(0,2).map(v=>({channel:'Home Rec',title:v.title,metric:`조회 ${fmt(v.views)} · 좋아요/댓글 ${fmt(v.likes||0)}/${fmt(v.comments||0)}`,action:ytAction(v),score:(v.views||0)*.8}))
+  ].sort((a,b)=>b.score-a.score).slice(0,6);
+
+  $('#contentPickSub').textContent=picks.length?`${picks.length}개 후보 · 성과순`:'';
+  $('#contentPicks').innerHTML=picks.length?picks.map(p=>`
+    <div class="pick-row">
+      <div class="pick-channel" style="border-left:3px solid ${pickChannelColor(p.channel)}">${esc(p.channel)}</div>
+      <div>
+        <div class="pick-title ell" title="${esc(p.title)}">${esc(p.title)}</div>
+        <div class="pick-meta">${esc(p.metric)}</div>
+      </div>
+      <div class="pick-action"><span>${esc(p.action)}</span></div>
+    </div>`).join(''):'<div class="empty">이 기간에 판단할 콘텐츠 성과 데이터가 없습니다</div>';
+
+  const memo=[
+    {name:'Blog',num:blog.length?`${fmt(blog[0].pv)} 조회`:'데이터 없음',copy:blog.length?`<b>${esc(blog[0].title)}</b> 계열을 먼저 재활용. ${esc(blogAction(blog[0]))}.`:'블로그 글별 조회/체류 데이터가 쌓이면 카드뉴스화 후보를 자동으로 고릅니다.'},
+    {name:'LinkedIn',num:lrows.length?`${fmt(lrows[0].imp)} 노출`:'데이터 없음',copy:lrows.length?`<b>${esc(lrows[0].title)}</b>의 도달을 채용페이지 클릭으로 연결. ${esc(liAction(lrows[0]))}.`:'게시물 XLS 또는 API 데이터가 들어오면 도달 좋은 문장을 후속 글 후보로 보여줍니다.'},
+    {name:'Home Rec',num:subs?`구독자 ${fmt(subs)}${ytDelta}`:'전체 시리즈',copy:yt.length?`<b>${esc(yt[0].title)}</b>를 짧은 클립/요약 포스트로 재가공해 블로그와 LinkedIn에 나눠 쓰기.`:'영상 데이터가 들어오면 채용 브랜딩 소재로 재가공할 후보를 보여줍니다.'}
+  ];
+  $('#channelMemoSub').textContent='성과를 작업 언어로 번역';
+  $('#channelMemo').innerHTML=memo.map(m=>`
+    <div class="channel-note-row">
+      <div class="channel-note-top"><span class="channel-name">${esc(m.name)}</span><span class="channel-num">${m.num}</span></div>
+      <div class="channel-copy">${m.copy}</div>
+    </div>`).join('');
 }
 
-/* ── ③ 전환·품질 ── */
-function renderConversion(R){
+function pct(n,d){return d?`${(n/d*100).toFixed(0)}%`:'—';}
+function sourceAdvice(s,share){
+  const source=String(s.source||'').toLowerCase();
+  const medium=String(s.medium||'').toLowerCase();
+  let msg='방문 이후 상세/지원 클릭 추적';
+  if(source.includes('linkedin')||medium.includes('social'))msg='성과 콘텐츠 재배포 · 댓글 CTA';
+  else if(source.includes('google')||medium.includes('organic')||medium.includes('cpc'))msg='검색 의도 맞춘 JD/블로그 연결';
+  else if(source.includes('direct')||medium.includes('none')||medium.includes('not set'))msg='회사명/공고명 검색 흐름 점검';
+  else if(medium.includes('referral')||source.includes('blog'))msg='연결 좋은 지면 CTA 유지';
+  if(share>=.4)msg='편중 큼 · '+msg;
+  return msg;
+}
+function renderConversionDecision(R){
   const {weeks}=R;
-  // 유입 품질
-  const curPV=sum(weeks,'blog_pageviews');
-  const pw=R.prevWeeks;
-  const curUsr=sum(weeks,'blog_users'),prevUsr=pw.length?sum(pw,'blog_users'):0;
-  const curAvg=curUsr?sum(weeks,'blog_engTime')/curUsr:0;
-  const prevAvg=(pw.length&&prevUsr)?sum(pw,'blog_engTime')/prevUsr:null;
-  const m=Math.floor(curAvg/60),s=Math.round(curAvg%60);
-  const curU=sum(weeks,'users'),curN=sum(weeks,'newUsers'),nr=curU?((curN/curU)*100).toFixed(0):'—';
-  $('#quality').innerHTML=`<div style="display:flex;align-items:flex-end;gap:9px;margin-bottom:4px"><div class="q-big">${curPV?`${m}:${String(s).padStart(2,'0')}`:'—'}</div><div style="font-size:12px;color:var(--text-4);padding-bottom:5px">평균 체류 (분:초)</div></div><div style="margin-bottom:13px">${badge(mom(curAvg,prevAvg))}</div><div style="font-size:12px;color:var(--text-3);line-height:1.7"><div>· 블로그 조회 <b>${fmt(curPV)}</b> · 순방문 <b>${fmt(sum(weeks,'blog_users'))}</b></div><div>· 채용페이지 신규 방문 비율 <b>${nr}%</b></div><div style="color:var(--text-4);margin-top:8px">체류가 길수록 '콘텐츠 보고 들어온 결 맞는 트래픽'</div></div>`;
+  const blogPV=sum(weeks,'blog_pageviews');
+  const blogEng=sum(weeks,'blog_engTime');
+  const users=sum(weeks,'users');
+  const newUsers=sum(weeks,'newUsers');
+  const detail=sum(weeks,'detail_pv');
+  const apply=sum(weeks,'apply_pv');
+  const confirm=sum(weeks,'confirm_pv');
+  const avgBlog=blogPV?engStr(blogEng,blogPV):'—';
+  const blogToRecruit=blogPV?users/blogPV:0;
+  const detailRate=users?detail/users:0;
+  const applyRate=detail?apply/detail:0;
 
-  // 유입 출처 — 선택 기간(weeks) 합산. 주차별 sources 없으면 전체누적(__sources__)로 폴백
+  let verdict='아직 유입 흐름을 판단할 데이터가 부족합니다';
+  if(users&&detailRate>=.45&&applyRate<.18)verdict='공고 상세까지 보지만 지원 단계에서 새는 구간입니다';
+  else if(users&&apply/users>=.2)verdict='방문이 지원 행동까지 꽤 잘 이어지고 있습니다';
+  else if(blogPV&&blogToRecruit<.5)verdict='블로그 관심 대비 채용페이지 이동이 약합니다';
+  else if(users)verdict='유입은 있으나 병목을 계속 나눠 봐야 합니다';
+
+  $('#qualityVerdict').textContent=verdict;
+  $('#qualityDesc').innerHTML=[
+    `블로그→채용 방문 <b>${pct(users,blogPV)}</b>`,
+    `방문→공고 상세 <b>${pct(detail,users)}</b>`,
+    `상세→지원 클릭 <b>${pct(apply,detail)}</b>`,
+    `신규 방문 <b>${pct(newUsers,users)}</b>`,
+    `블로그 평균 참여 <b>${avgBlog}</b>`
+  ].join(' · ');
+
+  const steps=[
+    {label:'블로그 조회',value:blogPV,unit:'PV',color:'var(--blog)'},
+    {label:'채용 방문',value:users,unit:'명',color:'var(--ga4)'},
+    {label:'공고 상세',value:detail,unit:'PV',color:'var(--accent)'},
+    {label:'지원 클릭',value:apply,unit:'PV',color:'var(--up)'}
+  ];
+  const max=Math.max(...steps.map(x=>x.value),1);
+  $('#qualityPath').innerHTML=steps.map(x=>`
+    <div class="path-row">
+      <div class="path-label">${x.label}</div>
+      <div class="path-bar"><div class="path-fill" style="width:${Math.max(4,x.value/max*100)}%;background:${x.color}"></div></div>
+      <div class="path-val">${fmt(x.value)} ${x.unit}</div>
+    </div>`).join('')+(confirm?`<div class="quality-desc">지원 완료/확인 신호 ${fmt(confirm)}건도 함께 잡혔습니다.</div>`:'');
+
   destroyChart('src');
-  const legend=$('#srcLegend');
   const srcMap={};
   weeks.forEach(w=>{(DB[w]&&DB[w].sources||[]).forEach(x=>{
-    const k=(x.source||'')+' '+(x.medium||'');
-    if(!srcMap[k])srcMap[k]={source:x.source,medium:x.medium,users:0,sessions:0};
+    const k=(x.source||'')+'|'+(x.medium||'');
+    if(!srcMap[k])srcMap[k]={source:x.source||'(direct)',medium:x.medium||'(none)',users:0,sessions:0};
     srcMap[k].users+=x.users||0; srcMap[k].sessions+=x.sessions||0;
   });});
   let sources=Object.values(srcMap).sort((a,b)=>b.users-a.users);
   let srcScope='선택 기간';
-  if(!sources.length){ sources=DB['__sources__']||[]; srcScope='전체 기간'; }
-  const srcSub=$('#srcSub'); if(srcSub) srcSub.textContent='채용 페이지 · '+srcScope;
-  if(!sources||!sources.length){legend.innerHTML='<div style="color:var(--text-4);font-size:12px">유입 출처 없음</div>';$('#srcDetail').innerHTML='';}
-  else{
-    const top5=sources.slice(0,5),tot=sources.reduce((a,x)=>a+x.users,0)||1,cols=['#4A4540','#6B6660','#8A857D','#B5AFA6','#D2CCC3'];
-    charts.src=new Chart($('#srcChart'),{type:'doughnut',data:{labels:top5.map(s=>`${s.source}/${s.medium}`),datasets:[{data:top5.map(s=>s.users),backgroundColor:cols,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:true,cutout:'64%',plugins:{legend:{display:false},tooltip:TOOLTIP}}});
-    legend.innerHTML=top5.map((s,i)=>`<div class="dough-row"><div style="display:flex;align-items:center;gap:6px;min-width:0"><div class="ldot" style="background:${cols[i]}"></div><span class="ell" style="max-width:150px">${esc(s.source)}/${esc(s.medium)}</span></div><div style="font-weight:700;white-space:nowrap">${fmt(s.users)} <span style="color:var(--text-4);font-weight:400">${(s.users/tot*100).toFixed(1)}%</span></div></div>`).join('');
-    $('#srcDetail').innerHTML=`<table><thead><tr><th>출처/매체</th><th style="text-align:right">방문자</th><th style="text-align:right">세션</th></tr></thead><tbody>${sources.map(s=>`<tr><td class="ell">${esc(s.source)}/${esc(s.medium)}</td><td style="text-align:right">${fmt(s.users)}</td><td style="text-align:right">${fmt(s.sessions)}</td></tr>`).join('')}</tbody></table>`;
-  }
+  if(!sources.length){sources=(DB['__sources__']||[]).map(s=>({...s,source:s.source||'(direct)',medium:s.medium||'(none)'}));srcScope='전체 기간';}
+  const total=sources.reduce((a,x)=>a+(x.users||0),0)||1;
+  $('#srcSub').textContent='채용 페이지 · '+srcScope;
+  $('#sourceAdviceBody').innerHTML=sources.length?sources.slice(0,8).map(s=>`
+    <tr>
+      <td class="ell" title="${esc(s.source)}/${esc(s.medium)}"><b>${esc(s.source)}</b><div style="font-size:11px;color:var(--text-4);font-weight:650;margin-top:2px">${esc(s.medium)} · ${(s.users/total*100).toFixed(1)}%</div></td>
+      <td style="text-align:right;font-weight:800">${fmt(s.users)}</td>
+      <td class="source-advice"><span>${esc(sourceAdvice(s,s.users/total))}</span></td>
+    </tr>`).join(''):'<tr><td colspan="3" class="empty">유입 출처 데이터가 없습니다</td></tr>';
 }
 
 /* ════════ 5. UI HELPERS ════════ */
@@ -961,7 +1034,7 @@ syncOpenPositions(); // 회사 계정 로그인과 무관한 외부 채용 플�
 
 // 잘린 제목 호버 → 즉시 전문 툴팁 (기본 title은 hover 동안 제거해 중복 방지)
 (function(){
-  const grid=document.querySelector('.roi-grid');if(!grid)return;
+  const grid=document.querySelector('.content-decision');if(!grid)return;
   let tip=document.getElementById('roiTip');
   if(!tip){tip=document.createElement('div');tip.id='roiTip';tip.className='roi-tip';document.body.appendChild(tip);}
   grid.addEventListener('mouseover',e=>{const td=e.target.closest('td.ell');if(!td)return;const full=td.getAttribute('title')||td.textContent.trim();if(!full)return;td._full=td.getAttribute('title');td.removeAttribute('title');tip.textContent=full;tip.style.display='block';});
