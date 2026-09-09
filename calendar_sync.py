@@ -17,6 +17,7 @@ import os
 import sys
 import csv
 import io
+import time
 
 import requests
 from google.cloud import firestore
@@ -38,9 +39,22 @@ def _client():
 
 
 def fetch_rows():
-    r = requests.get(SHEET_CSV_URL, timeout=30)
-    if r.status_code >= 400:
-        raise SystemExit(f'❌ 시트 CSV 조회 실패: HTTP {r.status_code}')
+    # Google이 GitHub Actions 실행 IP에 일시적으로 401/403을 돌려줄 때가 있다(시트 권한
+    # 문제 아님 — 같은 요청을 다른 IP에서 보내면 바로 200). 20분마다 도는 워크플로라
+    # 한 번 실패로 바로 죽이지 않고 짧게 재시도.
+    last_err = None
+    for attempt in range(3):
+        try:
+            r = requests.get(SHEET_CSV_URL, timeout=30)
+            if r.status_code < 400:
+                break
+            last_err = f'HTTP {r.status_code}'
+        except requests.RequestException as e:
+            last_err = str(e)
+        if attempt < 2:
+            time.sleep(5 * (attempt + 1))
+    else:
+        raise SystemExit(f'❌ 시트 CSV 조회 실패(3회 재시도 후): {last_err}')
     r.encoding = 'utf-8'  # 응답에 charset이 명시돼 있지 않아 requests가 잘못 추측하는 걸 막음
     reader = csv.DictReader(io.StringIO(r.text))
     header_fields = [f.strip() for f in (reader.fieldnames or [])] or DEFAULT_COLUMNS
