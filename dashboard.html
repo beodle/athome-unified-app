@@ -906,19 +906,25 @@ function renderConversionDecision(R){
   const apply=sum(weeks,'apply_pv');
   const confirm=sum(weeks,'confirm_pv');
   const avgBlog=blogPV?engStr(blogEng,blogPV):'—';
-  const blogToRecruit=blogPV?users/blogPV:0;
+  // blogPV(블로그 GA4)와 users(채용페이지 GA4)는 서로 다른 속성의 독립적인 합계라, 그냥
+  // 나누면 "전환율"이 아니라 우연의 일치인 값이 나온다(100% 넘는 경우도 실제로 있었음 — 159%).
+  // 대신 채용페이지 유입 출처(sources)에서 blog.athomecorp.com 리퍼럴로 들어온 세션만 집계 —
+  // 이건 users의 진짜 부분집합이라 방향성이 명확하고 100%를 넘을 수 없다.
+  const blogReferralUsers=weeks.reduce((a,w)=>{
+    const srcs=(DB[w]&&DB[w].sources)||[];
+    return a+srcs.filter(s=>String(s.source||'').toLowerCase().includes('blog')).reduce((s,x)=>s+(x.users||0),0);
+  },0);
   const detailRate=users?detail/users:0;
   const applyRate=detail?apply/detail:0;
 
   let verdict='아직 유입 흐름을 판단할 데이터가 부족합니다';
   if(users&&detailRate>=.45&&applyRate<.18)verdict='공고 상세까지 보지만 지원 단계에서 새는 구간입니다';
   else if(users&&apply/users>=.2)verdict='방문이 지원 행동까지 꽤 잘 이어지고 있습니다';
-  else if(blogPV&&blogToRecruit<.5)verdict='블로그 관심 대비 채용페이지 이동이 약합니다';
   else if(users)verdict='유입은 있으나 병목을 계속 나눠 봐야 합니다';
 
   $('#qualityVerdict').textContent=verdict;
   $('#qualityDesc').innerHTML=[
-    `블로그→채용 방문 <b>${pct(users,blogPV)}</b>`,
+    `블로그발 채용페이지 방문 비중 <b>${pct(blogReferralUsers,users)}</b>`,
     `방문→공고 상세 <b>${pct(detail,users)}</b>`,
     `상세→지원 클릭 <b>${pct(apply,detail)}</b>`,
     `신규 방문 <b>${pct(newUsers,users)}</b>`,
