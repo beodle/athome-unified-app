@@ -105,6 +105,17 @@ def sources(prop, s, e, limit=15):
         'sessions': int(row.metric_values[1].value),
     } for row in r.rows]
 
+def blog_referral_users(s, e):
+    """채용페이지로 유입된 세션 중 blog.athomecorp.com 리퍼럴만 순위와 무관하게 직접 조회.
+    sources()는 상위 15개만 저장해서, 실제로 있어도 순위 밖이면 0으로 보이는 문제가 있었음
+    (대시보드 "블로그발 채용페이지 방문 비중" 지표가 항상 0%로 뜨던 원인)."""
+    f = FilterExpression(filter=Filter(field_name='sessionSource',
+        string_filter=Filter.StringFilter(value='blog', match_type=MT.CONTAINS)))
+    r = c.run_report(RunReportRequest(
+        property=RECRUIT_PROP, date_ranges=[DateRange(start_date=s, end_date=e)],
+        metrics=[Metric(name='activeUsers')], dimension_filter=f))
+    return int(r.rows[0].metric_values[0].value) if r.rows else 0
+
 def blog_posts(s, e, limit=20):
     r = c.run_report(RunReportRequest(
         property=BLOG_PROP, date_ranges=[DateRange(start_date=s, end_date=e)],
@@ -131,6 +142,7 @@ for wk in WEEKS:
     d['apply_pv']   = pv(RECRUIT_PROP, s, e, '/apply',       MT.ENDS_WITH)
     d['confirm_pv'] = pv(RECRUIT_PROP, s, e, '/confirm',     MT.ENDS_WITH)
     d['sources']    = sources(RECRUIT_PROP, s, e)  # 주차별 유입 출처
+    d['blog_referral_users'] = blog_referral_users(s, e)  # sources 순위 밖이어도 놓치지 않는 블로그 리퍼럴 전용 집계
     # 블로그
     bt = totals(BLOG_PROP, s, e)
     d['blog_pageviews'] = bt['pageviews']

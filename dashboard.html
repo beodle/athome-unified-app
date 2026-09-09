@@ -908,12 +908,10 @@ function renderConversionDecision(R){
   const avgBlog=blogPV?engStr(blogEng,blogPV):'—';
   // blogPV(블로그 GA4)와 users(채용페이지 GA4)는 서로 다른 속성의 독립적인 합계라, 그냥
   // 나누면 "전환율"이 아니라 우연의 일치인 값이 나온다(100% 넘는 경우도 실제로 있었음 — 159%).
-  // 대신 채용페이지 유입 출처(sources)에서 blog.athomecorp.com 리퍼럴로 들어온 세션만 집계 —
-  // 이건 users의 진짜 부분집합이라 방향성이 명확하고 100%를 넘을 수 없다.
-  const blogReferralUsers=weeks.reduce((a,w)=>{
-    const srcs=(DB[w]&&DB[w].sources)||[];
-    return a+srcs.filter(s=>String(s.source||'').toLowerCase().includes('blog')).reduce((s,x)=>s+(x.users||0),0);
-  },0);
+  // 대신 update.sh가 채용페이지 GA4에서 blog.athomecorp.com 리퍼럴만 순위와 무관하게 직접
+  // 집계해둔 blog_referral_users를 쓴다 — sources 상위 15개 안에서만 찾으면 순위 밖으로
+  // 밀려난 실제 유입을 0으로 오인하는 문제가 있었음(대시보드가 항상 0%로 뜨던 원인).
+  const blogReferralUsers=sum(weeks,'blog_referral_users');
   const detailRate=users?detail/users:0;
   const applyRate=detail?apply/detail:0;
 
