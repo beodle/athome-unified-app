@@ -153,7 +153,7 @@ for wk in WEEKS:
     d['blog_channels']  = blog_channels(s, e)
     d['blog_posts']     = blog_posts(s, e)
     new_data[wk] = d
-    print(f'    채용 users={d["users"]} confirm={d["confirm_pv"]} | 블로그 PV={d["blog_pageviews"]} users={d["blog_users"]}')
+    print(f'    채용 users={d["users"]} confirm={d["confirm_pv"]} | 블로그 PV={d["blog_pageviews"]} users={d["blog_users"]} | 블로그발 방문={d["blog_referral_users"]}')
 
 from firestore_sync import load_baked, save_baked
 
