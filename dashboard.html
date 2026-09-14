@@ -377,6 +377,12 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         </table>
       </div>
     </div>
+    <div class="card pad" style="margin-top:14px;">
+      <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">채용 행동 흐름 · 월별 비교</span><span class="sub">최근 6개월, 상단 기간 선택과 무관하게 항상 월 단위</span></div>
+      <div style="overflow-x:auto;">
+        <table class="source-table" id="monthlyFunnelTable"></table>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -499,7 +505,7 @@ function render(){
   const fixed=range.mode==='all'||range.mode==='custom';
   $('#prevBtn').disabled=fixed||fi<=0; $('#nextBtn').disabled=fixed||li>=ws.length-1;
   document.querySelectorAll('[data-range]').forEach(b=>b.classList.toggle('on',b.dataset.range===range.mode));
-  renderDecisionBrief(R); renderScorecard(R); renderAwareness(R); renderContribution(R); renderConversionDecision(R);
+  renderDecisionBrief(R); renderScorecard(R); renderAwareness(R); renderContribution(R); renderConversionDecision(R); renderConversionMonthly();
 }
 
 /* ── 공통 빌더 ── */
@@ -961,6 +967,50 @@ function renderConversionDecision(R){
       <td style="text-align:right;font-weight:800">${fmt(s.users)}</td>
       <td class="source-advice"><span>${esc(sourceAdvice(s,s.users/total))}</span></td>
     </tr>`).join(''):'<tr><td colspan="3" class="empty">유입 출처 데이터가 없습니다</td></tr>';
+}
+
+/* ── 채용 행동 흐름 · 월별 비교 (상단 기간 선택과 무관, 항상 최근 6개월 고정) ── */
+function renderConversionMonthly(){
+  const allWeeks=Object.keys(DB).filter(k=>/^\d{4}-W\d{2}$/.test(k));
+  const byMonth={};
+  allWeeks.forEach(w=>{
+    const mon=weekMonday(w);
+    if(!mon)return;
+    const mk=`${mon.getUTCFullYear()}-${String(mon.getUTCMonth()+1).padStart(2,'0')}`;
+    (byMonth[mk]=byMonth[mk]||[]).push(w);
+  });
+  const months=Object.keys(byMonth).sort().slice(-6);
+  const now=new Date();
+  const curMonthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  const cols=[
+    {label:'블로그 조회',get:r=>fmt(r.blogPV)},
+    {label:'채용 방문',get:r=>fmt(r.users)},
+    {label:'공고 상세',get:r=>fmt(r.detail)},
+    {label:'지원 클릭',get:r=>fmt(r.apply)},
+    {label:'지원완료 신호',get:r=>fmt(r.confirm)},
+    {label:'블로그발 방문 비중',get:r=>pct(r.blogReferralUsers,r.users)},
+    {label:'방문→상세',get:r=>pct(r.detail,r.users)},
+    {label:'상세→지원',get:r=>pct(r.apply,r.detail)},
+    {label:'블로그 평균참여',get:r=>r.blogPV?engStr(r.blogEng,r.blogPV):'—'},
+  ];
+
+  const rows=months.map(mk=>{
+    const ws=byMonth[mk];
+    const [y,m]=mk.split('-');
+    return {
+      label:`${y}.${m}${mk===curMonthKey?' (진행 중)':''}`,
+      blogPV:sum(ws,'blog_pageviews'), blogEng:sum(ws,'blog_engTime'),
+      users:sum(ws,'users'), detail:sum(ws,'detail_pv'), apply:sum(ws,'apply_pv'),
+      confirm:sum(ws,'confirm_pv'), blogReferralUsers:sum(ws,'blog_referral_users'),
+    };
+  });
+
+  const thead=`<thead><tr><th>월</th>${cols.map(c=>`<th style="text-align:right">${c.label}</th>`).join('')}</tr></thead>`;
+  const tbody=rows.length
+    ?`<tbody>${rows.map(r=>`<tr><td><b>${r.label}</b></td>${cols.map(c=>`<td style="text-align:right">${c.get(r)}</td>`).join('')}</tr>`).join('')}</tbody>`
+    :`<tbody><tr><td colspan="${cols.length+1}" class="empty">데이터가 없습니다</td></tr></tbody>`;
+  $('#monthlyFunnelTable').innerHTML=thead+tbody;
 }
 
 /* ════════ 5. UI HELPERS ════════ */
