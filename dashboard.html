@@ -215,6 +215,12 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .source-table th:nth-child(2),.source-table td:nth-child(2){width:76px;text-align:right;}
 .source-table th:nth-child(3),.source-table td:nth-child(3){width:34%;}
 .source-advice{white-space:normal!important;font-size:12px;font-weight:700;color:var(--text-2);line-height:1.45;}
+.monthly-table{min-width:100%;width:max-content;border-collapse:collapse;}
+.monthly-table th,.monthly-table td{white-space:nowrap;padding:10px 16px;font-size:12.5px;text-align:right;}
+.monthly-table th{font-weight:700;color:var(--text-3);border-bottom:1px solid var(--border);}
+.monthly-table td{color:var(--text-2);border-bottom:1px solid var(--border);}
+.monthly-table th:first-child,.monthly-table td:first-child{text-align:left;padding-left:2px;}
+.monthly-table tbody tr:last-child td{border-bottom:none;}
 .source-advice span{display:inline-block;background:var(--bg-soft);border-radius:6px;padding:3px 7px;}
 
 /* ── MODAL ── */
@@ -380,7 +386,7 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     <div class="card pad" style="margin-top:14px;">
       <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">채용 행동 흐름 · 월별 비교</span><span class="sub">최근 6개월, 상단 기간 선택과 무관하게 항상 월 단위</span></div>
       <div style="overflow-x:auto;">
-        <table class="source-table" id="monthlyFunnelTable"></table>
+        <table class="monthly-table" id="monthlyFunnelTable"></table>
       </div>
     </div>
   </section>
