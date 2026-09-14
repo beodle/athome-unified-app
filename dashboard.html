@@ -454,9 +454,26 @@ function renderChannelCards(R){
   const curF=lastFollowers(weeks), prevF=prevWeeks.length?(lastFollowers(prevWeeks)||null):null;
   const net=sum(weeks,'newFollowers');
   const curImp=sum(weeks,'impressions'), prevImp=prevWeeks.length?sum(prevWeeks,'impressions'):null;
+  const rxOf=d=>(d.likes||0)+(d.comments||0)+(d.shares||0);
+  const hasRx=weeks.some(w=>DB[w]?.likes!=null);
+  const curRx=sum(weeks,'likes')+sum(weeks,'comments')+sum(weeks,'shares');
+  const curClicks=sum(weeks,'clicks');
+  let prevRx=null,prevClicks=null,prevEngRate=null;
+  if(prevWeeks.length){
+    prevRx=sum(prevWeeks,'likes')+sum(prevWeeks,'comments')+sum(prevWeeks,'shares');
+    prevClicks=sum(prevWeeks,'clicks');
+    const prevI=sum(prevWeeks,'impressions');
+    prevEngRate=prevI?(prevRx+prevClicks)/prevI*100:null;
+  }
+  // LinkedIn 자체 정의: (좋아요+댓글+공유+클릭) / 노출 — 같은 API 응답 안 값끼리 계산이라
+  // GA4 서로 다른 속성을 나누던 것과 달리 문제되는 파생 비율이 아님
+  const curEngRate=(hasRx&&curImp)?(curRx+curClicks)/curImp*100:null;
   $('#cardLinkedin').innerHTML=[
     kpi('팔로워',fmt(curF),`기간 순증 ${net>=0?'+':''}${fmt(net)}명`,curF,prevF,'followers',spk),
     kpi('노출수',fmt(curImp),'기간 합계',curImp,prevImp,'impressions',spk),
+    hasRx?kpi('반응수',fmt(curRx),'좋아요·댓글·공유',curRx,prevRx,rxOf,spk):pendingKpi('반응수 · 클릭수 · 참여율','다음 갱신부터 반영'),
+    hasRx?kpi('클릭수',fmt(curClicks),'기간 합계',curClicks,prevClicks,'clicks',spk):'',
+    hasRx?rateKpi('참여율',curEngRate,prevEngRate,'(반응+클릭)/노출'):'',
   ].join('');
 }
 
@@ -480,10 +497,12 @@ async function syncOpenPositions(){
   try{
     const res=await fetch('https://api.ninehire.com/identity-access/homepage/recruitments?companyId=f6b69a00-168c-11f0-8d01-3f2475e76c63&page=1&countPerPage=100',{cache:'no-store'});
     if(!res.ok)throw 0;
-    const {count,results}=await res.json();
-    valEl.textContent=`${fmt(count)}건`;
+    const {results}=await res.json();
+    // "커피챗"/"인재풀" 공고는 실제 채용 중인 포지션이 아니라서 오픈 포지션 수·구성에서 제외
+    const jobs=(results||[]).filter(r=>!/커피챗|인재풀/.test(r.title||''));
+    valEl.textContent=`${fmt(jobs.length)}건`;
     const byGroup={};
-    (results||[]).forEach(r=>{const g=r.jobGroup?.title||'기타';byGroup[g]=(byGroup[g]||0)+1;});
+    jobs.forEach(r=>{const g=r.jobGroup?.title||'기타';byGroup[g]=(byGroup[g]||0)+1;});
     const top=Object.entries(byGroup).sort((a,b)=>b[1]-a[1]).slice(0,4);
     bdEl.textContent=top.map(([g,n])=>`${g} ${n}`).join(' · ');
   }catch(e){
