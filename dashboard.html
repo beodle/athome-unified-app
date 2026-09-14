@@ -385,9 +385,7 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     </div>
     <div class="card pad" style="margin-top:14px;">
       <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">채용 행동 흐름 · 월별 비교</span><span class="sub">최근 6개월, 상단 기간 선택과 무관하게 항상 월 단위</span></div>
-      <div style="overflow-x:auto;">
-        <table class="monthly-table" id="monthlyFunnelTable"></table>
-      </div>
+      <div class="chart-box" id="monthlyFunnelBox" style="height:260px;"><canvas id="monthlyFunnelChart"></canvas></div>
     </div>
   </section>
 </main>
@@ -989,34 +987,33 @@ function renderConversionMonthly(){
   const now=new Date();
   const curMonthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
-  const cols=[
-    {label:'블로그 조회',get:r=>fmt(r.blogPV)},
-    {label:'채용 방문',get:r=>fmt(r.users)},
-    {label:'공고 상세',get:r=>fmt(r.detail)},
-    {label:'지원 클릭',get:r=>fmt(r.apply)},
-    {label:'지원완료 신호',get:r=>fmt(r.confirm)},
-    {label:'블로그발 방문 비중',get:r=>pct(r.blogReferralUsers,r.users)},
-    {label:'방문→상세',get:r=>pct(r.detail,r.users)},
-    {label:'상세→지원',get:r=>pct(r.apply,r.detail)},
-    {label:'블로그 평균참여',get:r=>r.blogPV?engStr(r.blogEng,r.blogPV):'—'},
-  ];
-
   const rows=months.map(mk=>{
     const ws=byMonth[mk];
     const [y,m]=mk.split('-');
     return {
-      label:`${y}.${m}${mk===curMonthKey?' (진행 중)':''}`,
-      blogPV:sum(ws,'blog_pageviews'), blogEng:sum(ws,'blog_engTime'),
-      users:sum(ws,'users'), detail:sum(ws,'detail_pv'), apply:sum(ws,'apply_pv'),
-      confirm:sum(ws,'confirm_pv'), blogReferralUsers:sum(ws,'blog_referral_users'),
+      label:`${y}.${m}${mk===curMonthKey?'(진행중)':''}`,
+      blogPV:sum(ws,'blog_pageviews'), users:sum(ws,'users'),
+      detail:sum(ws,'detail_pv'), apply:sum(ws,'apply_pv'),
     };
   });
 
-  const thead=`<thead><tr><th>월</th>${cols.map(c=>`<th style="text-align:right">${c.label}</th>`).join('')}</tr></thead>`;
-  const tbody=rows.length
-    ?`<tbody>${rows.map(r=>`<tr><td><b>${r.label}</b></td>${cols.map(c=>`<td style="text-align:right">${c.get(r)}</td>`).join('')}</tr>`).join('')}</tbody>`
-    :`<tbody><tr><td colspan="${cols.length+1}" class="empty">데이터가 없습니다</td></tr></tbody>`;
-  $('#monthlyFunnelTable').innerHTML=thead+tbody;
+  destroyChart('monthlyFunnel');
+  const box=$('#monthlyFunnelBox');
+  if(!rows.length){box.innerHTML='<div class="empty">데이터가 없습니다</div>';return;}
+  if(!$('#monthlyFunnelChart'))box.innerHTML='<canvas id="monthlyFunnelChart"></canvas>';
+
+  charts.monthlyFunnel=new Chart($('#monthlyFunnelChart'),{
+    type:'line',
+    data:{labels:rows.map(r=>r.label),datasets:[
+      {label:'블로그 조회',data:rows.map(r=>r.blogPV),borderColor:'#7C3AED',backgroundColor:'#7C3AED',borderWidth:2,pointRadius:3,tension:.3},
+      {label:'채용 방문',data:rows.map(r=>r.users),borderColor:'#0057FF',backgroundColor:'#0057FF',borderWidth:2,pointRadius:3,tension:.3},
+      {label:'공고 상세',data:rows.map(r=>r.detail),borderColor:'#FF5D00',backgroundColor:'#FF5D00',borderWidth:2,pointRadius:3,tension:.3},
+      {label:'지원 클릭',data:rows.map(r=>r.apply),borderColor:'#16A34A',backgroundColor:'#16A34A',borderWidth:2,pointRadius:3,tension:.3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:LEGEND,tooltip:{...TOOLTIP,callbacks:{label:it=>` ${it.dataset.label}: ${fmt(it.parsed.y)}`}}},
+      scales:{x:{grid:{color:'#F1F0ED'},ticks:TICK},y:{grid:{color:'#F1F0ED'},ticks:{...TICK,callback:v=>fmt(v)}}}}
+  });
 }
 
 /* ════════ 5. UI HELPERS ════════ */
