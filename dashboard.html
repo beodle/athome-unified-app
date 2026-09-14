@@ -370,7 +370,7 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       <div class="card pad quality-hero">
         <div class="card-h"><div class="dot" style="background:var(--up)"></div><span class="t">채용 행동 흐름</span><span class="sub">블로그 관심 → 지원 의도</span></div>
         <div>
-          <div class="quality-verdict" id="qualityVerdict">데이터를 불러오는 중입니다</div>
+          <div class="quality-verdict" id="qualityVerdict" hidden>데이터를 불러오는 중입니다</div>
           <div class="quality-desc" id="qualityDesc"></div>
         </div>
         <div class="path-list" id="qualityPath"></div>
@@ -783,16 +783,13 @@ function renderAwareness(R){
 function renderAwarenessReadout(weeks){
   const el=$('#awReadout');
   if(!el)return;
-  if(!weeks.length){el.textContent='선택한 기간에 읽을 흐름이 없습니다.';return;}
-  const imp=sum(weeks,'impressions'), visit=sum(weeks,'users'), blog=sum(weeks,'blog_pageviews');
+  if(!weeks.length){el.textContent='선택한 기간에 데이터가 없습니다.';return;}
+  const imp=sum(weeks,'impressions'), visit=sum(weeks,'users');
   const apply=sum(weeks,'apply_pv'), liRx=sum(weeks,'likes')+sum(weeks,'comments')+sum(weeks,'shares');
   const visitPerImp=imp?visit/imp*100:0;
   const applyPerVisit=visit?apply/visit*100:0;
-  let lead='노출 이후의 방문 전환을 같이 봐야 하는 구간입니다.';
-  if(imp&&visitPerImp<35)lead='노출 대비 채용페이지 방문 연결이 약합니다.';
-  if(visit&&applyPerVisit>=25)lead='방문 이후 지원도달까지 이어지는 힘이 있습니다.';
-  if(blog>visit)lead='블로그 관심이 채용페이지 방문보다 앞서고 있습니다.';
-  el.innerHTML=`<b>${lead}</b> 노출 대비 방문 ${visitPerImp.toFixed(1)}%, 방문 대비 지원도달 ${applyPerVisit.toFixed(1)}%, LinkedIn 반응 ${fmt(liRx)}건입니다.`;
+  // 해석 문장(lead) 없이 숫자만 — 판단은 맨 위 "이번 기간 진단" 하나로 통일
+  el.textContent=`노출 대비 방문 ${visitPerImp.toFixed(1)}% · 방문 대비 지원도달 ${applyPerVisit.toFixed(1)}% · LinkedIn 반응 ${fmt(liRx)}건`;
 }
 function renderAwareDetail(weeks){
   const rows=w=>{const d=DB[w]||{};const rx=(d.likes||0)+(d.comments||0)+(d.shares||0);return `<tr><td><span class="wbadge">${weekLabel(w)}</span></td><td style="text-align:right">${fmt(d.impressions||0)}</td><td style="text-align:right">${fmt(rx)}</td><td style="text-align:right">${fmt(d.users||0)}</td><td style="text-align:right">${fmt(d.apply_pv||0)}</td><td style="text-align:right">${fmt(d.blog_pageviews||0)}</td></tr>`;};
