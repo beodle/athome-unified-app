@@ -333,9 +333,9 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     <div id="scoreInsight" hidden></div>
   </section>
 
-  <!-- ① 인지 -->
+  <!-- ① 유입 → 전환 (구 "흐름 진단"+"유입 판정" 통합) -->
   <section class="sec" id="secAwareness">
-    <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">흐름 진단</span><span class="sec-desc">노출이 관심과 방문으로 이어졌나</span></div>
+    <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">유입 → 전환</span><span class="sec-desc">노출부터 지원까지, 어디서 새는지</span></div>
     <div class="card pad">
       <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">도달 → 관심 → 방문 흐름</span></div>
       <div class="chart-box" id="awChartBox"><canvas id="awChart"></canvas></div>
@@ -346,27 +346,7 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         <div class="acc-body" id="awDetail"></div>
       </div>
     </div>
-  </section>
-
-  <!-- ② 콘텐츠 기여 -->
-  <section class="sec">
-    <div class="sec-head"><span class="sec-no">02</span><span class="sec-title">콘텐츠 결정</span><span class="sec-desc">무엇을 반복하고 무엇을 손볼지</span><span class="sec-pub" id="pubCount"></span></div>
-    <div class="content-decision">
-      <div class="card pad">
-        <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">이번 기간 재활용 후보</span><span class="sub" id="contentPickSub"></span></div>
-        <div class="pick-list" id="contentPicks"></div>
-      </div>
-      <div class="card pad">
-        <div class="card-h"><div class="dot" style="background:var(--text-1)"></div><span class="t">채널별 운영 메모</span><span class="sub" id="channelMemoSub"></span></div>
-        <div class="channel-note" id="channelMemo"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ③ 전환·품질 -->
-  <section class="sec">
-    <div class="sec-head"><span class="sec-no">03</span><span class="sec-title">유입 판정</span><span class="sec-desc">어디서 온 방문이 채용 행동으로 이어졌나</span></div>
-    <div class="quality-layout">
+    <div class="quality-layout" style="margin-top:14px;">
       <div class="card pad quality-hero">
         <div class="card-h"><div class="dot" style="background:var(--up)"></div><span class="t">채용 행동 흐름</span><span class="sub">블로그 관심 → 지원 의도</span></div>
         <div>
@@ -393,6 +373,21 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         </div>
       </div>
       <div class="chart-box" id="monthlyFunnelBox" style="height:260px;"><canvas id="monthlyFunnelChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ② 콘텐츠 결정 -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">02</span><span class="sec-title">콘텐츠 결정</span><span class="sec-desc">무엇을 반복하고 무엇을 손볼지</span><span class="sec-pub" id="pubCount"></span></div>
+    <div class="content-decision">
+      <div class="card pad">
+        <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">이번 기간 재활용 후보</span><span class="sub" id="contentPickSub"></span></div>
+        <div class="pick-list" id="contentPicks"></div>
+      </div>
+      <div class="card pad">
+        <div class="card-h"><div class="dot" style="background:var(--text-1)"></div><span class="t">채널별 운영 메모</span><span class="sub" id="channelMemoSub"></span></div>
+        <div class="channel-note" id="channelMemo"></div>
+      </div>
     </div>
   </section>
 </main>
