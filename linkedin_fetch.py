@@ -7,7 +7,9 @@ LinkedIn 조직 성과 수집 → Firestore(dashboardWeekly/dashboardMeta) 머�
     FIRESTORE_SA_KEY_PATH (Firestore 서비스 계정 키 경로 — firestore_sync.py가 사용)
 
 수집:
-  - 게시물 목록 + 게시물별 통계 → 발행 주차별 노출 합(impressions) + 게시물 TOP(__li_posts__)
+  - organizationalEntityShareStatistics(timeIntervals, 일별) → 실제 노출 발생일 기준 주차별
+    노출 합(impressions) — LinkedIn 자체 분석 화면과 동일 방식(발행일 기준 누적 몰아주기 아님)
+  - 게시물 목록 + 게시물별 통계(lifetime) → 게시물 TOP(__li_posts__)
   - networkSizes → 현재 누적 팔로워 → 최신 주차 followers 스냅샷, newFollowers=직전주 대비 증감
 
 사용:  python3 linkedin_fetch.py [--dry]
@@ -106,6 +108,37 @@ def network_size(org, h):
     return int(d.get("firstDegreeSize") or 0)
 
 
+def week_impressions(org, h, days_back=91):
+    """조직 전체 게시물의 실제 노출이 '일어난' 날짜 기준으로 일별 노출을 받아 ISO 주차로 집계.
+
+    예전 방식(게시물별 지금까지 누적 노출을 발행 주차 하나에 몰아주기)은 LinkedIn 자체
+    대시보드가 보여주는 "이번 주 노출"과 완전히 다른 숫자가 나왔다 — 노출은 발행 이후에도
+    계속 쌓이는데, 그걸 전부 발행 주차에만 귀속시키다 보니 그 주에 새 글을 안 올렸으면
+    실제로는 옛날 글이 계속 노출되고 있었어도 거의 0으로 잡혔다(예: 실제 3,600 vs 581).
+    Community Management API의 organizationalEntityShareStatistics는 timeIntervals를
+    주면 발행일과 무관하게 그 기간에 실제로 발생한 노출을 일별로 돌려준다 — LinkedIn
+    자체 분석 화면과 같은 방식.
+    """
+    end = datetime.datetime.now(KST)
+    start = end - datetime.timedelta(days=days_back)
+    end_ms = int(end.timestamp() * 1000)
+    start_ms = int(start.timestamp() * 1000)
+    enc = urllib.parse.quote(org, safe="")
+    url = (f"{BASE}/organizationalEntityShareStatistics?q=organizationalEntity"
+           f"&organizationalEntity={enc}"
+           f"&timeIntervals=(timeRange:(start:{start_ms},end:{end_ms}),timeGranularityType:DAY)")
+    els = _get(url, h).get("elements", [])
+    week_imp = {}
+    for e in els:
+        ms = (e.get("timeRange") or {}).get("start")
+        if ms is None:
+            continue
+        imp = int((e.get("totalShareStatistics") or {}).get("impressionCount") or 0)
+        wk, _ = iso_week(ms)
+        week_imp[wk] = week_imp.get(wk, 0) + imp
+    return week_imp
+
+
 def main():
     dry = "--dry" in sys.argv
     org = _env("LINKEDIN_ORG_URN")
@@ -114,15 +147,15 @@ def main():
     posts = list_posts(org, h)
     stats = share_stats(org, [p["urn"] for p in posts], h)
     followers = network_size(org, h)
+    week_imp = week_impressions(org, h)
 
-    week_imp, li_posts = {}, []
+    li_posts = []
     for p in posts:
         s = stats.get(p["urn"], {})
         imp = int(s.get("impressionCount") or 0)
         if imp == 0:
             continue  # 통계 없음(12개월 초과/광고만) → 제외
-        wk, date = iso_week(p["published_at"])
-        week_imp[wk] = week_imp.get(wk, 0) + imp
+        _, date = iso_week(p["published_at"])
         li_posts.append({
             "date": date,
             "title": re.sub(r'\\([<>*_~\[\]()])', r'\1', p["commentary"].strip().split("\n")[0])[:80],
