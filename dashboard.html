@@ -382,6 +382,15 @@ function lastFollowers(weeks){
 function pendingKpi(label,note){
   return `<div class="kpi pending"><div class="kpi-top"><span class="kpi-label">${label}</span></div><div class="kpi-val">연동 예정</div><div class="kpi-sub">${note}</div></div>`;
 }
+/* 순위 같은 "낮을수록 좋음" 지표를 노출량 가중 평균으로 (단순 평균은 트래픽 적은 주가 과대 반영됨) */
+function weightedAvg(weeks,valField,weightField){
+  let wsum=0,vwsum=0;
+  weeks.forEach(w=>{const d=DB[w];if(!d||d[valField]==null||!d[weightField])return;wsum+=d[weightField];vwsum+=d[valField]*d[weightField];});
+  return wsum?vwsum/wsum:null;
+}
+function rankKpi(label,avgPos,sub){
+  return `<div class="kpi"><div class="kpi-top"><span class="kpi-label">${label}</span></div><div class="kpi-val">${avgPos!=null?avgPos.toFixed(1):'—'}</div><div class="kpi-sub">${sub}</div></div>`;
+}
 /* 재방문율(=1-신규/전체) 같은 비율형 지표 — mom()의 "값 증감%" 계산과 달리 %p 차이로 비교 */
 function rateKpi(label,curRate,prevRate,sub){
   if(curRate==null)return `<div class="kpi"><div class="kpi-top"><span class="kpi-label">${label}</span></div><div class="kpi-val">—</div><div class="kpi-sub">${sub}</div></div>`;
@@ -407,11 +416,16 @@ function renderChannelCards(R){
     const pu=sum(prevWeeks,'users'), pn=sum(prevWeeks,'newUsers');
     prevReturnRate=pu?Math.max(0,pu-pn)/pu*100:null;
   }
+  const hasRecruitGsc=weeks.some(w=>DB[w]?.gsc_impressions!=null);
+  const curGscImp=sum(weeks,'gsc_impressions'), prevGscImp=prevWeeks.length?sum(prevWeeks,'gsc_impressions'):null;
+  const curGscClk=sum(weeks,'gsc_clicks'), prevGscClk=prevWeeks.length?sum(prevWeeks,'gsc_clicks'):null;
   $('#cardRecruit').innerHTML=[
     kpi('세션 수',fmt(curSess),'기간 합계',curSess,prevSess,'sessions',spk),
     kpi('신규 방문자',fmt(curNew),'기간 합계',curNew,prevNew,'newUsers',spk),
     rateKpi('재방문율',curReturnRate,prevReturnRate,`재방문 ${fmt(curReturned)}명 / 전체 ${fmt(curUsers)}명`),
-    pendingKpi('검색 노출수 · 클릭수 · 평균 순위','Search Console 연동 예정'),
+    hasRecruitGsc?kpi('검색 노출수',fmt(curGscImp),'기간 합계 (GSC)',curGscImp,prevGscImp,'gsc_impressions',spk):pendingKpi('검색 노출수 · 클릭수 · 평균 순위','Search Console 연동 예정'),
+    hasRecruitGsc?kpi('검색 클릭수',fmt(curGscClk),'기간 합계 (GSC)',curGscClk,prevGscClk,'gsc_clicks',spk):'',
+    hasRecruitGsc?rankKpi('평균 순위',weightedAvg(weeks,'gsc_position','gsc_impressions'),'노출 가중 평균 (GSC)'):'',
   ].join('');
 
   /* 블로그 */
@@ -425,11 +439,15 @@ function renderChannelCards(R){
     const bu=sum(prevWeeks,'blog_users'), bn=sum(prevWeeks,'blog_newUsers');
     prevBlogReturnRate=bu?Math.max(0,bu-bn)/bu*100:null;
   }
+  const hasBlogGsc=weeks.some(w=>DB[w]?.blog_gsc_impressions!=null);
+  const curBlogGscImp=sum(weeks,'blog_gsc_impressions'), prevBlogGscImp=prevWeeks.length?sum(prevWeeks,'blog_gsc_impressions'):null;
+  const curBlogGscClk=sum(weeks,'blog_gsc_clicks'), prevBlogGscClk=prevWeeks.length?sum(prevWeeks,'blog_gsc_clicks'):null;
   $('#cardBlog').innerHTML=[
     kpi('조회수',fmt(curBlogPV),'기간 합계',curBlogPV,prevBlogPV,'blog_pageviews',spk),
     kpi('신규 방문자',fmt(curBlogNew),'기간 합계',curBlogNew,prevBlogNew,'blog_newUsers',spk),
     rateKpi('재방문율',curBlogReturnRate,prevBlogReturnRate,`재방문 ${fmt(curBlogReturned)}명 / 전체 ${fmt(curBlogUsers)}명`),
-    pendingKpi('검색 노출수 · 클릭수','Search Console 연동 예정'),
+    hasBlogGsc?kpi('검색 노출수',fmt(curBlogGscImp),'기간 합계 (GSC)',curBlogGscImp,prevBlogGscImp,'blog_gsc_impressions',spk):pendingKpi('검색 노출수 · 클릭수','Search Console 연동 예정'),
+    hasBlogGsc?kpi('검색 클릭수',fmt(curBlogGscClk),'기간 합계 (GSC)',curBlogGscClk,prevBlogGscClk,'blog_gsc_clicks',spk):'',
   ].join('');
 
   /* LinkedIn */

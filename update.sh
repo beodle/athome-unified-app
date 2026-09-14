@@ -39,12 +39,48 @@ from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     RunReportRequest, Dimension, Metric, DateRange, FilterExpression, Filter, OrderBy
 )
+from google.oauth2 import service_account as gsc_service_account
+from googleapiclient.discovery import build as gsc_build
 
 RECRUIT_PROP = 'properties/525199871'
 BLOG_PROP    = 'properties/529085962'
+RECRUIT_GSC  = 'https://career.athomecorp.com/'
+BLOG_GSC     = 'https://blog.athomecorp.com/'
 WEEKS = os.environ['WEEKS'].split()
 c = BetaAnalyticsDataClient()
 MT = Filter.StringFilter.MatchType
+
+# Search Console은 GA4와 별도 스코프가 필요해서 같은 서비스 계정 키로 별도 인증 객체를 만든다.
+# 방금 등록한 권한이라(전파 지연 가능) 실패해도 GA4/LinkedIn/YouTube 수집 전체가 죽지 않도록 감싼다.
+try:
+    _gsc_creds = gsc_service_account.Credentials.from_service_account_file(
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'],
+        scopes=['https://www.googleapis.com/auth/webmasters.readonly'])
+    gsc = gsc_build('webmasters', 'v3', credentials=_gsc_creds, cache_discovery=False)
+except Exception as e:
+    print(f'⚠️ Search Console 인증 실패(GA4/LinkedIn 수집은 계속 진행): {e}')
+    gsc = None
+
+def gsc_summary(site_url, s, e):
+    """기간 합계 노출/클릭 + 노출 가중 평균 순위. 권한 미전파/API 오류 시 None(= '연동 예정'으로 표시)."""
+    if gsc is None:
+        return None
+    try:
+        r = gsc.searchanalytics().query(siteUrl=site_url, body={
+            'startDate': s, 'endDate': e, 'dataState': 'all',
+        }).execute()
+        rows = r.get('rows', [])
+        if not rows:
+            return {'impressions': 0, 'clicks': 0, 'position': 0}
+        row = rows[0]
+        return {
+            'impressions': int(row.get('impressions', 0)),
+            'clicks': int(row.get('clicks', 0)),
+            'position': round(row.get('position', 0), 1),
+        }
+    except Exception as e:
+        print(f'⚠️ Search Console 조회 실패({site_url}, {s}~{e}): {e}')
+        return None
 
 def week_range(year, week):
     jan4 = date(year, 1, 4)
@@ -143,6 +179,9 @@ for wk in WEEKS:
     d['confirm_pv'] = pv(RECRUIT_PROP, s, e, '/confirm',     MT.ENDS_WITH)
     d['sources']    = sources(RECRUIT_PROP, s, e)  # 주차별 유입 출처
     d['blog_referral_users'] = blog_referral_users(s, e)  # sources 순위 밖이어도 놓치지 않는 블로그 리퍼럴 전용 집계
+    recruit_gsc = gsc_summary(RECRUIT_GSC, s, e)  # None이면 필드 자체를 안 넣음(대시보드가 '연동 예정'으로 표시)
+    if recruit_gsc:
+        d['gsc_impressions'], d['gsc_clicks'], d['gsc_position'] = recruit_gsc['impressions'], recruit_gsc['clicks'], recruit_gsc['position']
     # 블로그
     bt = totals(BLOG_PROP, s, e)
     d['blog_pageviews'] = bt['pageviews']
@@ -153,6 +192,9 @@ for wk in WEEKS:
     d['blog_ctaClicks'] = 0
     d['blog_channels']  = blog_channels(s, e)
     d['blog_posts']     = blog_posts(s, e)
+    blog_gsc = gsc_summary(BLOG_GSC, s, e)
+    if blog_gsc:
+        d['blog_gsc_impressions'], d['blog_gsc_clicks'], d['blog_gsc_position'] = blog_gsc['impressions'], blog_gsc['clicks'], blog_gsc['position']
     new_data[wk] = d
     print(f'    채용 users={d["users"]} confirm={d["confirm_pv"]} | 블로그 PV={d["blog_pageviews"]} users={d["blog_users"]} | 블로그발 방문={d["blog_referral_users"]}')
 
