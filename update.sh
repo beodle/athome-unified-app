@@ -147,6 +147,7 @@ for wk in WEEKS:
     bt = totals(BLOG_PROP, s, e)
     d['blog_pageviews'] = bt['pageviews']
     d['blog_users']     = bt['users']
+    d['blog_newUsers']  = bt['newUsers']  # 재방문율(=1-newUsers/users) 계산용, 기존 GA4 호출에서 이미 받아오던 값 저장만 추가
     d['blog_engTime']   = blog_eng(s, e)
     d['blog_avg_engagement'] = round(d['blog_engTime'] / d['blog_users']) if d['blog_users'] else 0  # GA4 '평균 참여 시간'(초) = 총 참여시간 / 활성 사용자
     d['blog_ctaClicks'] = 0
