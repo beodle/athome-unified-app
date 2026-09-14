@@ -21,7 +21,6 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231A1A1A'/><rect x='12' y='55' width='18' height='33' rx='4' fill='%23FF5D00'/><rect x='41' y='35' width='18' height='53' rx='4' fill='%23FF5D00'/><rect x='70' y='18' width='18' height='70' rx='4' fill='%23FF5D00'/></svg>">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <style>
 :root{
   --accent:#FF5D00; --accent-light:rgba(255,93,0,.08); --accent-mid:rgba(255,93,0,.16);
@@ -60,8 +59,6 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .brief-actions h3{font-size:12px;font-weight:850;color:var(--text-1);margin-bottom:9px;}
 .brief-actions ol{margin:0;padding-left:18px;color:var(--text-2);}
 .brief-actions li{padding-left:2px;margin:6px 0;font-size:12.5px;font-weight:650;line-height:1.55;}
-.flow-note{margin-top:14px;border-top:1px solid var(--border);padding-top:12px;font-size:12.5px;font-weight:650;color:var(--text-3);line-height:1.6;}
-.flow-note b{color:var(--text-1);}
 .action-cell{font-size:12px;font-weight:700;color:var(--text-2);line-height:1.45;white-space:normal!important;}
 .action-cell span{display:inline-block;border-radius:6px;background:var(--bg-soft);padding:3px 7px;}
 
@@ -177,14 +174,6 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .source-table td.ell,.pick-title{cursor:default;}
 .roi-tip{position:fixed;display:none;z-index:300;background:#1A1A1A;color:#fff;padding:7px 11px;border-radius:7px;font-size:12px;line-height:1.45;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.22);pointer-events:none;}
 
-/* ── ACCORDION ── */
-.acc{margin-top:12px;border-top:1px solid var(--border);}
-.acc-btn{width:100%;text-align:left;background:none;border:none;padding:12px 2px 0;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--text-3);cursor:pointer;display:flex;align-items:center;gap:6px;}
-.acc-btn:hover{color:var(--text-1);}
-.acc-btn .ar{transition:transform .18s;font-size:10px;}
-.acc.open .acc-btn .ar{transform:rotate(90deg);}
-.acc-body{display:none;padding-top:12px;}
-.acc.open .acc-body{display:block;}
 
 /* ── FUNNEL ── */
 .funnel-row{padding:5px 0;}
@@ -250,7 +239,7 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pick-action{grid-column:2;justify-self:start;text-align:left;}
   .quality-layout{grid-template-columns:1fr;}
 }
-@media print{ .topbar,.btn,.acc-btn{display:none;} .card,.kpi{box-shadow:none;break-inside:avoid;} body{background:#fff;} }
+@media print{ .topbar,.btn{display:none;} .card,.kpi{box-shadow:none;break-inside:avoid;} body{background:#fff;} }
 </style>
 </head>
 <body>
@@ -336,17 +325,7 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   <!-- ① 유입 → 전환 (구 "흐름 진단"+"유입 판정" 통합) -->
   <section class="sec" id="secAwareness">
     <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">유입 → 전환</span><span class="sec-desc">노출부터 지원까지, 어디서 새는지</span></div>
-    <div class="card pad">
-      <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">도달 → 관심 → 방문 흐름</span></div>
-      <div class="chart-box" id="awChartBox"><canvas id="awChart"></canvas></div>
-      <div class="empty" id="awEmpty" style="display:none">이 기간에 데이터가 없습니다</div>
-      <div class="flow-note" id="awReadout"></div>
-      <div class="acc" id="accAware">
-        <button class="acc-btn" onclick="toggleAcc('accAware')"><span class="ar">▶</span> 채널별 주차 상세</button>
-        <div class="acc-body" id="awDetail"></div>
-      </div>
-    </div>
-    <div class="quality-layout" style="margin-top:14px;">
+    <div class="quality-layout">
       <div class="card pad quality-hero">
         <div class="card-h"><div class="dot" style="background:var(--up)"></div><span class="t">채용 행동 흐름</span><span class="sub">블로그 관심 → 지원 의도</span></div>
         <div>
@@ -438,7 +417,6 @@ const fmt=n=>(n==null||isNaN(n))?'0':Number(n).toLocaleString('ko-KR');
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function sortedWeeks(){return Object.keys(DB).filter(k=>/^\d{4}-W\d{2}$/.test(k)&&k!==curWeek()).sort();}
 function weekMonday(wid){const m=wid.match(/^(\d{4})-W(\d{2})$/);if(!m)return null;const y=+m[1],w=+m[2],jan4=new Date(Date.UTC(y,0,4)),d=jan4.getUTCDay()||7;return new Date(Date.UTC(y,0,4-d+1+(w-1)*7));}
-function weekLabel(wid){const m=wid.match(/W(\d+)/);return m?'W'+(+m[1]):wid;}
 function mdLabel(wid,end){const mon=weekMonday(wid);if(!mon)return'';const d=end?new Date(mon.getTime()+6*864e5):mon;return (d.getUTCMonth()+1)+'.'+d.getUTCDate();}
 function dateToWeek(str){
   let d;
@@ -496,7 +474,6 @@ function closeRange(){$('#rangeMenu').classList.remove('open');}
 function toggleMore(ev){ev.stopPropagation();closeRange();$('#moreMenu').classList.toggle('open');}
 function closeMore(){const m=$('#moreMenu');if(m)m.classList.remove('open');}
 document.addEventListener('click',()=>{closeRange();closeMore();});
-function toggleAcc(id){document.getElementById(id).classList.toggle('open');}
 
 /* ════════ 4. RENDER ════════ */
 const FONT="'Pretendard Variable',Pretendard,sans-serif";
@@ -512,7 +489,7 @@ function render(){
   const fixed=range.mode==='all'||range.mode==='custom';
   $('#prevBtn').disabled=fixed||fi<=0; $('#nextBtn').disabled=fixed||li>=ws.length-1;
   document.querySelectorAll('[data-range]').forEach(b=>b.classList.toggle('on',b.dataset.range===range.mode));
-  renderDecisionBrief(R); renderScorecard(R); renderAwareness(R); renderContribution(R); renderConversionDecision(R); renderConversionMonthly();
+  renderDecisionBrief(R); renderScorecard(R); renderContribution(R); renderConversionDecision(R); renderConversionMonthly();
 }
 
 /* ── 공통 빌더 ── */
@@ -744,53 +721,6 @@ function renderScorecard(R){
   $('#scoreInsight').innerHTML=insight;
 }
 
-/* ── ① 인지 ── */
-function renderAwareness(R){
-  const {weeks}=R;
-
-  destroyChart('aw');
-  const box=$('#awChartBox'),empty=$('#awEmpty');
-  if(!weeks.length){box.style.display='none';empty.style.display='';}
-  else{
-    box.style.display='';empty.style.display='none';
-    const ann={};const cal=DB['__calendar__'];
-    if(cal){
-      // 같은 주차에 여러 건이 발행되면 라벨이 한 자리에 겹치므로 주차별로 묶어 1개만 표기
-      const byIdx={};
-      cal.forEach(e=>{if(!e.date)return;const wk=dateToWeek(e.date);if(!weeks.includes(wk))return;const idx=weeks.indexOf(wk);if(idx<0)return;(byIdx[idx]||(byIdx[idx]=[])).push(e);});
-      Object.entries(byIdx).forEach(([idx,items])=>{const n=items.length;const content=n===1?items[0].title.slice(0,11):`${n}건 발행`;ann['c'+idx]={type:'line',xMin:+idx,xMax:+idx,borderColor:'rgba(0,0,0,.10)',borderWidth:1,borderDash:[4,3],label:{display:true,content,position:'start',font:{size:9,family:FONT},color:'#A8A29A',backgroundColor:'transparent'}};});
-    }
-    charts.aw=new Chart($('#awChart'),{
-      data:{labels:weeks.map(weekLabel),datasets:[
-        {type:'bar',label:'LinkedIn 노출',data:weeks.map(w=>DB[w]?.impressions||0),backgroundColor:'rgba(74,69,64,.15)',borderRadius:4,yAxisID:'y',order:3},
-        {type:'line',label:'블로그 조회',data:weeks.map(w=>DB[w]?.blog_pageviews||0),borderColor:'#9A958C',borderWidth:1.8,pointRadius:2.5,tension:.3,yAxisID:'y',order:2},
-        {type:'line',label:'팔로워(누적)',data:weeks.map(w=>DB[w]?.followers||null),borderColor:'#FF5D00',borderWidth:2.4,pointRadius:3,tension:.3,spanGaps:true,yAxisID:'y1',order:1},
-      ]},
-      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:LEGEND,tooltip:{...TOOLTIP,callbacks:{title:(it)=>{const w=weeks[it[0].dataIndex];return w?`${weekLabel(w)} · ${mdLabel(w)}~${mdLabel(w,true)}`:'';}}},annotation:{annotations:ann}},
-        scales:{x:{grid:{color:'#F1F0ED'},ticks:TICK},y:{position:'left',grid:{color:'#F1F0ED'},ticks:{...TICK,callback:v=>fmt(v)}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{...TICK,callback:v=>fmt(v)}}}}
-    });
-  }
-  renderAwarenessReadout(weeks);
-  // 아코디언: 채널 주차 테이블
-  if($('#accAware').classList.contains('open')||$('#awDetail').innerHTML==='')renderAwareDetail(weeks);
-  else renderAwareDetail(weeks);
-}
-function renderAwarenessReadout(weeks){
-  const el=$('#awReadout');
-  if(!el)return;
-  if(!weeks.length){el.textContent='선택한 기간에 데이터가 없습니다.';return;}
-  const imp=sum(weeks,'impressions'), visit=sum(weeks,'users');
-  const apply=sum(weeks,'apply_pv'), liRx=sum(weeks,'likes')+sum(weeks,'comments')+sum(weeks,'shares');
-  const visitPerImp=imp?visit/imp*100:0;
-  const applyPerVisit=visit?apply/visit*100:0;
-  // 해석 문장(lead) 없이 숫자만 — 판단은 맨 위 "이번 기간 진단" 하나로 통일
-  el.textContent=`노출 대비 방문 ${visitPerImp.toFixed(1)}% · 방문 대비 지원도달 ${applyPerVisit.toFixed(1)}% · LinkedIn 반응 ${fmt(liRx)}건`;
-}
-function renderAwareDetail(weeks){
-  const rows=w=>{const d=DB[w]||{};const rx=(d.likes||0)+(d.comments||0)+(d.shares||0);return `<tr><td><span class="wbadge">${weekLabel(w)}</span></td><td style="text-align:right">${fmt(d.impressions||0)}</td><td style="text-align:right">${fmt(rx)}</td><td style="text-align:right">${fmt(d.users||0)}</td><td style="text-align:right">${fmt(d.apply_pv||0)}</td><td style="text-align:right">${fmt(d.blog_pageviews||0)}</td></tr>`;};
-  $('#awDetail').innerHTML=weeks.length?`<table><thead><tr><th>주차</th><th style="text-align:right">LI노출</th><th style="text-align:right">LI반응</th><th style="text-align:right">방문</th><th style="text-align:right">지원도달</th><th style="text-align:right">블로그</th></tr></thead><tbody>${weeks.map(rows).join('')}</tbody></table>`:'<div class="empty">데이터 없음</div>';
-}
-
 /* 메인·카테고리 등 내비게이션 페이지 제외 (실제 글만 랭킹) */
 const NAV_TITLES=['앳홈 블로그','People','Culture','Works','Home','Now'];
 function isNavPage(p){
@@ -908,6 +838,8 @@ function sourceAdvice(s,share){
 }
 function renderConversionDecision(R){
   const {weeks}=R;
+  const imp=sum(weeks,'impressions');
+  const liRx=sum(weeks,'likes')+sum(weeks,'comments')+sum(weeks,'shares');
   const blogPV=sum(weeks,'blog_pageviews');
   const blogEng=sum(weeks,'blog_engTime');
   const users=sum(weeks,'users');
@@ -932,10 +864,12 @@ function renderConversionDecision(R){
 
   $('#qualityVerdict').textContent=verdict;
   $('#qualityDesc').innerHTML=[
-    `블로그발 채용페이지 방문 비중 <b>${pct(blogReferralUsers,users)}</b>`,
+    `노출→방문 <b>${pct(users,imp)}</b>`,
     `방문→공고 상세 <b>${pct(detail,users)}</b>`,
     `상세→지원 클릭 <b>${pct(apply,detail)}</b>`,
+    `블로그발 채용페이지 방문 비중 <b>${pct(blogReferralUsers,users)}</b>`,
     `신규 방문 <b>${pct(newUsers,users)}</b>`,
+    `LinkedIn 반응 <b>${fmt(liRx)}건</b>`,
     `블로그 평균 참여 <b>${avgBlog}</b>`
   ].join(' · ');
 
