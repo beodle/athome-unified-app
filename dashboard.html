@@ -384,7 +384,14 @@ th,td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       </div>
     </div>
     <div class="card pad" style="margin-top:14px;">
-      <div class="card-h"><div class="dot" style="background:var(--accent)"></div><span class="t">채용 행동 흐름 · 월별 비교</span><span class="sub">최근 6개월, 상단 기간 선택과 무관하게 항상 월 단위</span></div>
+      <div class="card-h">
+        <div class="dot" style="background:var(--accent)"></div><span class="t">채용 행동 흐름 · 월별 비교</span>
+        <div class="seg-group" id="monthlyRangeGroup" style="margin-left:auto;">
+          <button data-mrange="3" onclick="setMonthlyRange(3)">3개월</button>
+          <button data-mrange="6" class="on" onclick="setMonthlyRange(6)">6개월</button>
+          <button data-mrange="12" onclick="setMonthlyRange(12)">12개월</button>
+        </div>
+      </div>
       <div class="chart-box" id="monthlyFunnelBox" style="height:260px;"><canvas id="monthlyFunnelChart"></canvas></div>
     </div>
   </section>
@@ -401,6 +408,7 @@ let __LAST_UPDATED__ = '—';
 
 let DB={};
 let range={mode:'4w',offset:0,start:null,end:null};
+let monthlyMonths=6;
 let charts={};
 
 // 예전엔 GA4/LinkedIn/YouTube 실적을 파일에 그대로 구워서(__BAKED_DATA__) 로그인 여부와
@@ -973,7 +981,12 @@ function renderConversionDecision(R){
     </tr>`).join(''):'<tr><td colspan="3" class="empty">유입 출처 데이터가 없습니다</td></tr>';
 }
 
-/* ── 채용 행동 흐름 · 월별 비교 (상단 기간 선택과 무관, 항상 최근 6개월 고정) ── */
+/* ── 채용 행동 흐름 · 월별 비교 (상단 기간 선택과 무관, 3/6/12개월 중 선택 가능) ── */
+function setMonthlyRange(n){
+  monthlyMonths=n;
+  document.querySelectorAll('#monthlyRangeGroup button').forEach(b=>b.classList.toggle('on',+b.dataset.mrange===n));
+  renderConversionMonthly();
+}
 function renderConversionMonthly(){
   const allWeeks=Object.keys(DB).filter(k=>/^\d{4}-W\d{2}$/.test(k));
   const byMonth={};
@@ -983,7 +996,7 @@ function renderConversionMonthly(){
     const mk=`${mon.getUTCFullYear()}-${String(mon.getUTCMonth()+1).padStart(2,'0')}`;
     (byMonth[mk]=byMonth[mk]||[]).push(w);
   });
-  const months=Object.keys(byMonth).sort().slice(-6);
+  const months=Object.keys(byMonth).sort().slice(-monthlyMonths);
   const now=new Date();
   const curMonthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
