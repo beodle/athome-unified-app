@@ -53,10 +53,20 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .channel-card-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .channel-card-name{font-size:14px;font-weight:800;color:var(--text-1);}
 .channel-card-sub{font-size:11.5px;color:var(--text-4);font-weight:500;margin-left:auto;}
-.channel-kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.channel-kpis .kpi{box-shadow:none;border:1px solid var(--border);padding:13px 14px;}
-.channel-kpis .kpi-val{font-size:22px;}
-.channel-kpis .kpi.pending .kpi-val{font-size:14px;font-weight:650;color:var(--text-4);}
+/* 카드당 hero 지표 1개(크게) + 나머지는 보조 리스트(작게) — 위계를 명확히 */
+.channel-hero{padding-bottom:16px;margin-bottom:14px;border-bottom:1px solid var(--border);}
+.channel-hero-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.channel-hero-label{font-size:12px;font-weight:700;color:var(--text-3);}
+.channel-hero-val{font-size:36px;font-weight:850;letter-spacing:-.035em;line-height:1;}
+.channel-hero-sub{font-size:11.5px;color:var(--text-4);margin-top:7px;}
+.channel-sub-list{display:flex;flex-direction:column;gap:11px;}
+.channel-sub-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.channel-sub-row.pending{opacity:.6;}
+.channel-sub-label{font-size:12px;font-weight:650;color:var(--text-3);flex-shrink:0;}
+.channel-sub-right{display:flex;align-items:baseline;gap:7px;min-width:0;}
+.channel-sub-val{font-size:15px;font-weight:800;color:var(--text-1);white-space:nowrap;}
+.channel-sub-note{font-size:10.5px;color:var(--text-4);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.channel-sub-row .cmp{font-size:10px;}
 
 /* ── TOPBAR ── */
 .topbar{position:sticky;top:0;z-index:60;background:rgba(245,244,241,.85);backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border);}
@@ -120,13 +130,6 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .card-h .t{font-size:14px;font-weight:700;color:var(--text-1);}
 .card-h .sub{font-size:11.5px;color:var(--text-4);font-weight:500;margin-left:auto;}
 
-/* ── KPI ── */
-.kpi{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;transition:transform .14s,box-shadow .14s;}
-.kpi:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(40,30,20,.06);}
-.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
-.kpi-label{font-size:11.5px;font-weight:600;color:var(--text-3);}
-.kpi-val{font-size:31px;font-weight:800;letter-spacing:-.04em;line-height:1.05;}
-.kpi-sub{font-size:11.5px;color:var(--text-4);margin:5px 0 10px;}
 .cmp{font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:3px;}
 .cmp.up{color:var(--up);} .cmp.down{color:var(--down);} .cmp.flat{color:var(--text-4);}
 
@@ -153,9 +156,8 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 @media(max-width:820px){
   .grid2{grid-template-columns:1fr;}
   .topbar-in{flex-wrap:wrap;} .brand span{display:none;} .last-upd{display:none;} .seg-group button{padding:6px 9px;}
-  .channel-kpis{grid-template-columns:1fr 1fr;}
 }
-@media print{ .topbar,.btn{display:none;} .card,.kpi{box-shadow:none;break-inside:avoid;} body{background:#fff;} }
+@media print{ .topbar,.btn{display:none;} .card,.channel-card{box-shadow:none;break-inside:avoid;} body{background:#fff;} }
 </style>
 </head>
 <body>
@@ -221,15 +223,15 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
     <div class="channel-cards">
       <div class="channel-card">
         <div class="channel-card-head"><span class="channel-card-dot" style="background:var(--ga4)"></span><span class="channel-card-name">채용사이트</span><span class="channel-card-sub">GA4</span></div>
-        <div class="channel-kpis" id="cardRecruit"></div>
+        <div class="channel-body" id="cardRecruit"></div>
       </div>
       <div class="channel-card">
         <div class="channel-card-head"><span class="channel-card-dot" style="background:var(--blog)"></span><span class="channel-card-name">블로그</span><span class="channel-card-sub">GA4</span></div>
-        <div class="channel-kpis" id="cardBlog"></div>
+        <div class="channel-body" id="cardBlog"></div>
       </div>
       <div class="channel-card">
         <div class="channel-card-head"><span class="channel-card-dot" style="background:var(--li)"></span><span class="channel-card-name">LinkedIn</span><span class="channel-card-sub">Community Management API</span></div>
-        <div class="channel-kpis" id="cardLinkedin"></div>
+        <div class="channel-body" id="cardLinkedin"></div>
       </div>
     </div>
   </section>
@@ -349,20 +351,7 @@ function render(){
 }
 
 /* ── 공통 빌더 ── */
-function spark(weeks,field){
-  if(weeks.length<2)return'';
-  const vals=weeks.map(w=>{const d=DB[w]||{};return typeof field==='function'?(field(d)||0):(d[field]||0);});
-  const mx=Math.max(...vals),mn=Math.min(...vals),rg=mx-mn||1,W=54,H=24;
-  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*W).toFixed(1)},${(H-((v-mn)/rg)*(H-4)-2).toFixed(1)}`).join(' ');
-  const c=vals[vals.length-1]>=vals[vals.length-2]?'#16A34A':'#DC2626';
-  const ly=(H-((vals[vals.length-1]-mn)/rg)*(H-4)-2).toFixed(1);
-  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="opacity:.7;flex-shrink:0"><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${W}" cy="${ly}" r="2.4" fill="${c}"/></svg>`;
-}
 function badge(m){if(!m)return'';const a=m.dir==='up'?'▲':m.dir==='down'?'▼':'―';const p=m.pct!=null?` ${m.pct>=0?'+':''}${m.pct.toFixed(1)}%`:'';return `<span class="cmp ${m.dir}">${a}${p} vs 직전</span>`;}
-function kpi(label,val,sub,cur,prev,sparkField,sparkWeeks){
-  const m=mom(cur,prev),cls=m?m.dir:'';
-  return `<div class="kpi ${cls}"><div class="kpi-top"><span class="kpi-label">${label}</span>${sparkField?spark(sparkWeeks,sparkField):''}</div><div class="kpi-val">${val}</div><div class="kpi-sub">${sub}</div>${badge(m)}</div>`;
-}
 function lastFollowers(weeks){
   if(!weeks.length)return 0;
   const inRange=weeks.filter(w=>DB[w]?.followers);
@@ -378,9 +367,17 @@ function lastFollowers(weeks){
   return DB[past.length?past[past.length-1]:all[0]].followers;
 }
 
-/* GSC 미연동 지표 자리표시 — 값 대신 상태만 보여줌(가짜 0 금지) */
-function pendingKpi(label,note){
-  return `<div class="kpi pending"><div class="kpi-top"><span class="kpi-label">${label}</span></div><div class="kpi-val">연동 예정</div><div class="kpi-sub">${note}</div></div>`;
+/* 카드당 hero 지표 1개(크게) — 나머지 지표와 위계를 분리 */
+function heroStat(label,val,sub,cur,prev,color){
+  return `<div class="channel-hero"><div class="channel-hero-top"><span class="channel-hero-label">${label}</span>${badge(mom(cur,prev))}</div><div class="channel-hero-val" style="color:${color}">${val}</div><div class="channel-hero-sub">${sub}</div></div>`;
+}
+/* 보조 지표 — hero 아래 작은 리스트 한 줄. cur/prev를 주면 증감 배지, 안 주면 값만 */
+function subRow(label,val,note,cur,prev){
+  const badgeHtml=(cur!=null&&prev!=null)?badge(mom(cur,prev)):'';
+  return `<div class="channel-sub-row"><span class="channel-sub-label">${label}</span><div class="channel-sub-right">${note?`<span class="channel-sub-note">${note}</span>`:''}<span class="channel-sub-val">${val}</span>${badgeHtml}</div></div>`;
+}
+function subRowPending(label,note){
+  return `<div class="channel-sub-row pending"><span class="channel-sub-label">${label}</span><div class="channel-sub-right"><span class="channel-sub-note">${note}</span><span class="channel-sub-val">연동 예정</span></div></div>`;
 }
 /* 순위 같은 "낮을수록 좋음" 지표를 노출량 가중 평균으로 (단순 평균은 트래픽 적은 주가 과대 반영됨) */
 function weightedAvg(weeks,valField,weightField){
@@ -388,22 +385,18 @@ function weightedAvg(weeks,valField,weightField){
   weeks.forEach(w=>{const d=DB[w];if(!d||d[valField]==null||!d[weightField])return;wsum+=d[weightField];vwsum+=d[valField]*d[weightField];});
   return wsum?vwsum/wsum:null;
 }
-function rankKpi(label,avgPos,sub){
-  return `<div class="kpi"><div class="kpi-top"><span class="kpi-label">${label}</span></div><div class="kpi-val">${avgPos!=null?avgPos.toFixed(1):'—'}</div><div class="kpi-sub">${sub}</div></div>`;
-}
 /* 재방문율(=1-신규/전체) 같은 비율형 지표 — mom()의 "값 증감%" 계산과 달리 %p 차이로 비교 */
-function rateKpi(label,curRate,prevRate,sub){
-  if(curRate==null)return `<div class="kpi"><div class="kpi-top"><span class="kpi-label">${label}</span></div><div class="kpi-val">—</div><div class="kpi-sub">${sub}</div></div>`;
+function rateSubRow(label,curRate,prevRate,note){
+  if(curRate==null)return subRow(label,'—',note);
   const diff=prevRate!=null?curRate-prevRate:null;
   const cls=diff==null?'':diff>=1?'up':diff<=-1?'down':'flat';
-  const badgeHtml=diff==null?'':`<span class="cmp ${cls}">${diff>=0?'▲':'▼'} ${diff>=0?'+':''}${diff.toFixed(1)}%p vs 직전</span>`;
-  return `<div class="kpi ${cls}"><div class="kpi-top"><span class="kpi-label">${label}</span></div><div class="kpi-val">${curRate.toFixed(1)}%</div><div class="kpi-sub">${sub}</div>${badgeHtml}</div>`;
+  const badgeHtml=diff==null?'':`<span class="cmp ${cls}">${diff>=0?'▲':'▼'}${Math.abs(diff).toFixed(1)}%p</span>`;
+  return `<div class="channel-sub-row"><span class="channel-sub-label">${label}</span><div class="channel-sub-right">${note?`<span class="channel-sub-note">${note}</span>`:''}<span class="channel-sub-val">${curRate.toFixed(1)}%</span>${badgeHtml}</div></div>`;
 }
 
 /* ── 채널별 카드 (채용사이트/블로그/링크드인 — 서로 완전히 독립, 채널 간 나눗셈 없음) ── */
 function renderChannelCards(R){
   const {weeks,prevWeeks}=R;
-  const spk=sortedWeeks().slice(-8);
 
   /* 채용사이트 */
   const curSess=sum(weeks,'sessions'), prevSess=prevWeeks.length?sum(prevWeeks,'sessions'):null;
@@ -419,14 +412,15 @@ function renderChannelCards(R){
   const hasRecruitGsc=weeks.some(w=>DB[w]?.gsc_impressions!=null);
   const curGscImp=sum(weeks,'gsc_impressions'), prevGscImp=prevWeeks.length?sum(prevWeeks,'gsc_impressions'):null;
   const curGscClk=sum(weeks,'gsc_clicks'), prevGscClk=prevWeeks.length?sum(prevWeeks,'gsc_clicks'):null;
-  $('#cardRecruit').innerHTML=[
-    kpi('세션 수',fmt(curSess),'기간 합계',curSess,prevSess,'sessions',spk),
-    kpi('신규 방문자',fmt(curNew),'기간 합계',curNew,prevNew,'newUsers',spk),
-    rateKpi('재방문율',curReturnRate,prevReturnRate,`재방문 ${fmt(curReturned)}명 / 전체 ${fmt(curUsers)}명`),
-    hasRecruitGsc?kpi('검색 노출수',fmt(curGscImp),'기간 합계 (GSC)',curGscImp,prevGscImp,'gsc_impressions',spk):pendingKpi('검색 노출수 · 클릭수 · 평균 순위','Search Console 연동 예정'),
-    hasRecruitGsc?kpi('검색 클릭수',fmt(curGscClk),'기간 합계 (GSC)',curGscClk,prevGscClk,'gsc_clicks',spk):'',
-    hasRecruitGsc?rankKpi('평균 순위',weightedAvg(weeks,'gsc_position','gsc_impressions'),'노출 가중 평균 (GSC)'):'',
-  ].join('');
+  $('#cardRecruit').innerHTML=
+    heroStat('세션 수',fmt(curSess),'기간 합계',curSess,prevSess,'var(--ga4)')+
+    '<div class="channel-sub-list">'+[
+      subRow('신규 방문자',fmt(curNew),null,curNew,prevNew),
+      rateSubRow('재방문율',curReturnRate,prevReturnRate,`${fmt(curReturned)}/${fmt(curUsers)}명`),
+      hasRecruitGsc?subRow('검색 노출수',fmt(curGscImp),'GSC',curGscImp,prevGscImp):subRowPending('검색 노출·클릭·순위','GSC'),
+      hasRecruitGsc?subRow('검색 클릭수',fmt(curGscClk),'GSC',curGscClk,prevGscClk):'',
+      hasRecruitGsc?subRow('평균 순위',weightedAvg(weeks,'gsc_position','gsc_impressions')?.toFixed(1)??'—','GSC · 노출 가중'):'',
+    ].join('')+'</div>';
 
   /* 블로그 */
   const curBlogPV=sum(weeks,'blog_pageviews'), prevBlogPV=prevWeeks.length?sum(prevWeeks,'blog_pageviews'):null;
@@ -442,19 +436,19 @@ function renderChannelCards(R){
   const hasBlogGsc=weeks.some(w=>DB[w]?.blog_gsc_impressions!=null);
   const curBlogGscImp=sum(weeks,'blog_gsc_impressions'), prevBlogGscImp=prevWeeks.length?sum(prevWeeks,'blog_gsc_impressions'):null;
   const curBlogGscClk=sum(weeks,'blog_gsc_clicks'), prevBlogGscClk=prevWeeks.length?sum(prevWeeks,'blog_gsc_clicks'):null;
-  $('#cardBlog').innerHTML=[
-    kpi('조회수',fmt(curBlogPV),'기간 합계',curBlogPV,prevBlogPV,'blog_pageviews',spk),
-    kpi('신규 방문자',fmt(curBlogNew),'기간 합계',curBlogNew,prevBlogNew,'blog_newUsers',spk),
-    rateKpi('재방문율',curBlogReturnRate,prevBlogReturnRate,`재방문 ${fmt(curBlogReturned)}명 / 전체 ${fmt(curBlogUsers)}명`),
-    hasBlogGsc?kpi('검색 노출수',fmt(curBlogGscImp),'기간 합계 (GSC)',curBlogGscImp,prevBlogGscImp,'blog_gsc_impressions',spk):pendingKpi('검색 노출수 · 클릭수','Search Console 연동 예정'),
-    hasBlogGsc?kpi('검색 클릭수',fmt(curBlogGscClk),'기간 합계 (GSC)',curBlogGscClk,prevBlogGscClk,'blog_gsc_clicks',spk):'',
-  ].join('');
+  $('#cardBlog').innerHTML=
+    heroStat('조회수',fmt(curBlogPV),'기간 합계',curBlogPV,prevBlogPV,'var(--blog)')+
+    '<div class="channel-sub-list">'+[
+      subRow('신규 방문자',fmt(curBlogNew),null,curBlogNew,prevBlogNew),
+      rateSubRow('재방문율',curBlogReturnRate,prevBlogReturnRate,`${fmt(curBlogReturned)}/${fmt(curBlogUsers)}명`),
+      hasBlogGsc?subRow('검색 노출수',fmt(curBlogGscImp),'GSC',curBlogGscImp,prevBlogGscImp):subRowPending('검색 노출·클릭수','GSC'),
+      hasBlogGsc?subRow('검색 클릭수',fmt(curBlogGscClk),'GSC',curBlogGscClk,prevBlogGscClk):'',
+    ].join('')+'</div>';
 
   /* LinkedIn */
   const curF=lastFollowers(weeks), prevF=prevWeeks.length?(lastFollowers(prevWeeks)||null):null;
   const net=sum(weeks,'newFollowers');
   const curImp=sum(weeks,'impressions'), prevImp=prevWeeks.length?sum(prevWeeks,'impressions'):null;
-  const rxOf=d=>(d.likes||0)+(d.comments||0)+(d.shares||0);
   const hasRx=weeks.some(w=>DB[w]?.likes!=null);
   const curRx=sum(weeks,'likes')+sum(weeks,'comments')+sum(weeks,'shares');
   const curClicks=sum(weeks,'clicks');
@@ -468,13 +462,14 @@ function renderChannelCards(R){
   // LinkedIn 자체 정의: (좋아요+댓글+공유+클릭) / 노출 — 같은 API 응답 안 값끼리 계산이라
   // GA4 서로 다른 속성을 나누던 것과 달리 문제되는 파생 비율이 아님
   const curEngRate=(hasRx&&curImp)?(curRx+curClicks)/curImp*100:null;
-  $('#cardLinkedin').innerHTML=[
-    kpi('팔로워',fmt(curF),`기간 순증 ${net>=0?'+':''}${fmt(net)}명`,curF,prevF,'followers',spk),
-    kpi('노출수',fmt(curImp),'기간 합계',curImp,prevImp,'impressions',spk),
-    hasRx?kpi('반응수',fmt(curRx),'좋아요·댓글·공유',curRx,prevRx,rxOf,spk):pendingKpi('반응수 · 클릭수 · 참여율','다음 갱신부터 반영'),
-    hasRx?kpi('클릭수',fmt(curClicks),'기간 합계',curClicks,prevClicks,'clicks',spk):'',
-    hasRx?rateKpi('참여율',curEngRate,prevEngRate,'(반응+클릭)/노출'):'',
-  ].join('');
+  $('#cardLinkedin').innerHTML=
+    heroStat('팔로워',fmt(curF),`기간 순증 ${net>=0?'+':''}${fmt(net)}명`,curF,prevF,'var(--li)')+
+    '<div class="channel-sub-list">'+[
+      subRow('노출수',fmt(curImp),null,curImp,prevImp),
+      hasRx?subRow('반응수',fmt(curRx),'좋아요·댓글·공유',curRx,prevRx):subRowPending('반응수·클릭수·참여율','다음 갱신부터'),
+      hasRx?subRow('클릭수',fmt(curClicks),null,curClicks,prevClicks):'',
+      hasRx?rateSubRow('참여율',curEngRate,prevEngRate,'반응+클릭/노출'):'',
+    ].join('')+'</div>';
 }
 
 /* ════════ 5. UI HELPERS ════════ */
