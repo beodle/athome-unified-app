@@ -67,6 +67,11 @@ body{font-family:var(--font);font-size:14px;color:var(--text-1);background:var(-
 .channel-sub-val{font-size:15px;font-weight:800;color:var(--text-1);white-space:nowrap;}
 .channel-sub-note{font-size:10.5px;color:var(--text-4);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .channel-sub-row .cmp{font-size:10px;}
+/* KPI 목표 진행률 (채용브랜딩 로드맵 v1.1 수치 기준) */
+.channel-goal{margin-top:11px;}
+.channel-goal-top{display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;color:var(--text-4);font-weight:650;margin-bottom:5px;}
+.channel-goal-bar{height:5px;border-radius:99px;background:var(--bg-soft);overflow:hidden;}
+.channel-goal-fill{height:100%;border-radius:99px;}
 
 /* ── TOPBAR ── */
 .topbar{position:sticky;top:0;z-index:60;background:rgba(245,244,241,.85);backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border);}
@@ -367,9 +372,9 @@ function lastFollowers(weeks){
   return DB[past.length?past[past.length-1]:all[0]].followers;
 }
 
-/* 카드당 hero 지표 1개(크게) — 나머지 지표와 위계를 분리 */
-function heroStat(label,val,sub,cur,prev,color){
-  return `<div class="channel-hero"><div class="channel-hero-top"><span class="channel-hero-label">${label}</span>${badge(mom(cur,prev))}</div><div class="channel-hero-val" style="color:${color}">${val}</div><div class="channel-hero-sub">${sub}</div></div>`;
+/* 카드당 hero 지표 1개(크게) — 나머지 지표와 위계를 분리. goalHtml은 hero 밑에 붙는 목표 진행 바(선택) */
+function heroStat(label,val,sub,cur,prev,color,goalHtml){
+  return `<div class="channel-hero"><div class="channel-hero-top"><span class="channel-hero-label">${label}</span>${badge(mom(cur,prev))}</div><div class="channel-hero-val" style="color:${color}">${val}</div><div class="channel-hero-sub">${sub}</div>${goalHtml||''}</div>`;
 }
 /* 보조 지표 — hero 아래 작은 리스트 한 줄. cur/prev를 주면 증감 배지, 안 주면 값만 */
 function subRow(label,val,note,cur,prev){
@@ -378,6 +383,21 @@ function subRow(label,val,note,cur,prev){
 }
 function subRowPending(label,note){
   return `<div class="channel-sub-row pending"><span class="channel-sub-label">${label}</span><div class="channel-sub-right"><span class="channel-sub-note">${note}</span><span class="channel-sub-val">연동 예정</span></div></div>`;
+}
+/* KPI 목표 대비 진행률 — 채용브랜딩 로드맵 v1.1 "KPI 채널별 목표 지표"(6/12개월) 기준.
+   문서 자체에 "초기 추정값, 6개월 후 실데이터 기반 재조정" 명시돼 있어 그대로 라벨에 남김. */
+function nextMilestone(cur,milestones){
+  for(const m of milestones){ if(cur<m.val) return m; }
+  return milestones[milestones.length-1];
+}
+function goalBar(cur,target,milestoneLabel,color){
+  if(!target)return'';
+  const pct=Math.min(100,cur/target*100);
+  return `<div class="channel-goal"><div class="channel-goal-top"><span>${milestoneLabel} 목표 ${fmt(target)} 대비</span><span>${pct.toFixed(0)}%</span></div><div class="channel-goal-bar"><div class="channel-goal-fill" style="width:${pct.toFixed(0)}%;background:${color}"></div></div></div>`;
+}
+function subRowGoal(label,cur,target,milestoneLabel){
+  const pct=target?Math.min(100,cur/target*100):null;
+  return `<div class="channel-sub-row"><span class="channel-sub-label">${label}</span><div class="channel-sub-right"><span class="channel-sub-note">${milestoneLabel} 목표 ${fmt(target)}</span><span class="channel-sub-val">${fmt(cur)}${pct!=null?` · ${pct.toFixed(0)}%`:''}</span></div></div>`;
 }
 /* 순위 같은 "낮을수록 좋음" 지표를 노출량 가중 평균으로 (단순 평균은 트래픽 적은 주가 과대 반영됨) */
 function weightedAvg(weeks,valField,weightField){
@@ -393,6 +413,12 @@ function rateSubRow(label,curRate,prevRate,note){
   const badgeHtml=diff==null?'':`<span class="cmp ${cls}">${diff>=0?'▲':'▼'}${Math.abs(diff).toFixed(1)}%p</span>`;
   return `<div class="channel-sub-row"><span class="channel-sub-label">${label}</span><div class="channel-sub-right">${note?`<span class="channel-sub-note">${note}</span>`:''}<span class="channel-sub-val">${curRate.toFixed(1)}%</span>${badgeHtml}</div></div>`;
 }
+
+/* 채용브랜딩 로드맵 v1.1 "KPI — 채널별 목표 지표"(PHASE1, 0~12개월) 그대로 — 문서 자체가
+   "초기 추정값, 6개월 후 재조정" 명시. 편당 평균 도달/조회수·팟캐스트 목표는 현재 카드
+   구조(기간 합계 기준)와 계산 방식이 달라서 제외. */
+const FOLLOWER_GOALS=[{label:'6개월',val:1000},{label:'12개월',val:2000}];
+const BLOG_VISITOR_GOALS=[{label:'6개월',val:500},{label:'12개월',val:2000}];
 
 /* ── 채널별 카드 (채용사이트/블로그/링크드인 — 서로 완전히 독립, 채널 간 나눗셈 없음) ── */
 function renderChannelCards(R){
@@ -436,17 +462,24 @@ function renderChannelCards(R){
   const hasBlogGsc=weeks.some(w=>DB[w]?.blog_gsc_impressions!=null);
   const curBlogGscImp=sum(weeks,'blog_gsc_impressions'), prevBlogGscImp=prevWeeks.length?sum(prevWeeks,'blog_gsc_impressions'):null;
   const curBlogGscClk=sum(weeks,'blog_gsc_clicks'), prevBlogGscClk=prevWeeks.length?sum(prevWeeks,'blog_gsc_clicks'):null;
+  // "월 방문자" 목표는 기간 필터와 무관하게 최근 실측 run-rate(직전 4개 완결 주) 기준으로 비교
+  const curBlogMonthUsers=sum(sortedWeeks().slice(-4),'blog_users');
+  const blogMilestone=nextMilestone(curBlogMonthUsers,BLOG_VISITOR_GOALS);
   $('#cardBlog').innerHTML=
     heroStat('조회수',fmt(curBlogPV),'기간 합계',curBlogPV,prevBlogPV,'var(--blog)')+
     '<div class="channel-sub-list">'+[
       subRow('신규 방문자',fmt(curBlogNew),null,curBlogNew,prevBlogNew),
       rateSubRow('재방문율',curBlogReturnRate,prevBlogReturnRate,`${fmt(curBlogReturned)}/${fmt(curBlogUsers)}명`),
+      subRowGoal('월 방문자(최근 4주)',curBlogMonthUsers,blogMilestone.val,blogMilestone.label),
       hasBlogGsc?subRow('검색 노출수',fmt(curBlogGscImp),'GSC',curBlogGscImp,prevBlogGscImp):subRowPending('검색 노출·클릭수','GSC'),
       hasBlogGsc?subRow('검색 클릭수',fmt(curBlogGscClk),'GSC',curBlogGscClk,prevBlogGscClk):'',
     ].join('')+'</div>';
 
   /* LinkedIn */
   const curF=lastFollowers(weeks), prevF=prevWeeks.length?(lastFollowers(prevWeeks)||null):null;
+  // 목표 진행률은 기간 필터와 무관하게 "지금" 누적 팔로워 기준(전체 주차에서 가장 최신값)
+  const curFAbs=lastFollowers(sortedWeeks());
+  const followerMilestone=nextMilestone(curFAbs,FOLLOWER_GOALS);
   const net=sum(weeks,'newFollowers');
   const curImp=sum(weeks,'impressions'), prevImp=prevWeeks.length?sum(prevWeeks,'impressions'):null;
   const hasRx=weeks.some(w=>DB[w]?.likes!=null);
@@ -463,7 +496,7 @@ function renderChannelCards(R){
   // GA4 서로 다른 속성을 나누던 것과 달리 문제되는 파생 비율이 아님
   const curEngRate=(hasRx&&curImp)?(curRx+curClicks)/curImp*100:null;
   $('#cardLinkedin').innerHTML=
-    heroStat('팔로워',fmt(curF),`기간 순증 ${net>=0?'+':''}${fmt(net)}명`,curF,prevF,'var(--li)')+
+    heroStat('팔로워',fmt(curF),`기간 순증 ${net>=0?'+':''}${fmt(net)}명`,curF,prevF,'var(--li)',goalBar(curFAbs,followerMilestone.val,followerMilestone.label,'var(--li)'))+
     '<div class="channel-sub-list">'+[
       subRow('노출수',fmt(curImp),null,curImp,prevImp),
       hasRx?subRow('반응수',fmt(curRx),'좋아요·댓글·공유',curRx,prevRx):subRowPending('반응수·클릭수·참여율','다음 갱신부터'),
