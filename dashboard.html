@@ -395,10 +395,6 @@ function goalBar(cur,target,milestoneLabel,color){
   const pct=Math.min(100,cur/target*100);
   return `<div class="channel-goal"><div class="channel-goal-top"><span>${milestoneLabel} 목표 ${fmt(target)} 대비</span><span>${pct.toFixed(0)}%</span></div><div class="channel-goal-bar"><div class="channel-goal-fill" style="width:${pct.toFixed(0)}%;background:${color}"></div></div></div>`;
 }
-function subRowGoal(label,cur,target,milestoneLabel){
-  const pct=target?Math.min(100,cur/target*100):null;
-  return `<div class="channel-sub-row"><span class="channel-sub-label">${label}</span><div class="channel-sub-right"><span class="channel-sub-note">${milestoneLabel} 목표 ${fmt(target)}</span><span class="channel-sub-val">${fmt(cur)}${pct!=null?` · ${pct.toFixed(0)}%`:''}</span></div></div>`;
-}
 /* 순위 같은 "낮을수록 좋음" 지표를 노출량 가중 평균으로 (단순 평균은 트래픽 적은 주가 과대 반영됨) */
 function weightedAvg(weeks,valField,weightField){
   let wsum=0,vwsum=0;
@@ -470,7 +466,7 @@ function renderChannelCards(R){
     '<div class="channel-sub-list">'+[
       subRow('신규 방문자',fmt(curBlogNew),null,curBlogNew,prevBlogNew),
       rateSubRow('재방문율',curBlogReturnRate,prevBlogReturnRate,`${fmt(curBlogReturned)}/${fmt(curBlogUsers)}명`),
-      subRowGoal('월 방문자(최근 4주)',curBlogMonthUsers,blogMilestone.val,blogMilestone.label),
+      subRow('월 방문자(최근 4주)',fmt(curBlogMonthUsers))+goalBar(curBlogMonthUsers,blogMilestone.val,blogMilestone.label,'var(--blog)'),
       hasBlogGsc?subRow('검색 노출수',fmt(curBlogGscImp),'GSC',curBlogGscImp,prevBlogGscImp):subRowPending('검색 노출·클릭수','GSC'),
       hasBlogGsc?subRow('검색 클릭수',fmt(curBlogGscClk),'GSC',curBlogGscClk,prevBlogGscClk):'',
     ].join('')+'</div>';
