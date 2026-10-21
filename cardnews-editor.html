@@ -24,7 +24,7 @@ html, body { font-family: 'Pretendard Variable', Pretendard, -apple-system, sans
 .card { width: 1080px; height: 1350px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; padding: var(--pad-y) var(--pad-x); page-break-after: always; box-shadow: 0 8px 32px rgba(0,0,0,0.18); word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
 .card h1, .card h2, .card p { word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
 .card--cover { background: var(--bg-light); color: var(--dark); justify-content: flex-end; padding-bottom: 190px; }
-.card--cover-image { color: var(--white); justify-content: flex-end; background-size: cover; background-position: center 30%; padding-bottom: 190px; }
+.card--cover-image { color: var(--white); justify-content: flex-end; background-size: cover; background-position: center var(--img-focus, 30%); padding-bottom: 190px; }
 .card--cover-image .cover-overlay { position: absolute; inset: 0; pointer-events: none; }
 .card--cover-image[data-overlay="gradient"] .cover-overlay { background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.85) 85%, rgba(0,0,0,0.95) 100%); }
 .card--cover-image[data-overlay="dark"] .cover-overlay { background: rgba(0,0,0,0.55); }
@@ -312,7 +312,8 @@ function renderCover(c, m) {
   const lines = (c.title_lines || [m.title || '']).map(escapeHtml).join('<br>');
   if (c.image_url) {
     const overlay = c.image_overlay || 'gradient';
-    return `<section class="card card--cover-image" data-overlay="${overlay}" style="background-image:url('${c.image_url.replace(/"/g, '&quot;')}');">
+    const focus = (typeof c.image_focus === 'number') ? `--img-focus:${c.image_focus}%;` : '';
+    return `<section class="card card--cover-image" data-overlay="${overlay}" style="background-image:url('${c.image_url.replace(/"/g, '&quot;')}');${focus}">
       <div class="cover-overlay"></div>
       <div class="kicker">${kicker}</div>
       <h1 class="title">${lines}</h1>
@@ -437,7 +438,7 @@ function imageField(c, label = '사진 (선택)', showPosToggle = true) {
     <button type="button" class="ed-btn${c.image_pos === 'bottom' ? ' primary' : ''}" data-pos="bottom">▼ 아래</button>
     <button type="button" class="ed-btn${c.image_pos === 'bottom' ? '' : ' primary'}" data-pos="top">▲ 위</button>
   </div>` : '';
-  const focusVal = (typeof c.image_focus === 'number') ? c.image_focus : 50;
+  const focusVal = (typeof c.image_focus === 'number') ? c.image_focus : (c.type === 'cover' ? 30 : 50);
   const focusSlider = c.image_url ? `<div class="img-focus">
     <div class="img-focus__head"><span>사진 위치 ${focusVal}%</span><button type="button" class="img-focus__reset" data-focus-reset>가운데로</button></div>
     <input type="range" min="0" max="100" step="1" value="${focusVal}" data-focus>
@@ -478,7 +479,7 @@ function imageField(c, label = '사진 (선택)', showPosToggle = true) {
     });
     wrap?.querySelector('[data-focus-reset]')?.addEventListener('click', () => {
       pushUndo();
-      c.image_focus = 50;
+      c.image_focus = (c.type === 'cover') ? 30 : 50;
       renderAll();
     });
     wrap?.querySelectorAll('[data-pos]').forEach(btn => {
