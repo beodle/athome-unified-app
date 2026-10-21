@@ -24,7 +24,8 @@ html, body { font-family: 'Pretendard Variable', Pretendard, -apple-system, sans
 .card { width: 1080px; height: 1350px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; padding: var(--pad-y) var(--pad-x); page-break-after: always; box-shadow: 0 8px 32px rgba(0,0,0,0.18); word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
 .card h1, .card h2, .card p { word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
 .card--cover { background: var(--bg-light); color: var(--dark); justify-content: flex-end; padding-bottom: 190px; }
-.card--cover-image { color: var(--white); justify-content: flex-end; background-size: cover; background-position: center var(--img-focus, 30%); padding-bottom: 190px; }
+.card--cover-image { color: var(--white); justify-content: flex-end; padding-bottom: 190px; }
+.card--cover-image .cover-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center var(--img-focus, 30%); display: block; }
 .card--cover-image .cover-overlay { position: absolute; inset: 0; pointer-events: none; }
 .card--cover-image[data-overlay="gradient"] .cover-overlay { background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.85) 85%, rgba(0,0,0,0.95) 100%); }
 .card--cover-image[data-overlay="dark"] .cover-overlay { background: rgba(0,0,0,0.55); }
@@ -313,7 +314,8 @@ function renderCover(c, m) {
   if (c.image_url) {
     const overlay = c.image_overlay || 'gradient';
     const focus = (typeof c.image_focus === 'number') ? `--img-focus:${c.image_focus}%;` : '';
-    return `<section class="card card--cover-image" data-overlay="${overlay}" style="background-image:url('${c.image_url.replace(/"/g, '&quot;')}');${focus}">
+    return `<section class="card card--cover-image" data-overlay="${overlay}" style="${focus}">
+      <img class="cover-bg" src="${c.image_url.replace(/"/g, '&quot;')}" alt="">
       <div class="cover-overlay"></div>
       <div class="kicker">${kicker}</div>
       <h1 class="title">${lines}</h1>
