@@ -47,7 +47,7 @@ u { text-decoration: none; border-bottom: 3px solid currentColor; padding-bottom
 .card--outro .body { font-size: var(--fs-insight-body); font-weight: 500; line-height: 1.55; letter-spacing: -0.015em; white-space: pre-line; }
 .has-image-top, .has-image-bottom { justify-content: center !important; }
 .image-zone { position: absolute; left: 0; right: 0; overflow: hidden; }
-.image-zone img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.image-zone img { width: 100%; height: 100%; object-fit: cover; display: block; object-position: center var(--img-focus, 50%); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -89,6 +89,10 @@ u { text-decoration: none; border-bottom: 3px solid currentColor; padding-bottom
   .ed-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
   .ed-btn-file { position: relative; }
   .img-pos-toggle { display: flex; gap: 6px; margin: 6px 0; }
+  .img-focus { margin: 8px 0 4px; }
+  .img-focus__head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #6B6B6B; margin-bottom: 4px; }
+  .img-focus__reset { font-size: 11px; color: #FF5D00; background: none; border: none; cursor: pointer; padding: 0; }
+  .img-focus input[type=range] { width: 100%; accent-color: #FF5D00; }
   .ed-btn-file input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
 
   /* ---- 카드 섹션 ---- */
@@ -350,7 +354,8 @@ function renderImageZone(c) {
   const meta = imageZoneMeta(c);
   if (!meta) return '';
   const posStyle = meta.pos === 'top' ? 'top:0;bottom:auto;' : 'bottom:0;top:auto;';
-  return `<div class="image-zone" style="height:${meta.height}px;${posStyle}"><img src="${c.image_url.replace(/"/g, '&quot;')}" alt=""></div>`;
+  const focus = (typeof c.image_focus === 'number') ? c.image_focus : 50;
+  return `<div class="image-zone" style="height:${meta.height}px;${posStyle}--img-focus:${focus}%;"><img src="${c.image_url.replace(/"/g, '&quot;')}" alt=""></div>`;
 }
 function renderQuote(c, m, i, n) {
   return `<section class="card card--quote${hasImageClass(c)}" style="${cardImagePadding(c)}">
@@ -432,6 +437,11 @@ function imageField(c, label = '사진 (선택)', showPosToggle = true) {
     <button type="button" class="ed-btn${c.image_pos === 'bottom' ? ' primary' : ''}" data-pos="bottom">▼ 아래</button>
     <button type="button" class="ed-btn${c.image_pos === 'bottom' ? '' : ' primary'}" data-pos="top">▲ 위</button>
   </div>` : '';
+  const focusVal = (typeof c.image_focus === 'number') ? c.image_focus : 50;
+  const focusSlider = c.image_url ? `<div class="img-focus">
+    <div class="img-focus__head"><span>사진 위치 ${focusVal}%</span><button type="button" class="img-focus__reset" data-focus-reset>가운데로</button></div>
+    <input type="range" min="0" max="100" step="1" value="${focusVal}" data-focus>
+  </div>` : '';
   setTimeout(() => {
     const wrap = document.getElementById(inputId)?.closest('.field');
     wrap?.querySelector('input[type=file]')?.addEventListener('change', async (e) => {
@@ -452,8 +462,24 @@ function imageField(c, label = '사진 (선택)', showPosToggle = true) {
       delete c.image_url;
       delete c.image_ratio;
       delete c.image_pos;
+      delete c.image_focus;
       renderAll();
       showToast('사진 제거됨');
+    });
+    const focusInput = wrap?.querySelector('[data-focus]');
+    const focusLabel = wrap?.querySelector('.img-focus__head span');
+    let focusUndoPushed = false;
+    focusInput?.addEventListener('pointerdown', () => { focusUndoPushed = false; });
+    focusInput?.addEventListener('input', (e) => {
+      if (!focusUndoPushed) { pushUndo(); focusUndoPushed = true; }
+      c.image_focus = Number(e.target.value);
+      if (focusLabel) focusLabel.textContent = `사진 위치 ${c.image_focus}%`;
+      renderPreview();
+    });
+    wrap?.querySelector('[data-focus-reset]')?.addEventListener('click', () => {
+      pushUndo();
+      c.image_focus = 50;
+      renderAll();
     });
     wrap?.querySelectorAll('[data-pos]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -464,7 +490,7 @@ function imageField(c, label = '사진 (선택)', showPosToggle = true) {
       });
     });
   }, 0);
-  return `<div class="field"><label>${label}</label>${preview}${posToggle}
+  return `<div class="field"><label>${label}</label>${preview}${focusSlider}${posToggle}
     <label class="ed-btn ed-btn-file" style="display:inline-block;">${c.image_url ? '사진 교체' : '사진 추가'}<input type="file" id="${inputId}" accept="image/*"></label>
   </div>`;
 }
