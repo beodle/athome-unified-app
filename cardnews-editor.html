@@ -25,7 +25,7 @@ html, body { font-family: 'Pretendard Variable', Pretendard, -apple-system, sans
 .card h1, .card h2, .card p { word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
 .card--cover { background: var(--bg-light); color: var(--dark); justify-content: flex-end; padding-bottom: 190px; }
 .card--cover-image { color: var(--white); justify-content: flex-end; padding-bottom: 190px; }
-.card--cover-image .cover-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center var(--img-focus, 30%); display: block; }
+.card--cover-image .cover-bg { position: absolute; display: block; max-width: none; }
 .card--cover-image .cover-overlay { position: absolute; inset: 0; pointer-events: none; }
 .card--cover-image[data-overlay="gradient"] .cover-overlay { background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.85) 85%, rgba(0,0,0,0.95) 100%); }
 .card--cover-image[data-overlay="dark"] .cover-overlay { background: rgba(0,0,0,0.55); }
@@ -48,7 +48,7 @@ u { text-decoration: none; border-bottom: 3px solid currentColor; padding-bottom
 .card--outro .body { font-size: var(--fs-insight-body); font-weight: 500; line-height: 1.55; letter-spacing: -0.015em; white-space: pre-line; }
 .has-image-top, .has-image-bottom { justify-content: center !important; }
 .image-zone { position: absolute; left: 0; right: 0; overflow: hidden; }
-.image-zone img { width: 100%; height: 100%; object-fit: cover; display: block; object-position: center var(--img-focus, 50%); }
+.image-zone img { position: absolute; display: block; max-width: none; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -313,9 +313,9 @@ function renderCover(c, m) {
   const lines = (c.title_lines || [m.title || '']).map(escapeHtml).join('<br>');
   if (c.image_url) {
     const overlay = c.image_overlay || 'gradient';
-    const focus = (typeof c.image_focus === 'number') ? `--img-focus:${c.image_focus}%;` : '';
-    return `<section class="card card--cover-image" data-overlay="${overlay}" style="${focus}">
-      <img class="cover-bg" src="${c.image_url.replace(/"/g, '&quot;')}" alt="">
+    const focus = (typeof c.image_focus === 'number') ? c.image_focus : 30;
+    return `<section class="card card--cover-image" data-overlay="${overlay}">
+      <img class="cover-bg" data-cover="${focus}" src="${c.image_url.replace(/"/g, '&quot;')}" alt="">
       <div class="cover-overlay"></div>
       <div class="kicker">${kicker}</div>
       <h1 class="title">${lines}</h1>
@@ -358,7 +358,7 @@ function renderImageZone(c) {
   if (!meta) return '';
   const posStyle = meta.pos === 'top' ? 'top:0;bottom:auto;' : 'bottom:0;top:auto;';
   const focus = (typeof c.image_focus === 'number') ? c.image_focus : 50;
-  return `<div class="image-zone" style="height:${meta.height}px;${posStyle}--img-focus:${focus}%;"><img src="${c.image_url.replace(/"/g, '&quot;')}" alt=""></div>`;
+  return `<div class="image-zone" style="height:${meta.height}px;${posStyle}"><img data-cover="${focus}" src="${c.image_url.replace(/"/g, '&quot;')}" alt=""></div>`;
 }
 function renderQuote(c, m, i, n) {
   return `<section class="card card--quote${hasImageClass(c)}" style="${cardImagePadding(c)}">
@@ -382,6 +382,26 @@ function renderOutro(c, m, i, n) {
 }
 const RENDERERS = { cover: renderCover, quote: renderQuote, insight: renderInsight, outro: renderOutro };
 
+function applyCoverFit(root) {
+  // html2canvas가 object-fit / background-size: cover를 지원하지 않아
+  // cover 크롭을 직접 계산해 인라인 스타일로 박는다.
+  root.querySelectorAll('[data-cover]').forEach(img => {
+    const zone = img.parentElement;
+    if (!zone) return;
+    const W = zone.clientWidth || 1080;
+    const H = zone.clientHeight || 1350;
+    const nw = img.naturalWidth, nh = img.naturalHeight;
+    if (!nw || !nh || !W || !H) return;
+    const focus = Number(img.dataset.cover) / 100;
+    const scale = Math.max(W / nw, H / nh);
+    const w = nw * scale, h = nh * scale;
+    img.style.width = w + 'px';
+    img.style.height = h + 'px';
+    img.style.left = Math.round((W - w) / 2) + 'px';
+    img.style.top = Math.round((H - h) * focus) + 'px';
+  });
+}
+
 function renderPreview() {
   syncMetaTitleFromCover();
   const total = state.cards.length;
@@ -391,6 +411,11 @@ function renderPreview() {
     return `<div class="preview-card-wrap" data-zoom="${zoom}" data-idx="${i}">${r(c, state.meta, i + 1, total)}</div>`;
   }).join('');
   $('#preview').innerHTML = html || '<div class="empty" style="color: #A8A29A;">+ 추가로 카드를 시작하세요</div>';
+  const pv = $('#preview');
+  applyCoverFit(pv);
+  pv.querySelectorAll('[data-cover]').forEach(img => {
+    if (!img.complete) img.addEventListener('load', () => applyCoverFit(pv), { once: true });
+  });
 }
 
 // ---------- Render editor ----------
@@ -696,6 +721,7 @@ async function renderCardOffscreen(card, idx, total) {
 
   const imgs = wrap.querySelectorAll('img');
   await Promise.all([...imgs].map(img => img.complete ? null : new Promise(r => { img.onload = img.onerror = r; })));
+  applyCoverFit(wrap);
   await new Promise(r => setTimeout(r, 200));
 
   const canvas = await html2canvas(cardEl, {
