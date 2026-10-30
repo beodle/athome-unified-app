@@ -25,8 +25,13 @@ echo "→ 갱신 대상: $WEEKS_STR"
 # ── 2. GA4 추출 + 베이크 + 마지막 갱신일 갱신 ───────────────
 export WEEKS="$WEEKS_STR"
 # 로컬에선 기본 키 경로, CI(GitHub Actions)에선 미리 export된 값을 사용
-: "${GOOGLE_APPLICATION_CREDENTIALS:=/Users/jangmyeongseong/Desktop/claude code/clauide-mcp-c1d375c27ae7.json}"
+# 2026-10-30: clauide-mcp → athome-tools-prd 통합 이관, GA4 전용 계정으로 교체
+: "${GOOGLE_APPLICATION_CREDENTIALS:=/Users/jangmyeongseong/Desktop/claude code/_credentials/athome-tools-prd/ga4-sa.json}"
 export GOOGLE_APPLICATION_CREDENTIALS
+# Search Console 전용 서비스 계정 — 이관 전엔 GA4 키를 그대로 재사용했지만, athome-tools-prd에서
+# GA4/GSC가 서로 다른 계정으로 분리돼서 이제 별도 env var로 받는다.
+: "${GSC_SA_KEY_PATH:=/Users/jangmyeongseong/Desktop/claude code/_credentials/athome-tools-prd/gsc-sa.json}"
+export GSC_SA_KEY_PATH
 # Firestore 쓰기용 서비스 계정 — GA4 키(GOOGLE_APPLICATION_CREDENTIALS)와는 다른 프로젝트/계정이라
 # 별도 env var로 분리한다(같이 쓰면 GA4 클라이언트가 이 키로 인증을 시도해 충돌함). CI에선
 # FIRESTORE_SA_KEY 시크릿을 파일로 복원해 미리 export해준다.
@@ -50,11 +55,12 @@ WEEKS = os.environ['WEEKS'].split()
 c = BetaAnalyticsDataClient()
 MT = Filter.StringFilter.MatchType
 
-# Search Console은 GA4와 별도 스코프가 필요해서 같은 서비스 계정 키로 별도 인증 객체를 만든다.
-# 방금 등록한 권한이라(전파 지연 가능) 실패해도 GA4/LinkedIn/YouTube 수집 전체가 죽지 않도록 감싼다.
+# Search Console은 GA4와 다른 서비스 계정(athome-tools-prd 통합 이관, 2026-10-30)을 쓴다 —
+# 전환 전엔 같은 GA4 키를 재사용했지만 이제 별도 env var(GSC_SA_KEY_PATH)로 분리.
+# 권한 전파 지연/오류 시 실패해도 GA4/LinkedIn/YouTube 수집 전체가 죽지 않도록 감싼다.
 try:
     _gsc_creds = gsc_service_account.Credentials.from_service_account_file(
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'],
+        os.environ['GSC_SA_KEY_PATH'],
         scopes=['https://www.googleapis.com/auth/webmasters.readonly'])
     gsc = gsc_build('webmasters', 'v3', credentials=_gsc_creds, cache_discovery=False)
 except Exception as e:
