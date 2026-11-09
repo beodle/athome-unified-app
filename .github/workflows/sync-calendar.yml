@@ -6,7 +6,8 @@ name: Sync Content Calendar
 # 열지 않고 이 Firestore 컬렉션을 읽도록 하기 위함(로그인 게이트 우회 방지).
 on:
   schedule:
-    - cron: '*/20 * * * *'  # 20분마다
+    - cron: '*/5 * * * *'  # 5분마다 — calendar.html이 쓰기 직후 Firestore에도 바로
+                            # 미러링하므로, 이건 그 보조 안전망(미러링 실패 시 복구)
   workflow_dispatch:
 
 permissions:

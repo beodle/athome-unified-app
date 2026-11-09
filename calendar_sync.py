@@ -40,7 +40,7 @@ def _client():
 
 def fetch_rows():
     # Google이 GitHub Actions 실행 IP에 일시적으로 401/403을 돌려줄 때가 있다(시트 권한
-    # 문제 아님 — 같은 요청을 다른 IP에서 보내면 바로 200). 20분마다 도는 워크플로라
+    # 문제 아님 — 같은 요청을 다른 IP에서 보내면 바로 200). 5분마다 도는 워크플로라
     # 한 번 실패로 바로 죽이지 않고 짧게 재시도.
     last_err = None
     for attempt in range(3):
