@@ -696,21 +696,84 @@
         scope: 'https://www.googleapis.com/auth/spreadsheets',
         callback: async (response) => {
           authInFlight = false;
+          const silent = silentRefresh;
+          silentRefresh = false;
           if (response.error) {
-            showToast('로그인 실패: ' + response.error, true);
+            if (!silent) showToast('로그인 실패: ' + response.error, true);
             return;
           }
-          accessToken = response.access_token;
-          const btn = document.getElementById('btn-login');
-          btn.textContent = '✓ 편집 활성';
-          btn.classList.add('authenticated');
-          await fetchSheetName();
-          document.getElementById('btn-add').hidden = false; // 편집 모드에서만 노출
-          showToast('편집 모드 활성화. 카드를 드래그하거나 + 일정 추가를 눌러보세요.');
-          renderAll(); // draggable 카드로 다시 렌더
+          saveEditSession(response.access_token, response.expires_in);
+          await activateEditMode(!silent);
+        },
+        error_callback: () => {
+          authInFlight = false;
+          silentRefresh = false;
         }
       });
+      restoreEditSession();
     }
+
+    /* ────────────────────────────────────────────
+       편집 세션 유지 — 토큰(1시간)을 localStorage에 만료시각과 함께 저장해
+       새로고침/탭 이동/브라우저 재시작에도 복원하고, 만료 직전·복귀 시 팝업 없이 조용히 재발급
+    ──────────────────────────────────────────── */
+    const EDIT_SESSION_KEY = 'athome-cal-edit-session';
+    let silentRefresh = false;
+    let refreshTimer = null;
+
+    function saveEditSession(token, expiresIn) {
+      const exp = Date.now() + (Number(expiresIn) || 3600) * 1000;
+      try { localStorage.setItem(EDIT_SESSION_KEY, JSON.stringify({ token, exp })); } catch (e) {}
+    }
+    function clearEditSession() {
+      clearTimeout(refreshTimer);
+      try { localStorage.removeItem(EDIT_SESSION_KEY); } catch (e) {}
+    }
+    function readEditSession() {
+      try { return JSON.parse(localStorage.getItem(EDIT_SESSION_KEY) || 'null'); } catch (e) { return null; }
+    }
+
+    async function activateEditMode(announce) {
+      accessToken = readEditSession()?.token || accessToken;
+      const btn = document.getElementById('btn-login');
+      btn.textContent = '✓ 편집 활성';
+      btn.classList.add('authenticated');
+      await fetchSheetName();
+      document.getElementById('btn-add').hidden = false; // 편집 모드에서만 노출
+      if (announce) showToast('편집 모드 활성화. 카드를 드래그하거나 + 일정 추가를 눌러보세요.');
+      renderAll(); // draggable 카드로 다시 렌더
+      scheduleSilentRefresh();
+    }
+
+    function trySilentRefresh() {
+      if (!tokenClient || authInFlight) return;
+      silentRefresh = true;
+      authInFlight = true;
+      tokenClient.requestAccessToken({ prompt: '' });
+    }
+
+    function scheduleSilentRefresh() {
+      clearTimeout(refreshTimer);
+      const s = readEditSession();
+      if (!s) return;
+      refreshTimer = setTimeout(trySilentRefresh, Math.max(5000, s.exp - Date.now() - 5 * 60 * 1000));
+    }
+
+    function restoreEditSession() {
+      const s = readEditSession();
+      if (!s) return;
+      if (s.exp - Date.now() > 60 * 1000) {
+        accessToken = s.token;
+        activateEditMode(false);
+      } else {
+        trySilentRefresh();
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      const s = readEditSession();
+      if (document.visibilityState === 'visible' && s && s.exp - Date.now() < 5 * 60 * 1000) trySilentRefresh();
+    });
 
     async function fetchSheetName() {
       try {
@@ -735,6 +798,7 @@
       if (accessToken) {
         // 로그아웃
         accessToken = null;
+        clearEditSession();
         sheetName   = '콘텐츠 캘린더';
         const btn = document.getElementById('btn-login');
         btn.textContent = '✎ 편집 로그인';
