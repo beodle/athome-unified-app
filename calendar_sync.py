@@ -6,27 +6,24 @@
 CSV export URL을 직접 열지 않고 이 Firestore 컬렉션을 읽는다(로그인한
 @athomecorp.com 계정만 읽을 수 있도록 Security Rules로 제한).
 
-시트 자체를 CI(이 스크립트)가 공개 CSV URL로 읽는 것은 노출 문제가 아니다 —
-노출 문제는 "브라우저에서 아무나" 이 URL에 접근할 수 있었다는 것이었고,
-그 접근 경로(calendar.html의 client-side fetch)를 없애는 것이 이번 변경의 목적.
+시트는 "제한됨"(링크 공개 아님)이라, CI는 시트 전용 서비스 계정(SHEET_SA_KEY)으로
+Sheets API를 읽는다. 브라우저 직접 접근 경로는 없다.
 
 사용: python3 calendar_sync.py [--dry]
   --dry : Firestore 수정 없이 파싱 결과만 출력
+환경변수: SHEET_SA_KEY_PATH(시트 읽기), FIRESTORE_SA_KEY_PATH(쓰기, --dry에선 불필요)
 """
 import os
 import sys
-import csv
-import io
 import time
 
 import requests
 from google.cloud import firestore
 from google.oauth2 import service_account
 
-SHEET_CSV_URL = (
-    'https://docs.google.com/spreadsheets/d/'
-    '1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak/export?format=csv&gid=658998951'
-)
+SPREADSHEET_ID = '1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak'
+SHEET_GID = '658998951'
+SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 DEFAULT_COLUMNS = ['시기', '주요 주제', '채널', '비고', 'URL']
 
 
@@ -38,36 +35,64 @@ def _client():
     return firestore.Client(project=creds.project_id, credentials=creds)
 
 
+def _sheets_session():
+    from google.auth.transport.requests import AuthorizedSession
+    key_path = os.environ.get('SHEET_SA_KEY_PATH')
+    if not key_path:
+        raise SystemExit('❌ 환경변수 SHEET_SA_KEY_PATH 없음 (시트 읽기용 서비스 계정 키 경로)')
+    creds = service_account.Credentials.from_service_account_file(key_path, scopes=[SHEETS_SCOPE])
+    return AuthorizedSession(creds)
+
+
 def fetch_rows():
-    # Google이 GitHub Actions 실행 IP에 일시적으로 401/403을 돌려줄 때가 있다(시트 권한
-    # 문제 아님 — 같은 요청을 다른 IP에서 보내면 바로 200). 5분마다 도는 워크플로라
-    # 한 번 실패로 바로 죽이지 않고 짧게 재시도.
-    last_err = None
-    for attempt in range(3):
-        try:
-            r = requests.get(SHEET_CSV_URL, timeout=30)
-            if r.status_code < 400:
-                break
-            last_err = f'HTTP {r.status_code}'
-        except requests.RequestException as e:
-            last_err = str(e)
-        if attempt < 2:
-            time.sleep(5 * (attempt + 1))
-    else:
-        raise SystemExit(f'❌ 시트 CSV 조회 실패(3회 재시도 후): {last_err}')
-    r.encoding = 'utf-8'  # 응답에 charset이 명시돼 있지 않아 requests가 잘못 추측하는 걸 막음
-    reader = csv.DictReader(io.StringIO(r.text))
-    header_fields = [f.strip() for f in (reader.fieldnames or [])] or DEFAULT_COLUMNS
+    # 시트는 "제한됨"(링크 공개 아님)이라 공개 CSV 대신 시트 전용 서비스 계정으로
+    # Sheets API를 읽는다. 일시적 오류(5xx/429)만 짧게 재시도.
+    sess = _sheets_session()
+    base = f'https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}'
+
+    def get(url, **params):
+        last_err = None
+        for attempt in range(3):
+            try:
+                r = sess.get(url, params=params, timeout=30)
+                if r.status_code < 400:
+                    return r.json()
+                last_err = f'HTTP {r.status_code} {r.text[:200]}'
+                if r.status_code not in (429, 500, 502, 503, 504):
+                    break
+            except requests.RequestException as e:
+                last_err = str(e)
+            if attempt < 2:
+                time.sleep(5 * (attempt + 1))
+        raise SystemExit(f'❌ 시트 조회 실패: {last_err}')
+
+    meta = get(base, fields='sheets.properties')
+    title = next((s['properties']['title'] for s in meta['sheets']
+                  if str(s['properties']['sheetId']) == SHEET_GID), None)
+    if not title:
+        raise SystemExit(f'❌ gid={SHEET_GID} 시트를 찾지 못함')
+    quoted = "'" + title.replace("'", "''") + "'"
+    values = get(f'{base}/values/{quoted}', valueRenderOption='FORMATTED_VALUE').get('values', [])
+    if not values:
+        raise SystemExit('❌ 시트가 비어 있음 — 동기화 중단(Firestore 보호)')
+
+    header_fields = [f.strip() for f in values[0]] or DEFAULT_COLUMNS
+
+    def cell(row, name):
+        for i, h in enumerate(header_fields):
+            if h == name and i < len(row):
+                return str(row[i]).strip()
+        return ''
 
     events = {}
-    for i, row in enumerate(reader):
+    for i, row in enumerate(values[1:]):
         row_index = i + 2  # 1=헤더, 2=첫 데이터 (calendar.html의 _rowIndex와 동일 규칙)
         events[str(row_index)] = {
-            'date':    (row.get('시기') or '').strip(),
-            'title':   (row.get('주요 주제') or '').strip(),
-            'channel': (row.get('채널') or '').strip(),
-            'note':    (row.get('비고') or '').strip(),
-            'url':     (row.get('URL') or row.get('url') or row.get('링크') or '').strip(),
+            'date':    cell(row, '시기'),
+            'title':   cell(row, '주요 주제'),
+            'channel': cell(row, '채널'),
+            'note':    cell(row, '비고'),
+            'url':     cell(row, 'URL') or cell(row, 'url') or cell(row, '링크'),
         }
     return header_fields, events
 

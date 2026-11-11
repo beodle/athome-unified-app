@@ -38,7 +38,13 @@ jobs:
         env:
           FIRESTORE_SA_KEY: ${{ secrets.FIRESTORE_SA_KEY }}
 
+      - name: Restore Sheet reader service account key
+        run: printf '%s' "$SHEET_SA_KEY" > "$RUNNER_TEMP/sheet-key.json"
+        env:
+          SHEET_SA_KEY: ${{ secrets.SHEET_SA_KEY }}
+
       - name: Run calendar_sync.py
         env:
           FIRESTORE_SA_KEY_PATH: ${{ runner.temp }}/firestore-key.json
+          SHEET_SA_KEY_PATH: ${{ runner.temp }}/sheet-key.json
         run: python3 calendar_sync.py

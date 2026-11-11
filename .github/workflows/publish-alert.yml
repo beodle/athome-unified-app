@@ -13,12 +13,22 @@ jobs:
   alert:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install --quiet google-auth requests
+
       - name: Check today's scheduled posts and notify Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SHEET_SA_KEY: ${{ secrets.SHEET_SA_KEY }}
         run: |
           python3 - <<'PY'
-          import os, csv, io, json, datetime, urllib.request
+          import os, json, datetime, urllib.request
+          from google.oauth2 import service_account
+          from google.auth.transport.requests import AuthorizedSession
 
           hook = os.environ.get('SLACK_WEBHOOK_URL', '')
           if not hook:
@@ -29,10 +39,23 @@ jobs:
           today = datetime.datetime.now(KST).date()
           today_str = today.isoformat()
 
-          url = ('https://docs.google.com/spreadsheets/d/'
-                 '1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak/export?format=csv&gid=658998951')
-          text = urllib.request.urlopen(url, timeout=30).read().decode('utf-8')
-          rows = list(csv.DictReader(io.StringIO(text)))
+          # 시트는 "제한됨"이라 시트 전용 서비스 계정으로 Sheets API 조회
+          SID, GID = '1bnLQypIuMb0gw0RxzwYVkqGBdN8KSA4_TXSuogaOWak', '658998951'
+          creds = service_account.Credentials.from_service_account_info(
+              json.loads(os.environ['SHEET_SA_KEY']),
+              scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
+          sess = AuthorizedSession(creds)
+          base = f'https://sheets.googleapis.com/v4/spreadsheets/{SID}'
+          meta = sess.get(base, params={'fields': 'sheets.properties'}, timeout=30)
+          meta.raise_for_status()
+          title = next(s['properties']['title'] for s in meta.json()['sheets']
+                       if str(s['properties']['sheetId']) == GID)
+          q = "'" + title.replace("'", "''") + "'"
+          vr = sess.get(f'{base}/values/{q}', timeout=30)
+          vr.raise_for_status()
+          values = vr.json().get('values', [])
+          head = [h.strip() for h in values[0]] if values else []
+          rows = [{h: (row[i] if i < len(row) else '') for i, h in enumerate(head)} for row in values[1:]]
           todays = [r for r in rows if (r.get('시기') or '').strip() == today_str]
 
           if not todays:
