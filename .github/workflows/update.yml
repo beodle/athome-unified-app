@@ -1,9 +1,9 @@
 name: Refresh GA4 Dashboard
 
-# 매주 월요일 KST 09:00 자동 갱신 + Actions 탭에서 수동 실행(Run workflow) 가능
+# 평일(월~금) 매일 아침 자동 갱신 + Actions 탭에서 수동 실행(Run workflow) 가능
 on:
   schedule:
-    - cron: '0 0 * * 1'   # 00:00 UTC = 월요일 09:00 KST
+    - cron: '0 23 * * 0-4'  # 23:00 UTC(일~목) = 월~금 08:00 KST. GitHub 예약 지연(최대 수 시간)을 감안해 일찍 설정
   workflow_dispatch:
 
 permissions:
