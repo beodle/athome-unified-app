@@ -3,9 +3,9 @@ Firestore ↔ 대시보드 baked-data 동기화 헬퍼.
 
 dashboard.html 파일 자체에 실적 데이터를 정규식으로 굽던 방식(__BAKED_DATA__)은
 로그인 안 한 사람이 raw HTML만 열어도 그대로 노출되는 문제가 있어, Firestore
-저장으로 옮긴다. update.sh/linkedin_fetch.py/youtube_fetch.py는 "dashboard.html을
+저장으로 옮긴다. update.sh/linkedin_fetch.py는 "dashboard.html을
 읽고/쓰던" 부분만 이 모듈의 load_baked()/save_baked()로 교체하면 되고, 그 앞뒤의
-GA4/LinkedIn/YouTube 수집 로직은 그대로 둔다.
+GA4/LinkedIn 수집 로직은 그대로 둔다.
 
 인증: FIRESTORE_SA_KEY_PATH 환경변수(서비스 계정 JSON 파일 경로)를 사용한다.
 GA4 클라이언트가 쓰는 GOOGLE_APPLICATION_CREDENTIALS와 겹치면 서로 다른
@@ -13,8 +13,7 @@ GA4 클라이언트가 쓰는 GOOGLE_APPLICATION_CREDENTIALS와 겹치면 서로
 
 컬렉션 구조 (기존 __BAKED_DATA__ dict와 1:1 대응, 스키마 변경 없음):
   dashboardWeekly/{weekId}  — 예: "2026-W29" 문서 하나당 그 주차의 필드 전부
-  dashboardMeta/summary     — 주차 키가 아닌 나머지(__li_posts__/__yt_subscribers__/
-                              __yt_videos__/__LAST_UPDATED__)를 모아둔 문서
+  dashboardMeta/summary     — 주차 키가 아닌 나머지(__li_posts__/__LAST_UPDATED__)를 모아둔 문서
 """
 import os
 import re
@@ -26,8 +25,6 @@ _WEEK_RE = re.compile(r"^\d{4}-W\d{2}$")
 
 _META_KEYS = {
     '__li_posts__': 'li_posts',
-    '__yt_subscribers__': 'yt_subscribers',
-    '__yt_videos__': 'yt_videos',
     '__LAST_UPDATED__': 'last_updated',
 }
 

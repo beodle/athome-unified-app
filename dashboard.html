@@ -254,8 +254,8 @@ let __LAST_UPDATED__ = '—';
 let DB={};
 let range={mode:'4w',offset:0,start:null,end:null};
 
-// 예전엔 GA4/LinkedIn/YouTube 실적을 파일에 그대로 구워서(__BAKED_DATA__) 로그인 여부와
-// 무관하게 raw HTML만 열어도 노출됐다. 이제는 update.sh/linkedin_fetch.py/youtube_fetch.py가
+// 예전엔 GA4/LinkedIn 실적을 파일에 그대로 구워서(__BAKED_DATA__) 로그인 여부와
+// 무관하게 raw HTML만 열어도 노출됐다. 이제는 update.sh/linkedin_fetch.py가
 // Firestore(dashboardWeekly/dashboardMeta)에 직접 쓰고, 여기서는 로그인한 사용자만 읽을 수
 // 있는 그 Firestore 데이터를 읽어온다.
 async function loadData(){
@@ -272,8 +272,6 @@ async function loadData(){
   if(summary.exists){
     const s=summary.data();
     if(s.li_posts) baked['__li_posts__']=s.li_posts;
-    if(s.yt_subscribers!==undefined) baked['__yt_subscribers__']=s.yt_subscribers;
-    if(s.yt_videos) baked['__yt_videos__']=s.yt_videos;
     if(s.last_updated) __LAST_UPDATED__=s.last_updated;
   }
 
@@ -359,6 +357,10 @@ function render(){
 function badge(m){if(!m)return'';const a=m.dir==='up'?'▲':m.dir==='down'?'▼':'―';const p=m.pct!=null?` ${m.pct>=0?'+':''}${m.pct.toFixed(1)}%`:'';return `<span class="cmp ${m.dir}">${a}${p} vs 직전</span>`;}
 function lastFollowers(weeks){
   if(!weeks.length)return 0;
+  // 기간이 "가장 최근 완료 주차"까지면 이번 주 스냅샷(linkedin_fetch.py가 매일 아침 찍는 값)을 우선 사용.
+  // sortedWeeks()가 이번 주를 빼서, 이게 없으면 팔로워가 지난주 마지막 갱신값에 최대 일주일 멈춰 보였다.
+  const done=sortedWeeks();
+  if(weeks[weeks.length-1]===done[done.length-1]&&DB[curWeek()]?.followers)return DB[curWeek()].followers;
   const inRange=weeks.filter(w=>DB[w]?.followers);
   if(inRange.length)return DB[inRange[inRange.length-1]].followers;
   // 범위 내 스냅샷 없으면 전체에서 가장 가까운 값(과거 우선, 없으면 미래) — 팔로워는 누적이라 빈칸 방지
@@ -474,7 +476,7 @@ function renderChannelCards(R){
   /* LinkedIn */
   const curF=lastFollowers(weeks), prevF=prevWeeks.length?(lastFollowers(prevWeeks)||null):null;
   // 목표 진행률은 기간 필터와 무관하게 "지금" 누적 팔로워 기준(전체 주차에서 가장 최신값)
-  const curFAbs=lastFollowers(sortedWeeks());
+  const curFAbs=DB[curWeek()]?.followers||lastFollowers(sortedWeeks());
   const followerMilestone=nextMilestone(curFAbs,FOLLOWER_GOALS);
   const net=sum(weeks,'newFollowers');
   const curImp=sum(weeks,'impressions'), prevImp=prevWeeks.length?sum(prevWeeks,'impressions'):null;

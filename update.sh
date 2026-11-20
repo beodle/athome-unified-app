@@ -57,7 +57,7 @@ MT = Filter.StringFilter.MatchType
 
 # Search Console은 GA4와 다른 서비스 계정(athome-tools-prd 통합 이관, 2026-10-30)을 쓴다 —
 # 전환 전엔 같은 GA4 키를 재사용했지만 이제 별도 env var(GSC_SA_KEY_PATH)로 분리.
-# 권한 전파 지연/오류 시 실패해도 GA4/LinkedIn/YouTube 수집 전체가 죽지 않도록 감싼다.
+# 권한 전파 지연/오류 시 실패해도 GA4/LinkedIn 수집 전체가 죽지 않도록 감싼다.
 try:
     _gsc_creds = gsc_service_account.Credentials.from_service_account_file(
         os.environ['GSC_SA_KEY_PATH'],
@@ -245,14 +245,6 @@ if [ -n "${LINKEDIN_REFRESH_TOKEN:-}" ]; then
   python3 linkedin_fetch.py || echo "⚠️ LinkedIn 수집 실패 — 건너뜀"
 else
   echo "→ LinkedIn env 없음, 건너뜀"
-fi
-
-# ── 2.6 YouTube 팟캐스트 수집 (env 있을 때: 구독자·홈레코딩 영상) ──
-if [ -n "${YOUTUBE_API_KEY:-}" ]; then
-  echo "→ YouTube 수집..."
-  python3 youtube_fetch.py || echo "⚠️ YouTube 수집 실패 — 건너뜀"
-else
-  echo "→ YouTube env 없음, 건너뜀"
 fi
 
 echo "✅ Firestore 반영 완료. 로그인 후 대시보드에서 바로 확인 가능"
